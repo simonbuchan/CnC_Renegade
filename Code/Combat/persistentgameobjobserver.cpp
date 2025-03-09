@@ -129,13 +129,13 @@ void	PersistentGameObjObserverManager::Add( PersistentGameObjObserverClass * obs
 
 void	PersistentGameObjObserverManager::Remove( PersistentGameObjObserverClass * observer )
 {
-	ObserverList.Delete( observer );
+	ObserverList.Delete_Value( observer );
 }
 
 /*
 **
 */
-typedef	enum {
+enum {
 	CHUNKID_OBSERVERS			=	1,
 };
 

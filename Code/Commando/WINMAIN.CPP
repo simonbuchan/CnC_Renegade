@@ -121,7 +121,8 @@ void Set_Working_Directory(char *old_path, char *new_path);
 int Start_Application( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow );
 void Set_Working_Directory(HINSTANCE hInstance);
 
-#include "packet.h"
+// only packet.h I can find is Tools/wnet/packet.h which defines PacketClass, which isn't used in this file
+// #include "packet.h"
 
 #ifndef _MSC_VER
 long Top_Level_Exception_Filter(EXCEPTION_POINTERS *e_info)
@@ -130,6 +131,9 @@ long Top_Level_Exception_Filter(EXCEPTION_POINTERS *e_info)
 }
 #endif //_MSC_VER
 
+#ifdef _MSC_VER
+int Main_Game_Loop_Try();
+#endif
 
 
 
@@ -400,7 +404,6 @@ static bool Video_Card_Driver_Check()
 	return !exit_code;
 }
 
-
 /***********************************************************************************************
  * Start_Application -- Handles WinMain execution.															  *
  *                                                                                             *
@@ -459,7 +462,7 @@ int Start_Application( HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /
 		Register_Thread_ID(GetCurrentThreadId(), "Main Thread", true);
 	}
 
-	int exitCode = EXIT_SUCCESS;
+	int exitCode;
 
 #ifdef WWDEBUG
 	if (cDevOptions::EnableExceptionHandler.Is_False()) {
@@ -471,26 +474,14 @@ int Start_Application( HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /
 		Register_Application_Version_Callback(&BuildInfoClass::Composite_Build_Info);
 
 #ifdef _MSC_VER
-		/*
-		** The __try/__except construct is part of the WIN32 interface. This is not the same
-		** as C++ exception handling. There is no additional code overhead required
-		** with this interface and the compilers exception handling options should be disabled
-		** to prevent the compiler generating additional stack unwinding code.
-		*/
-		__try {
+		exitCode = Main_Game_Loop_Try();
 #else
 		SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER) &Top_Level_Exception_Filter);
-#endif
-			WWDEBUG_SAY(("Game_Main_Loop\n"));
-			exitCode = Game_Main_Loop();
-
-#ifdef _MSC_VER
-		} __except(Exception_Handler(GetExceptionCode(), GetExceptionInformation())) {};
-
+		WWDEBUG_SAY(("Game_Main_Loop\n"));
+		exitCode = Game_Main_Loop();
 		/*
 		** Set the exception filter to use on shutdown.
 		*/
-#else
 		SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER) &Top_Level_Exception_Filter);
 #endif
 #ifdef WWDEBUG
@@ -503,6 +494,25 @@ int Start_Application( HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /
 
 	return exitCode;
 }
+
+#ifdef _MSC_VER
+int Main_Game_Loop_Try()
+{
+	/*
+	** The __try/__except construct is part of the WIN32 interface. This is not the same
+	** as C++ exception handling. There is no additional code overhead required
+	** with this interface and the compilers exception handling options should be disabled
+	** to prevent the compiler generating additional stack unwinding code.
+	*/
+	__try {
+		WWDEBUG_SAY(("Game_Main_Loop\n"));
+		return Game_Main_Loop();
+	} __except(Exception_Handler(GetExceptionCode(), GetExceptionInformation())) {
+		// seems dodgy, but it's what it did before...
+		return EXIT_SUCCESS;
+	};
+}
+#endif
 
 /***********************************************************************************************
  * Main_Window_Proc -- Windows Proc for the main game window                                   *

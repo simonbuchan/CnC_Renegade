@@ -50,6 +50,7 @@
 #include "soundcullobj.h"
 #include "logicallistener.h"
 #include "multilist.h"
+#include "mempool.h"
 
 // Forward declarations
 class RenderObjClass;
@@ -175,6 +176,7 @@ class SoundSceneClass
 		virtual void			Save_Static_Sounds (ChunkSaveClass &csave);
 		virtual void			Load_Static_Sounds (ChunkLoadClass &cload);
 
+	public:
 		//////////////////////////////////////////////////////////////////////
 		//	Collection methods
 		//////////////////////////////////////////////////////////////////////		
@@ -192,6 +194,8 @@ class SoundSceneClass
 			AudibleSoundClass *	sound_obj;
 			float						distance2;
 		};
+
+	protected:
 
 		typedef MultiListClass<AudibleInfoClass>	COLLECTED_SOUNDS;
 

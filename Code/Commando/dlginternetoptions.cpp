@@ -81,8 +81,11 @@ InternetOptionsMenuClass::On_Init_Dialog (void)
 		entry_text = TRANSLATE (IDS_MP_SHORTCUT_NEWS);
 		bar->Add_Button (IDC_MP_SHORTCUT_NEWS, entry_text);
 
+#ifdef CLEANBUILD_TODO
+		// I guess I'm not enough of an insider?
 		entry_text = TRANSLATE (IDS_MP_SHORTCUT_INSIDER);
 		bar->Add_Button (IDC_MP_SHORTCUT_INSIDER, entry_text);
+#endif
 
 		entry_text = TRANSLATE (IDS_MP_SHORTCUT_CLANS);
 		bar->Add_Button (IDC_MP_SHORTCUT_CLANS, entry_text);

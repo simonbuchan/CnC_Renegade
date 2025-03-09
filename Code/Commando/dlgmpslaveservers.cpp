@@ -200,9 +200,9 @@ SlaveServerDialogClass::On_Command (int ctrl_id, int message_id, DWORD param)
 		case IDC_MENU_BACK_BUTTON:
 		{
 			SlaveMaster.Reset();
-			char *nick = "";
-			char *pass = "";
-			char *serial = "";
+			const char *nick = "";
+			const char *pass = "";
+			const char *serial = "";
 			bool enable = false;
 
 			for (int i=0 ; i<MAX_SLAVES ; i++) {
@@ -313,7 +313,7 @@ void SlaveServerDialogClass::Set_Slave_Button(int slavenum)
 				if (size != 0) {
 					description = char_description;
 				} else {
-					description = (unsigned short *)TRANSLATE(IDS_SERVER_SAVELOAD_DEFAULT);
+					description = TRANSLATE(IDS_SERVER_SAVELOAD_DEFAULT);
 					size = 1;
 				}
 			}

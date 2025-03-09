@@ -316,6 +316,8 @@ static void Log_Textures(bool inited,unsigned& total_count, unsigned& total_mem)
 		case D3DFMT_P8: tex_format="D3DFMT_P8"; break;
 		case D3DFMT_X8R8G8B8: tex_format="D3DFMT_X8R8G8B8"; break;
 		case D3DFMT_X1R5G5B5: tex_format="D3DFMT_X1R5G5B5"; break;
+		// ignoring all elsewhere unused names
+#ifdef CLEANBUILD_NAMES
 		case D3DFMT_R3G3B2: tex_format="D3DFMT_R3G3B2"; break;
 		case D3DFMT_A8R3G3B2: tex_format="D3DFMT_A8R3G3B2"; break;
 		case D3DFMT_X4R4G4B4: tex_format="D3DFMT_X4R4G4B4"; break;
@@ -336,6 +338,7 @@ static void Log_Textures(bool inited,unsigned& total_count, unsigned& total_mem)
 		case D3DFMT_DXT4: tex_format="D3DFMT_DXT4"; break;
 		case D3DFMT_DXT5: tex_format="D3DFMT_DXT5"; break;
 		case D3DFMT_D16_LOCKABLE: tex_format="D3DFMT_D16_LOCKABLE"; break;
+#endif
 		case D3DFMT_D32: tex_format="D3DFMT_D32"; break;
 		case D3DFMT_D15S1: tex_format="D3DFMT_D15S1"; break;
 		case D3DFMT_D24S8: tex_format="D3DFMT_D24S8"; break;
@@ -681,9 +684,9 @@ RenderObjClass * WW3DAssetManager::Create_Render_Obj(const char * name)
 		AssetStatusClass::Peek_Instance()->Report_Load_On_Demand_RObj(name);
 
 		char filename [MAX_PATH];
-		char *mesh_name = ::strchr (name, '.');
+		const char *mesh_name = ::strchr (name, '.');
 		if (mesh_name != NULL) {
-			::lstrcpyn (filename, name, ((int)mesh_name) - ((int)name) + 1);
+			::lstrcpyn (filename, name, (mesh_name - name + 1));
 			::lstrcat (filename, ".w3d");
 		} else {
 			sprintf( filename, "%s.w3d", name);
@@ -855,7 +858,7 @@ HAnimClass *	WW3DAssetManager::Get_HAnim(const char * name)
 			AssetStatusClass::Peek_Instance()->Report_Load_On_Demand_HAnim(name);
 
 			char filename[ MAX_PATH ];
-			char *animname = strchr( name, '.');
+			const char *animname = strchr( name, '.');
 			if (animname != NULL) {
 				sprintf( filename, "%s.w3d", animname+1);
 			} else {
@@ -1465,7 +1468,7 @@ void WW3DAssetManager::Remove_Prototype(PrototypeClass *proto)
 		}
 
 		// Now remove this from our vector-array of prototypes
-		Prototypes.Delete (proto);
+		Prototypes.Delete_Value (proto);
 	}
 
 	return;

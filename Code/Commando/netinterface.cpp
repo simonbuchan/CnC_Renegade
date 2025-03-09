@@ -54,8 +54,11 @@ cNetInterface::~cNetInterface(void)
 }
 
 //-----------------------------------------------------------------------------
-WideStringClass cNetInterface::Get_Nickname(void)
+WideStringClass& cNetInterface::Get_Nickname(void)
 {
+	// Used in a Set_Owner() call that takes a reference,
+	// so can't return an rvalue like this code used to.
+#ifdef CLEANBUILD_TODO
 	if (cGameSpyAdmin::Is_Gamespy_Game()) {
 		
 		//
@@ -69,8 +72,11 @@ WideStringClass cNetInterface::Get_Nickname(void)
 		wide_name.Convert_From(cUserOptions::GameSpyNickname.Get());
 		return wide_name;
 	} else {
-		return Nickname;
+#endif
+	return Nickname;
+#ifdef
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------

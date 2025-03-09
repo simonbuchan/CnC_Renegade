@@ -73,7 +73,6 @@ const char *RegistryFileName = "slave.ini";
 
 SlaveMasterClass SlaveMaster;
 
-
 extern char DefaultRegistryModifier[1024];
 
 
@@ -139,7 +138,8 @@ SlaveServerClass::~SlaveServerClass(void)
  * HISTORY:                                                                                    *
  *   11/21/2001 3:50PM ST : Created                                                            *
  *=============================================================================================*/
-void SlaveServerClass::Set(bool enable, char *nick, char *serial, unsigned short port, char *settings_file, int bandwidth, char *password)
+void SlaveServerClass::Set(bool enable, const char* nick, const char* serial, unsigned short port, const char* settings_file, int bandwidth, const
+                           char* password)
 {
 	Enable = enable;
 	Port = port;
@@ -529,7 +529,8 @@ void SlaveMasterClass::Reset(void)
  * HISTORY:                                                                                    *
  *   11/21/2001 3:46PM ST : Created                                                            *
  *=============================================================================================*/
-void SlaveMasterClass::Add_Slave(bool enable, char *nick, char *serial, unsigned short port, char *settings_file, int bandwidth, char *password)
+void SlaveMasterClass::Add_Slave(bool enable, const char* nick, const char* serial, unsigned short port, const char* settings_file, int bandwidth, const
+                                 char* password)
 {
 	WWASSERT(NumSlaveServers < MAX_SLAVES);
 	SlaveServers[NumSlaveServers++].Set(enable, nick, serial, port, settings_file, bandwidth, password);

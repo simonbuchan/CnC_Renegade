@@ -16,6 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wwdebug.h>
@@ -26,8 +27,8 @@
 
 struct VisemeTableItem
 {
-	char	*LetterCombination;
-	char	Visemes[2];
+	const char	*LetterCombination;
+	const char	Visemes[2];
 };
 
 static VisemeTableItem gsVisemeTable[] =

@@ -757,11 +757,15 @@ WWINLINE unsigned int DX8Wrapper::Convert_Color(const Vector4& color)
 //
 // ----------------------------------------------------------------------------
 
+#pragma warning( push )
+// "frame pointer register 'ebp' modified by inline assembly code" - it's being pushed
+#pragma warning( disable: 4731 )
 WWINLINE unsigned int DX8Wrapper::Convert_Color(const Vector3& color,float alpha)
 {
 	const float scale = 255.0;
 	unsigned int col;
 
+	col = 0;
 	// Multiply r, g, b and a components (0.0,...,1.0) by 255 and convert to integer. Or the integer values togerher
 	// such that 32 bit ingeger has AAAAAAAARRRRRRRRGGGGGGGGBBBBBBBB.
 	__asm
@@ -826,8 +830,10 @@ not_changed:
 
 		mov	col,eax
 	}
+
 	return col;
 }
+#pragma warning( pop )
 
 // ----------------------------------------------------------------------------
 //

@@ -1004,7 +1004,7 @@ float		WeaponChartIconScale = 0.45f / 640.0f;
 
 static	void	Clear_Weapon_Chart_Icons( void )
 {
-	if ( WeaponChartIcons.Count != 0 ) {
+	if ( WeaponChartIcons.Count() != 0 ) {
 		int i;
 		for ( i = 0; i < WeaponChartIcons.Count(); i++) {
 			delete WeaponChartIcons[i];
@@ -2729,7 +2729,7 @@ typedef enum {
 	NUM_RENDER_IMAGES,
 };
 #else
-typedef enum {
+enum {
 	RETICLE	= 0,
 	RETICLE_HIT,
 	ACTION_STATUSBAR_RENDERER,

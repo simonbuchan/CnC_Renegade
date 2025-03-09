@@ -819,22 +819,22 @@ EXTERN_C const IID IID_IChat;
             User __RPC_FAR *buddy) = 0;
         
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE RequestPublicUnicodeMessage( 
-            /* [in] */ const unsigned short __RPC_FAR *message) = 0;
+            /* [in] */ const wchar_t __RPC_FAR *message) = 0;
         
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE RequestPrivateUnicodeMessage( 
             /* [in] */ User __RPC_FAR *users,
-            /* [in] */ const unsigned short __RPC_FAR *message) = 0;
+            /* [in] */ const wchar_t __RPC_FAR *message) = 0;
         
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE RequestPublicUnicodeAction( 
-            /* [in] */ const unsigned short __RPC_FAR *action) = 0;
+            /* [in] */ const wchar_t __RPC_FAR *action) = 0;
         
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE RequestPrivateUnicodeAction( 
             /* [in] */ User __RPC_FAR *users,
-            /* [in] */ const unsigned short __RPC_FAR *action) = 0;
+            /* [in] */ const wchar_t __RPC_FAR *action) = 0;
         
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE RequestUnicodePage( 
             User __RPC_FAR *user,
-            const unsigned short __RPC_FAR *message) = 0;
+            const wchar_t __RPC_FAR *message) = 0;
         
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE RequestSetPlayerCount( 
             unsigned int currentPlayers,
@@ -1113,26 +1113,26 @@ EXTERN_C const IID IID_IChat;
         
         /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *RequestPublicUnicodeMessage )( 
             IChat __RPC_FAR * This,
-            /* [in] */ const unsigned short __RPC_FAR *message);
+            /* [in] */ const wchar_t __RPC_FAR *message);
         
         /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *RequestPrivateUnicodeMessage )( 
             IChat __RPC_FAR * This,
             /* [in] */ User __RPC_FAR *users,
-            /* [in] */ const unsigned short __RPC_FAR *message);
+            /* [in] */ const wchar_t __RPC_FAR *message);
         
         /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *RequestPublicUnicodeAction )( 
             IChat __RPC_FAR * This,
-            /* [in] */ const unsigned short __RPC_FAR *action);
+            /* [in] */ const wchar_t __RPC_FAR *action);
         
         /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *RequestPrivateUnicodeAction )( 
             IChat __RPC_FAR * This,
             /* [in] */ User __RPC_FAR *users,
-            /* [in] */ const unsigned short __RPC_FAR *action);
+            /* [in] */ const wchar_t __RPC_FAR *action);
         
         /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *RequestUnicodePage )( 
             IChat __RPC_FAR * This,
             User __RPC_FAR *user,
-            const unsigned short __RPC_FAR *message);
+            const wchar_t __RPC_FAR *message);
         
         /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *RequestSetPlayerCount )( 
             IChat __RPC_FAR * This,
@@ -2062,7 +2062,7 @@ void __RPC_STUB IChat_RequestBuddyDelete_Stub(
 
 /* [helpstring] */ HRESULT STDMETHODCALLTYPE IChat_RequestPublicUnicodeMessage_Proxy( 
     IChat __RPC_FAR * This,
-    /* [in] */ const unsigned short __RPC_FAR *message);
+    /* [in] */ const wchar_t __RPC_FAR *message);
 
 
 void __RPC_STUB IChat_RequestPublicUnicodeMessage_Stub(
@@ -2075,7 +2075,7 @@ void __RPC_STUB IChat_RequestPublicUnicodeMessage_Stub(
 /* [helpstring] */ HRESULT STDMETHODCALLTYPE IChat_RequestPrivateUnicodeMessage_Proxy( 
     IChat __RPC_FAR * This,
     /* [in] */ User __RPC_FAR *users,
-    /* [in] */ const unsigned short __RPC_FAR *message);
+    /* [in] */ const wchar_t __RPC_FAR *message);
 
 
 void __RPC_STUB IChat_RequestPrivateUnicodeMessage_Stub(
@@ -2087,7 +2087,7 @@ void __RPC_STUB IChat_RequestPrivateUnicodeMessage_Stub(
 
 /* [helpstring] */ HRESULT STDMETHODCALLTYPE IChat_RequestPublicUnicodeAction_Proxy( 
     IChat __RPC_FAR * This,
-    /* [in] */ const unsigned short __RPC_FAR *action);
+    /* [in] */ const wchar_t __RPC_FAR *action);
 
 
 void __RPC_STUB IChat_RequestPublicUnicodeAction_Stub(
@@ -2100,7 +2100,7 @@ void __RPC_STUB IChat_RequestPublicUnicodeAction_Stub(
 /* [helpstring] */ HRESULT STDMETHODCALLTYPE IChat_RequestPrivateUnicodeAction_Proxy( 
     IChat __RPC_FAR * This,
     /* [in] */ User __RPC_FAR *users,
-    /* [in] */ const unsigned short __RPC_FAR *action);
+    /* [in] */ const wchar_t __RPC_FAR *action);
 
 
 void __RPC_STUB IChat_RequestPrivateUnicodeAction_Stub(
@@ -2113,7 +2113,7 @@ void __RPC_STUB IChat_RequestPrivateUnicodeAction_Stub(
 /* [helpstring] */ HRESULT STDMETHODCALLTYPE IChat_RequestUnicodePage_Proxy( 
     IChat __RPC_FAR * This,
     User __RPC_FAR *user,
-    const unsigned short __RPC_FAR *message);
+    const wchar_t __RPC_FAR *message);
 
 
 void __RPC_STUB IChat_RequestUnicodePage_Stub(
@@ -2373,28 +2373,28 @@ EXTERN_C const IID IID_IChatEvent;
             /* [in] */ HRESULT res,
             /* [in] */ Channel __RPC_FAR *channel,
             /* [in] */ User __RPC_FAR *user,
-            /* [in] */ const unsigned short __RPC_FAR *message) = 0;
+            /* [in] */ const wchar_t __RPC_FAR *message) = 0;
         
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE OnPrivateUnicodeMessage( 
             /* [in] */ HRESULT res,
             /* [in] */ User __RPC_FAR *user,
-            /* [in] */ const unsigned short __RPC_FAR *message) = 0;
+            /* [in] */ const wchar_t __RPC_FAR *message) = 0;
         
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE OnPrivateUnicodeAction( 
             /* [in] */ HRESULT res,
             /* [in] */ User __RPC_FAR *user,
-            /* [in] */ const unsigned short __RPC_FAR *action) = 0;
+            /* [in] */ const wchar_t __RPC_FAR *action) = 0;
         
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE OnPublicUnicodeAction( 
             /* [in] */ HRESULT res,
             /* [in] */ Channel __RPC_FAR *channel,
             User __RPC_FAR *user,
-            /* [in] */ const unsigned short __RPC_FAR *action) = 0;
+            /* [in] */ const wchar_t __RPC_FAR *action) = 0;
         
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE OnPagedUnicode( 
             HRESULT res,
             User __RPC_FAR *user,
-            const unsigned short __RPC_FAR *message) = 0;
+            const wchar_t __RPC_FAR *message) = 0;
         
         virtual /* [helpstring] */ HRESULT STDMETHODCALLTYPE OnServerTime( 
             HRESULT res,
@@ -2647,32 +2647,32 @@ EXTERN_C const IID IID_IChatEvent;
             /* [in] */ HRESULT res,
             /* [in] */ Channel __RPC_FAR *channel,
             /* [in] */ User __RPC_FAR *user,
-            /* [in] */ const unsigned short __RPC_FAR *message);
+            /* [in] */ const wchar_t __RPC_FAR *message);
         
         /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *OnPrivateUnicodeMessage )( 
             IChatEvent __RPC_FAR * This,
             /* [in] */ HRESULT res,
             /* [in] */ User __RPC_FAR *user,
-            /* [in] */ const unsigned short __RPC_FAR *message);
+            /* [in] */ const wchar_t __RPC_FAR *message);
         
         /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *OnPrivateUnicodeAction )( 
             IChatEvent __RPC_FAR * This,
             /* [in] */ HRESULT res,
             /* [in] */ User __RPC_FAR *user,
-            /* [in] */ const unsigned short __RPC_FAR *action);
+            /* [in] */ const wchar_t __RPC_FAR *action);
         
         /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *OnPublicUnicodeAction )( 
             IChatEvent __RPC_FAR * This,
             /* [in] */ HRESULT res,
             /* [in] */ Channel __RPC_FAR *channel,
             User __RPC_FAR *user,
-            /* [in] */ const unsigned short __RPC_FAR *action);
+            /* [in] */ const wchar_t __RPC_FAR *action);
         
         /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *OnPagedUnicode )( 
             IChatEvent __RPC_FAR * This,
             HRESULT res,
             User __RPC_FAR *user,
-            const unsigned short __RPC_FAR *message);
+            const wchar_t __RPC_FAR *message);
         
         /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE __RPC_FAR *OnServerTime )( 
             IChatEvent __RPC_FAR * This,
@@ -3382,7 +3382,7 @@ void __RPC_STUB IChatEvent_OnBuddyDelete_Stub(
     /* [in] */ HRESULT res,
     /* [in] */ Channel __RPC_FAR *channel,
     /* [in] */ User __RPC_FAR *user,
-    /* [in] */ const unsigned short __RPC_FAR *message);
+    /* [in] */ const wchar_t __RPC_FAR *message);
 
 
 void __RPC_STUB IChatEvent_OnPublicUnicodeMessage_Stub(
@@ -3396,7 +3396,7 @@ void __RPC_STUB IChatEvent_OnPublicUnicodeMessage_Stub(
     IChatEvent __RPC_FAR * This,
     /* [in] */ HRESULT res,
     /* [in] */ User __RPC_FAR *user,
-    /* [in] */ const unsigned short __RPC_FAR *message);
+    /* [in] */ const wchar_t __RPC_FAR *message);
 
 
 void __RPC_STUB IChatEvent_OnPrivateUnicodeMessage_Stub(
@@ -3410,7 +3410,7 @@ void __RPC_STUB IChatEvent_OnPrivateUnicodeMessage_Stub(
     IChatEvent __RPC_FAR * This,
     /* [in] */ HRESULT res,
     /* [in] */ User __RPC_FAR *user,
-    /* [in] */ const unsigned short __RPC_FAR *action);
+    /* [in] */ const wchar_t __RPC_FAR *action);
 
 
 void __RPC_STUB IChatEvent_OnPrivateUnicodeAction_Stub(
@@ -3425,7 +3425,7 @@ void __RPC_STUB IChatEvent_OnPrivateUnicodeAction_Stub(
     /* [in] */ HRESULT res,
     /* [in] */ Channel __RPC_FAR *channel,
     User __RPC_FAR *user,
-    /* [in] */ const unsigned short __RPC_FAR *action);
+    /* [in] */ const wchar_t __RPC_FAR *action);
 
 
 void __RPC_STUB IChatEvent_OnPublicUnicodeAction_Stub(
@@ -3439,7 +3439,7 @@ void __RPC_STUB IChatEvent_OnPublicUnicodeAction_Stub(
     IChatEvent __RPC_FAR * This,
     HRESULT res,
     User __RPC_FAR *user,
-    const unsigned short __RPC_FAR *message);
+    const wchar_t __RPC_FAR *message);
 
 
 void __RPC_STUB IChatEvent_OnPagedUnicode_Stub(

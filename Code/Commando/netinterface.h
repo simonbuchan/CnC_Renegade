@@ -47,7 +47,7 @@ class cNetInterface
 
       static void						Set_Random_Nickname(void);
       static void						Set_Nickname(WideStringClass & name);
-      static WideStringClass		Get_Nickname(void);
+      static WideStringClass& Get_Nickname(void);
 
 		static void Set_Side_Preference(int side);
 		static int Get_Side_Preference(void);

@@ -992,9 +992,9 @@ int INIClass::Get_UUBlock(char const * section, void * block, int len) const
  * HISTORY:                                                                                    *
  *    11/6/2001 4:27PM ST : Created                                                            *
  *=============================================================================================*/
-const WideStringClass& INIClass::Get_Wide_String(WideStringClass& new_string, char const * section, char const * entry, unsigned short const * defvalue) const
+const WideStringClass& INIClass::Get_Wide_String(WideStringClass& new_string, char const * section, char const * entry, wchar_t const * defvalue) const
 {
-	unsigned short out[1024];
+	wchar_t out[1024];
 	char buffer[1024];
 
 	Base64Pipe b64pipe(Base64Pipe::DECODE);
@@ -1031,7 +1031,7 @@ const WideStringClass& INIClass::Get_Wide_String(WideStringClass& new_string, ch
  * HISTORY:                                                                                    *
  *   11/6/2001 4:29PM ST : Created                                                             *
  *=============================================================================================*/
-bool INIClass::Put_Wide_String(char const * section, char const * entry, const unsigned short * string)
+bool INIClass::Put_Wide_String(char const * section, char const * entry, const wchar_t * string)
 {
 	if (section == NULL || entry == NULL || string == NULL) {
 		return(false);
@@ -1559,7 +1559,7 @@ double INIClass::Get_Double(char const * section, char const * entry, double def
 	INIEntry * entryptr = Find_Entry(section, entry);
 	if (entryptr != NULL && entryptr->Value != NULL) {
 		float val = defvalue;
-		sscanf(entryptr->Value, "%lf", &val);
+		sscanf(entryptr->Value, "%f", &val);
 		defvalue = val;
 		if (strchr(entryptr->Value, '%') != NULL) {
 			defvalue /= 100.0f;

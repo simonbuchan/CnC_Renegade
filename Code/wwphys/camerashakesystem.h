@@ -72,13 +72,12 @@ public:
 	void		Timestep(float dt);
 	void		Update_Camera(CameraClass & camera);
 
-protected:
-
 	/**
 	** CameraShakerClass 
 	** This class encapsulates the current state of a camera shaker.  It is a multi-list object
 	** and is allocated in pools.
 	*/
+	// Made public to be accessible for DEFINE_AUTO_POOL()
 	class CameraShakerClass : public MultiListObjectClass, public AutoPoolClass<CameraShakerClass,256>
 	{	
 	public:
@@ -100,6 +99,8 @@ protected:
 		Vector3				Omega;
 		Vector3				Phi;
 	};
+
+protected:
 
 	MultiListClass<CameraShakerClass>	CameraShakerList;
 

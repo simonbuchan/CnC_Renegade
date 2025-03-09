@@ -87,6 +87,7 @@ inline void WWProfile_Get_Ticks(_int64 * ticks)
 #ifdef _UNIX
        *ticks = TIMEGETTIME();
 #else
+
 	__asm
 	{
 		push edx;
@@ -101,6 +102,7 @@ inline void WWProfile_Get_Ticks(_int64 * ticks)
 		pop ecx;
 		pop edx;
 	}
+
 #endif
 }
 

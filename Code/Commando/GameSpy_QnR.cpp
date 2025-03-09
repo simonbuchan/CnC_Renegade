@@ -34,6 +34,8 @@
  * Functions:                                                                                  *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include <time.h>
+
 #include <Gamespy\gs_patch_usage.h>
 #include <Gamespy\gcdkeyserver.h>
 #include "specialbuilds.h"
@@ -170,7 +172,7 @@ CGameSpyQnR::~CGameSpyQnR()
 }
 
 void CGameSpyQnR::LaunchArcade(void) {
-	char *akey = "Software\\GameSpy\\GameSpy Arcade";
+	const char *akey = "Software\\GameSpy\\GameSpy Arcade";
 	BOOL launched = FALSE;
 	HKEY key = NULL;
 	int result = 0;
@@ -324,7 +326,7 @@ void CGameSpyQnR::Think()
 		GameSpyBanList.Think();
 		ttime = TIMEGETTIME();
 	}
-	
+
 #ifndef BETACLIENT
 //	DoGameStuff();
 	if (m_GSInit && m_GSEnabled && GameInitMgrClass::Is_LAN_Initialized() &&
@@ -758,6 +760,7 @@ void CGameSpyQnR::players_callback(char *outbuf, int maxlen)
 	WWDEBUG_SAY(("<--GS_QnR -- Players callback\n"));
 	return;
 }
+
 /************
 We'll actually start up two completely seperate "game servers"
 Each one initializes the Query & Reporting SDK and calls processs on it during

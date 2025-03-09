@@ -226,7 +226,7 @@ const char *GameSideServerControlClass::App_Request_Callback(char *request)
  * HISTORY:                                                                                    *
  *   11/16/2001 3:58PM ST : Created                                                            *
  *=============================================================================================*/
-void GameSideServerControlClass::Print(char *text, ...)
+void GameSideServerControlClass::Print(const char* text, ...)
 {
 	if (Listening) {
 		if (Response.Get_Length() > 32768) {

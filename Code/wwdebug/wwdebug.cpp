@@ -49,6 +49,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <assert.h>
+#include <intrin.h>
 #include <string.h>
 #include <signal.h>
 #include "except.h"
@@ -314,7 +315,7 @@ void WWDebug_Assert_Fail(const char * expr,const char * file, int line)
 
 		if (code == IDRETRY) {
 			_asm int 3;
-      	return;
+			return;
 		}
    }
 }

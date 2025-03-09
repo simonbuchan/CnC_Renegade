@@ -459,6 +459,7 @@ RaveshawBossGameObjClass::RaveshawBossGameObjClass (void)	:
 		ArcLifeRemaining[index] = 0;
 	}
 
+	typedef RaveshawBossGameObjClass Self;
 	//
 	//	Register the Overall states with its state machine
 	//	

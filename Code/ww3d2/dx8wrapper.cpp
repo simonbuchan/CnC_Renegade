@@ -652,7 +652,7 @@ bool DX8Wrapper::Set_Any_Render_Device(void)
 	}
 
 	// Try windowed first
-	for (dev_number = 0; dev_number < _RenderDeviceNameTable.Count(); dev_number++) {
+	for (int dev_number = 0; dev_number < _RenderDeviceNameTable.Count(); dev_number++) {
 		if (Set_Render_Device(dev_number,-1,-1,-1,1,false)) {
 			return true;
 		}
@@ -1236,7 +1236,8 @@ bool DX8Wrapper::Find_Color_And_Z_Mode(int resx,int resy,int bitdepth,D3DFORMAT 
 	bool found = false;
 	unsigned int mode = 0;
 
-	for (int format_index=0; format_index < format_count; format_index++) {
+	int format_index;
+	for (format_index=0; format_index < format_count; format_index++) {
 		found |= Find_Color_Mode(format_table[format_index],resx,resy,&mode);
 		if (found) break;
 	}
@@ -2423,7 +2424,8 @@ void DX8Wrapper::Set_Light_Environment(LightEnvironmentClass* light_env)
 		::ZeroMemory(&light, sizeof(D3DLIGHT8));
 		light.Type=D3DLIGHT_DIRECTIONAL;
 
-		for (int l=0;l<light_count;++l) {
+		int l;
+		for (l=0;l<light_count;++l) {
 			(Vector3&)light.Diffuse=light_env->Get_Light_Diffuse(l);
 			Vector3 dir=-light_env->Get_Light_Direction(l);
 			light.Direction=(const D3DVECTOR&)(dir);
@@ -2763,6 +2765,9 @@ void DX8Wrapper::Set_Gamma(float gamma,float bright,float contrast,bool calibrat
 const char* DX8Wrapper::Get_DX8_Render_State_Name(D3DRENDERSTATETYPE state)
 {
 	switch (state) {
+// disabling these for now, only used in a debug logging function and
+// most of these values are not used.
+#ifdef CLEANBUILD_NAMES
 	case D3DRS_ZENABLE                       : return "D3DRS_ZENABLE";
 	case D3DRS_FILLMODE                      : return "D3DRS_FILLMODE";
 	case D3DRS_SHADEMODE                     : return "D3DRS_SHADEMODE";
@@ -2839,6 +2844,7 @@ const char* DX8Wrapper::Get_DX8_Render_State_Name(D3DRENDERSTATETYPE state)
 	case D3DRS_BLENDOP                       : return "D3DRS_BLENDOP";
 //	case D3DRS_POSITIONORDER                 : return "D3DRS_POSITIONORDER";
 //	case D3DRS_NORMALORDER                   : return "D3DRS_NORMALORDER";
+#endif
 	default											  : return "UNKNOWN";
 	}
 }
@@ -2846,6 +2852,7 @@ const char* DX8Wrapper::Get_DX8_Render_State_Name(D3DRENDERSTATETYPE state)
 const char* DX8Wrapper::Get_DX8_Texture_Stage_State_Name(D3DTEXTURESTAGESTATETYPE state)
 {
 	switch (state) {
+#ifdef CLEANBUILD_NAMES
 	case D3DTSS_COLOROP                   : return "D3DTSS_COLOROP";
 	case D3DTSS_COLORARG1                 : return "D3DTSS_COLORARG1";
 	case D3DTSS_COLORARG2                 : return "D3DTSS_COLORARG2";
@@ -2873,6 +2880,7 @@ const char* DX8Wrapper::Get_DX8_Texture_Stage_State_Name(D3DTEXTURESTAGESTATETYP
 	case D3DTSS_COLORARG0                 : return "D3DTSS_COLORARG0";
 	case D3DTSS_ALPHAARG0                 : return "D3DTSS_ALPHAARG0";
 	case D3DTSS_RESULTARG                 : return "D3DTSS_RESULTARG";
+#endif
 	default										  : return "UNKNOWN";
 	}
 }
@@ -2880,6 +2888,7 @@ const char* DX8Wrapper::Get_DX8_Texture_Stage_State_Name(D3DTEXTURESTAGESTATETYP
 void DX8Wrapper::Get_DX8_Render_State_Value_Name(StringClass& name, D3DRENDERSTATETYPE state, unsigned value)
 {
 	switch (state) {
+#ifdef CLEANBUILD_NAMES
 	case D3DRS_ZENABLE:
 		name=Get_DX8_ZBuffer_Type_Name(value);
 		break;
@@ -3019,6 +3028,7 @@ void DX8Wrapper::Get_DX8_Render_State_Value_Name(StringClass& name, D3DRENDERSTA
 	case D3DRS_BLENDOP:
 		name=Get_DX8_Blend_Op_Name(value);
 		break;
+#endif
 	default:
 		name.Format("UNKNOWN (%d)",value);
 		break;
@@ -3028,6 +3038,7 @@ void DX8Wrapper::Get_DX8_Render_State_Value_Name(StringClass& name, D3DRENDERSTA
 void DX8Wrapper::Get_DX8_Texture_Stage_State_Value_Name(StringClass& name, D3DTEXTURESTAGESTATETYPE state, unsigned value)
 {
 	switch (state) {
+#ifdef CLEANBUILD_NAMES
 	case D3DTSS_COLOROP:
 	case D3DTSS_ALPHAOP:
 		name=Get_DX8_Texture_Op_Name(value);
@@ -3093,7 +3104,7 @@ void DX8Wrapper::Get_DX8_Texture_Stage_State_Value_Name(StringClass& name, D3DTE
 	case D3DTSS_BORDERCOLOR:
 		name.Format("0x%x",value);
 		break;
-
+#endif
 	default:
 		name.Format("UNKNOWN (%d)",value);
 		break;
@@ -3103,6 +3114,7 @@ void DX8Wrapper::Get_DX8_Texture_Stage_State_Value_Name(StringClass& name, D3DTE
 const char* DX8Wrapper::Get_DX8_Texture_Op_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DTOP_DISABLE                      : return "D3DTOP_DISABLE";
 	case D3DTOP_SELECTARG1                   : return "D3DTOP_SELECTARG1";
 	case D3DTOP_SELECTARG2                   : return "D3DTOP_SELECTARG2";
@@ -3129,6 +3141,7 @@ const char* DX8Wrapper::Get_DX8_Texture_Op_Name(unsigned value)
 	case D3DTOP_DOTPRODUCT3                  : return "D3DTOP_DOTPRODUCT3";
 	case D3DTOP_MULTIPLYADD                  : return "D3DTOP_MULTIPLYADD";
 	case D3DTOP_LERP                         : return "D3DTOP_LERP";
+#endif
 	default										     : return "UNKNOWN";
 	}
 }
@@ -3136,6 +3149,7 @@ const char* DX8Wrapper::Get_DX8_Texture_Op_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Texture_Arg_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DTA_CURRENT			: return "D3DTA_CURRENT";
 	case D3DTA_DIFFUSE			: return "D3DTA_DIFFUSE";
 	case D3DTA_SELECTMASK		: return "D3DTA_SELECTMASK";
@@ -3145,6 +3159,7 @@ const char* DX8Wrapper::Get_DX8_Texture_Arg_Name(unsigned value)
 	case D3DTA_TFACTOR			: return "D3DTA_TFACTOR";
 	case D3DTA_ALPHAREPLICATE	: return "D3DTA_ALPHAREPLICATE";
 	case D3DTA_COMPLEMENT		: return "D3DTA_COMPLEMENT";
+#endif
 	default					      : return "UNKNOWN";
 	}
 }
@@ -3152,12 +3167,14 @@ const char* DX8Wrapper::Get_DX8_Texture_Arg_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Texture_Filter_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DTEXF_NONE				: return "D3DTEXF_NONE";
 	case D3DTEXF_POINT			: return "D3DTEXF_POINT";
 	case D3DTEXF_LINEAR			: return "D3DTEXF_LINEAR";
 	case D3DTEXF_ANISOTROPIC	: return "D3DTEXF_ANISOTROPIC";
 	case D3DTEXF_FLATCUBIC		: return "D3DTEXF_FLATCUBIC";
 	case D3DTEXF_GAUSSIANCUBIC	: return "D3DTEXF_GAUSSIANCUBIC";
+#endif
 	default					      : return "UNKNOWN";
 	}
 }
@@ -3165,11 +3182,13 @@ const char* DX8Wrapper::Get_DX8_Texture_Filter_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Texture_Address_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DTADDRESS_WRAP		: return "D3DTADDRESS_WRAP";
 	case D3DTADDRESS_MIRROR		: return "D3DTADDRESS_MIRROR";
 	case D3DTADDRESS_CLAMP		: return "D3DTADDRESS_CLAMP";
 	case D3DTADDRESS_BORDER		: return "D3DTADDRESS_BORDER";
 	case D3DTADDRESS_MIRRORONCE: return "D3DTADDRESS_MIRRORONCE";
+#endif
 	default					      : return "UNKNOWN";
 	}
 }
@@ -3177,12 +3196,14 @@ const char* DX8Wrapper::Get_DX8_Texture_Address_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Texture_Transform_Flag_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DTTFF_DISABLE			: return "D3DTTFF_DISABLE";
 	case D3DTTFF_COUNT1			: return "D3DTTFF_COUNT1";
 	case D3DTTFF_COUNT2			: return "D3DTTFF_COUNT2";
 	case D3DTTFF_COUNT3			: return "D3DTTFF_COUNT3";
 	case D3DTTFF_COUNT4			: return "D3DTTFF_COUNT4";
 	case D3DTTFF_PROJECTED		: return "D3DTTFF_PROJECTED";
+#endif
 	default					      : return "UNKNOWN";
 	}
 }
@@ -3190,9 +3211,11 @@ const char* DX8Wrapper::Get_DX8_Texture_Transform_Flag_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_ZBuffer_Type_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DZB_FALSE				: return "D3DZB_FALSE";
 	case D3DZB_TRUE				: return "D3DZB_TRUE";
 	case D3DZB_USEW				: return "D3DZB_USEW";
+#endif
 	default					      : return "UNKNOWN";
 	}
 }
@@ -3200,9 +3223,11 @@ const char* DX8Wrapper::Get_DX8_ZBuffer_Type_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Fill_Mode_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DFILL_POINT			: return "D3DFILL_POINT";
 	case D3DFILL_WIREFRAME		: return "D3DFILL_WIREFRAME";
 	case D3DFILL_SOLID			: return "D3DFILL_SOLID";
+#endif
 	default					      : return "UNKNOWN";
 	}
 }
@@ -3210,9 +3235,11 @@ const char* DX8Wrapper::Get_DX8_Fill_Mode_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Shade_Mode_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DSHADE_FLAT			: return "D3DSHADE_FLAT";
 	case D3DSHADE_GOURAUD		: return "D3DSHADE_GOURAUD";
 	case D3DSHADE_PHONG			: return "D3DSHADE_PHONG";
+#endif
 	default							: return "UNKNOWN";
 	}
 }
@@ -3220,6 +3247,7 @@ const char* DX8Wrapper::Get_DX8_Shade_Mode_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Blend_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DBLEND_ZERO                : return "D3DBLEND_ZERO";
 	case D3DBLEND_ONE                 : return "D3DBLEND_ONE";
 	case D3DBLEND_SRCCOLOR            : return "D3DBLEND_SRCCOLOR";
@@ -3233,6 +3261,7 @@ const char* DX8Wrapper::Get_DX8_Blend_Name(unsigned value)
 	case D3DBLEND_SRCALPHASAT         : return "D3DBLEND_SRCALPHASAT";
 	case D3DBLEND_BOTHSRCALPHA        : return "D3DBLEND_BOTHSRCALPHA";
 	case D3DBLEND_BOTHINVSRCALPHA     : return "D3DBLEND_BOTHINVSRCALPHA";
+#endif
 	default									 : return "UNKNOWN";
 	}
 }
@@ -3240,9 +3269,11 @@ const char* DX8Wrapper::Get_DX8_Blend_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Cull_Mode_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DCULL_NONE				: return "D3DCULL_NONE";
 	case D3DCULL_CW				: return "D3DCULL_CW";
 	case D3DCULL_CCW				: return "D3DCULL_CCW";
+#endif
 	default							: return "UNKNOWN";
 	}
 }
@@ -3250,6 +3281,7 @@ const char* DX8Wrapper::Get_DX8_Cull_Mode_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Cmp_Func_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DCMP_NEVER          : return "D3DCMP_NEVER";
 	case D3DCMP_LESS           : return "D3DCMP_LESS";
 	case D3DCMP_EQUAL          : return "D3DCMP_EQUAL";
@@ -3258,6 +3290,7 @@ const char* DX8Wrapper::Get_DX8_Cmp_Func_Name(unsigned value)
 	case D3DCMP_NOTEQUAL       : return "D3DCMP_NOTEQUAL";
 	case D3DCMP_GREATEREQUAL   : return "D3DCMP_GREATEREQUAL";
 	case D3DCMP_ALWAYS         : return "D3DCMP_ALWAYS";
+#endif
 	default							: return "UNKNOWN";
 	}
 }
@@ -3265,10 +3298,12 @@ const char* DX8Wrapper::Get_DX8_Cmp_Func_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Fog_Mode_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DFOG_NONE				: return "D3DFOG_NONE";
 	case D3DFOG_EXP				: return "D3DFOG_EXP";
 	case D3DFOG_EXP2				: return "D3DFOG_EXP2";
 	case D3DFOG_LINEAR			: return "D3DFOG_LINEAR";
+#endif
 	default							: return "UNKNOWN";
 	}
 }
@@ -3276,6 +3311,7 @@ const char* DX8Wrapper::Get_DX8_Fog_Mode_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Stencil_Op_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DSTENCILOP_KEEP		: return "D3DSTENCILOP_KEEP";
 	case D3DSTENCILOP_ZERO		: return "D3DSTENCILOP_ZERO";
 	case D3DSTENCILOP_REPLACE	: return "D3DSTENCILOP_REPLACE";
@@ -3284,6 +3320,7 @@ const char* DX8Wrapper::Get_DX8_Stencil_Op_Name(unsigned value)
 	case D3DSTENCILOP_INVERT	: return "D3DSTENCILOP_INVERT";
 	case D3DSTENCILOP_INCR		: return "D3DSTENCILOP_INCR";
 	case D3DSTENCILOP_DECR		: return "D3DSTENCILOP_DECR";
+#endif
 	default							: return "UNKNOWN";
 	}
 }
@@ -3291,9 +3328,11 @@ const char* DX8Wrapper::Get_DX8_Stencil_Op_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Material_Source_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DMCS_MATERIAL			: return "D3DMCS_MATERIAL";
 	case D3DMCS_COLOR1			: return "D3DMCS_COLOR1";
 	case D3DMCS_COLOR2			: return "D3DMCS_COLOR2";
+#endif
 	default							: return "UNKNOWN";
 	}
 }
@@ -3301,12 +3340,14 @@ const char* DX8Wrapper::Get_DX8_Material_Source_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Vertex_Blend_Flag_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DVBF_DISABLE			: return "D3DVBF_DISABLE";
 	case D3DVBF_1WEIGHTS			: return "D3DVBF_1WEIGHTS";
 	case D3DVBF_2WEIGHTS			: return "D3DVBF_2WEIGHTS";
 	case D3DVBF_3WEIGHTS			: return "D3DVBF_3WEIGHTS";
 	case D3DVBF_TWEENING			: return "D3DVBF_TWEENING";
 	case D3DVBF_0WEIGHTS			: return "D3DVBF_0WEIGHTS";
+#endif
 	default							: return "UNKNOWN";
 	}
 }
@@ -3314,8 +3355,10 @@ const char* DX8Wrapper::Get_DX8_Vertex_Blend_Flag_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Patch_Edge_Style_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DPATCHEDGE_DISCRETE	: return "D3DPATCHEDGE_DISCRETE";
    case D3DPATCHEDGE_CONTINUOUS:return "D3DPATCHEDGE_CONTINUOUS";
+#endif
 	default							: return "UNKNOWN";
 	}
 }
@@ -3323,8 +3366,10 @@ const char* DX8Wrapper::Get_DX8_Patch_Edge_Style_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Debug_Monitor_Token_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DDMT_ENABLE			: return "D3DDMT_ENABLE";
 	case D3DDMT_DISABLE			: return "D3DDMT_DISABLE";
+#endif
 	default							: return "UNKNOWN";
 	}
 }
@@ -3332,11 +3377,13 @@ const char* DX8Wrapper::Get_DX8_Debug_Monitor_Token_Name(unsigned value)
 const char* DX8Wrapper::Get_DX8_Blend_Op_Name(unsigned value)
 {
 	switch (value) {
+#ifdef CLEANBUILD_NAMES
 	case D3DBLENDOP_ADD			: return "D3DBLENDOP_ADD";
 	case D3DBLENDOP_SUBTRACT	: return "D3DBLENDOP_SUBTRACT";
 	case D3DBLENDOP_REVSUBTRACT: return "D3DBLENDOP_REVSUBTRACT";
 	case D3DBLENDOP_MIN			: return "D3DBLENDOP_MIN";
 	case D3DBLENDOP_MAX			: return "D3DBLENDOP_MAX";
+#endif
 	default							: return "UNKNOWN";
 	}
 }

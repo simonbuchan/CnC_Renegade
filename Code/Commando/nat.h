@@ -57,7 +57,10 @@
 
 #include	"nataddr.h"
 #include "natter.h"
+#ifdef CLEANBUILD_TODO
+// doesn't seem to be used?
 #include "wolapi.h"
+#endif
 
 /*
 ** Number of ports to use when testing port mangling sequences.

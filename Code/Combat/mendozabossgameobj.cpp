@@ -379,6 +379,7 @@ MendozaBossGameObjClass::MendozaBossGameObjClass (void)	:
 	TauntList[4] = 5;//IDS_SAKURA_BOSS_TAUNT5;
 	TauntList[5] = 6;//IDS_SAKURA_BOSS_TAUNT6;
 
+	typedef MendozaBossGameObjClass Self;
 	//
 	//	Register the Overall states with its state machine
 	//	
@@ -451,10 +452,10 @@ MendozaBossGameObjClass::MendozaBossGameObjClass (void)	:
 	//
 	//	Register the camera states with its state machine
 	//
-	CameraState.Add_State (NULL,													NULL,		On_CAMERA_STATE_NORMAL_Begin,					NULL);
-	CameraState.Add_State (On_CAMERA_STATE_FACE_ZOOM_Think,				NULL,		On_CAMERA_STATE_FACE_ZOOM_Begin,				NULL);
-	CameraState.Add_State (On_CAMERA_STATE_WAYPATH_FOLLOW_Think,		NULL,		On_CAMERA_STATE_WAYPATH_FOLLOW_Begin,		NULL);
-	CameraState.Add_State (On_CAMERA_STATE_LOOK_AT_DEAD_BOSS_Think,	NULL,		On_CAMERA_STATE_LOOK_AT_DEAD_BOSS_Begin,	NULL);	
+	CameraState.Add_State (NULL,													NULL,		&Self::On_CAMERA_STATE_NORMAL_Begin,					NULL);
+	CameraState.Add_State (&Self::On_CAMERA_STATE_FACE_ZOOM_Think,				NULL,		&Self::On_CAMERA_STATE_FACE_ZOOM_Begin,				NULL);
+	CameraState.Add_State (&Self::On_CAMERA_STATE_WAYPATH_FOLLOW_Think,		NULL,		&Self::On_CAMERA_STATE_WAYPATH_FOLLOW_Begin,		NULL);
+	CameraState.Add_State (&Self::On_CAMERA_STATE_LOOK_AT_DEAD_BOSS_Think,	NULL,		&Self::On_CAMERA_STATE_LOOK_AT_DEAD_BOSS_Begin,	NULL);
 	CameraState.Set_State (CAMERA_STATE_NORMAL);
 
 	//

@@ -198,7 +198,7 @@ void BitStreamClass::Get_Wide_Terminated_String(WCHAR *buffer, USHORT buffer_len
 		WWASSERT(len > 0 && "Empty string not permitted");
 	}
 
-	WCHAR temp = L'?';
+	USHORT temp = L'?';
 	int i = 0;
 	for (i = 0; i < len; i++) {
 		Get(temp);

@@ -51,7 +51,7 @@
 // be forgoten.
 #define STRING_IT(a) #a																				  
 #define TOKEN_IT(a) STRING_IT(,##a)
-#define MESSAGE(a) message (__FILE__ "(" TOKEN_IT(__LINE__) ") : " a)
+#define MESSAGE(a) message (__FILE__ "(" STRING_IT(__LINE__) ") : " a)
 
 void Convert_System_Error_To_String(int error_id, char* buffer, int buf_len);
 int Get_Last_System_Error();

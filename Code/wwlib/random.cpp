@@ -233,6 +233,7 @@ int Random2Class::operator() (int minval, int maxval)
 **	that the algorithm is not vulnerable to being primed with a weak seed
 **	and thus prevents the algorithm from breaking down as a result.
 */
+#pragma warning(disable: 4838)
 int Random3Class::Mix1[20] = {
 	0x0baa96887, 0x01e17d32c, 0x003bcdc3c, 0x00f33d1b2,
 	0x076a6491d, 0x0c570d85d, 0x0e382b1e3, 0x078db4362,
@@ -248,6 +249,7 @@ int Random3Class::Mix2[20] = {
 	0x0fc8e2263, 0x0390f5e8c, 0x058ffd802, 0x0ac0a5eba,
 	0x0ac4874f6, 0x0a9df0913, 0x086be4c74, 0x0ed2c123b
 };
+#pragma warning(default: 4838)
 
 
 /*********************************************************************************************** 

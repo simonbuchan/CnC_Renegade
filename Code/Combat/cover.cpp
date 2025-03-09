@@ -116,7 +116,7 @@ void	CoverManager::Add_Entry( CoverEntryClass * entry )
 void	CoverManager::Remove_Entry( CoverEntryClass * entry )
 {
 	if ( entry != NULL ) {
-		CoverPositions.Delete( entry );
+		CoverPositions.Delete_Value( entry );
 		entry->Release_Ref();
 	}
 }

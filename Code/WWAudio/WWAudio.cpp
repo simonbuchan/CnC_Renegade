@@ -58,7 +58,6 @@
 #include "wwprofile.h"
 #include "Ini.h"
 
-
 #ifdef G_CODE_BASE
 #include "..\wwlib\argv.h"
 #endif
@@ -1801,7 +1800,7 @@ WWAudioClass::Build_3D_Driver_List (void)
 			m_Driver3DList.Add (info);
 			::AIL_close_3D_provider (provider);
 		} else {
-			char *error_info = ::AIL_last_error ();
+			const char *error_info = ::AIL_last_error ();
 			WWDEBUG_SAY (("WWAudio: Unable to open %s.\r\n", name));
 			WWDEBUG_SAY (("WWAudio: Reason %s.\r\n", error_info));
 		}
@@ -3443,7 +3442,8 @@ WWAudioClass::Set_Active_Sound_Page (SOUND_PAGE page)
 	//
 	//	Pause any sounds that are playing in the old page
 	//
-	for (int index = 0; index < m_Playlist[m_CurrPage].Count ();index ++) {
+	int index;
+	for (index = 0; index < m_Playlist[m_CurrPage].Count ();index ++) {
 		m_Playlist[m_CurrPage][index]->Pause ();
 	}
 

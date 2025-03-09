@@ -522,7 +522,7 @@ void DirectInput::ReadMouse( void )
 		DIMouseButtons[i] &= DI_BUTTON_HELD;	// make off all but the STATE
 	}
 
-	for (i = 0; i < (sizeof( DIMouseAxis )/sizeof( DIMouseAxis[0] ) ); i++ ) {
+	for (int i = 0; i < (sizeof( DIMouseAxis )/sizeof( DIMouseAxis[0] ) ); i++ ) {
 		DIMouseAxis[i] = 0;
 	}
 
@@ -567,11 +567,16 @@ void DirectInput::ReadMouse( void )
 		} else {
 			int	index = 0;
 
+			// DIMOFS_* uses FIELD_OFFSET custom macro which warns in a const context:
+			// #define DIMOFS_X        FIELD_OFFSET(DIMOUSESTATE, lX)
+			// #define DIMOFS_Y        FIELD_OFFSET(DIMOUSESTATE, lY)
+			// #define DIMOFS_Z        FIELD_OFFSET(DIMOUSESTATE, lZ)
+			// Instead, as suggested, use offsetof().
 			switch( input_buffer.dwOfs ) {
 
-				case	DIMOFS_Z:	index++;
-				case	DIMOFS_Y:	index++;
-				case	DIMOFS_X:
+				case	offsetof(DIMOUSESTATE, lZ):	index++;
+				case	offsetof(DIMOUSESTATE, lY):	index++;
+				case	offsetof(DIMOUSESTATE, lX):
 							DIMouseAxis[index]	+= input_buffer.dwData;
 							CursorPos[index]		+= ((int)input_buffer.dwData) * 2;
 			   			break;
