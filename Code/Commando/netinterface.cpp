@@ -74,7 +74,7 @@ WideStringClass& cNetInterface::Get_Nickname(void)
 	} else {
 #endif
 	return Nickname;
-#ifdef
+#ifdef CLEANBUILD_TODO
 	}
 #endif
 }
