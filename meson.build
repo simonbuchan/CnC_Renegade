@@ -3,7 +3,9 @@ project('renegade', 'c', 'cpp')
 # pointer-truncation warnings!!!
 add_project_arguments('-wd4302', '-wd4311', '-wd4312', language : 'cpp')
 
+add_project_arguments('-DWINDOWS', language : 'cpp')
 add_project_arguments('-D_WINDOWS', language : 'cpp')
+add_project_arguments('-DWIN32_LEAN_AND_MEAN', language : 'cpp')
 add_project_arguments('-DWWDEBUG', language : 'cpp')
 
 subdir('MockedSdks/Bink')

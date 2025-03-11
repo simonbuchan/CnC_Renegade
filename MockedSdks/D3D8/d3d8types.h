@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ddraw.h>
 #include <wtypes.h>
 
 // Redefine used types so we know what types are used too.
@@ -23,6 +24,7 @@ struct D3DVECTOR
 enum
 {
     D3D_OK = 0,
+    D3DERR_INVALIDCALL,
     D3DERR_NOTAVAILABLE,
     D3DERR_OUTOFVIDEOMEMORY,
     D3DERR_DEVICELOST,
@@ -130,7 +132,6 @@ enum D3DFORMAT
     D3DFMT_D24S8,
     D3DFMT_D24X4S4,
 
-    // WWFormat table only?
     D3DFMT_R3G3B2,
     D3DFMT_A8R3G3B2,
     D3DFMT_X4R4G4B4,
@@ -140,11 +141,12 @@ enum D3DFORMAT
     D3DFMT_V8U8, // Bumpmap
     D3DFMT_L6V5U5, // Bumpmap
     D3DFMT_X8L8V8U8, // Bumpmap
-    D3DFMT_DXT1,
-    D3DFMT_DXT2,
-    D3DFMT_DXT3,
-    D3DFMT_DXT4,
-    D3DFMT_DXT5
+
+    D3DFMT_DXT1 = FOURCC_DXT1,
+    D3DFMT_DXT2 = FOURCC_DXT2,
+    D3DFMT_DXT3 = FOURCC_DXT3,
+    D3DFMT_DXT4 = FOURCC_DXT4,
+    D3DFMT_DXT5 = FOURCC_DXT5,
 };
 
 enum D3DCULL

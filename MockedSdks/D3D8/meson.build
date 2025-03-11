@@ -3,6 +3,8 @@ sdk_d3d8 = static_library(
     'd3d8.cpp',
     'd3dx8core.cpp',
     'd3dx8math.cpp',
+
+    cpp_args : '/std:c++20',
 )
 sdk_d3d8_dep = declare_dependency(
     link_with : sdk_d3d8,

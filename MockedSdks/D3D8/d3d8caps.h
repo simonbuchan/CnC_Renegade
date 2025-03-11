@@ -50,11 +50,11 @@ struct D3DCAPS8
     D3D_U32 MaxTextureWidth;
     D3D_U32 MaxTextureHeight;
     D3D_U32 MaxSimultaneousTextures;
-    D3DDEVCAPS DevCaps;
-    D3DPRASTERCAPS RasterCaps;
-    D3DTEXOPCAPS TextureOpCaps;
-    D3DPTFILTERCAPS TextureFilterCaps;
-    D3DCAPS2 Caps2;
+    D3D_U32 DevCaps;
+    D3D_U32 RasterCaps;
+    D3D_U32 TextureOpCaps;
+    D3D_U32 TextureFilterCaps;
+    D3D_U32 Caps2;
     D3D_U32 VertexShaderVersion;
     D3D_U32 PixelShaderVersion;
 

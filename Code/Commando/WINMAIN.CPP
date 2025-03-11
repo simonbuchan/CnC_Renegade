@@ -429,7 +429,7 @@ int Start_Application( HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /
 		/*
 		** Set the working directory.
 		*/
-		Set_Working_Directory(hInstance);
+		// Set_Working_Directory(hInstance);
 
 		//
 		// TEMP Dev code - check the working folder is correct!

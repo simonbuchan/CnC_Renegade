@@ -127,104 +127,110 @@ struct IDirect3DTexture8;
 struct IDirect3DVertexBuffer8;
 struct IDirect3DIndexBuffer8;
 
+IDirect3D8* Direct3DCreate8(int);
+
 typedef IDirect3DSurface8* LPDIRECT3DSURFACE8;
 
 struct IDirect3DUnknown8
 {
-    D3D_U32 AddRef();
-    D3D_U32 Release();
+    virtual D3D_U32 AddRef() = 0;
+    virtual D3D_U32 Release() = 0;
+
+protected:
+    virtual ~IDirect3DUnknown8() = default;
 };
 
 struct IDirect3D8 : IDirect3DUnknown8
 {
-    D3D_U32 GetAdapterCount();
-    D3D_U32 GetAdapterModeCount(D3D_U32);
-    D3D_RESULT EnumAdapterModes(D3D_U32, D3D_U32, D3DDISPLAYMODE*);
-    D3D_RESULT GetAdapterDisplayMode(D3D_U32, D3DDISPLAYMODE*);
-    D3D_RESULT GetAdapterIdentifier(D3D_U32, D3DENUM, D3DADAPTER_IDENTIFIER8*);
-    D3D_RESULT GetDeviceCaps(D3D_U32, D3DDEVTYPE, D3DCAPS8*);
-    D3D_RESULT CheckDeviceFormat(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3D_U32, D3DRESOURCETYPE, D3DFORMAT);
-    D3D_RESULT CheckDepthStencilMatch(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT);
-    D3D_RESULT CreateDevice(
+    virtual D3D_U32 GetAdapterCount() = 0;
+    virtual D3D_U32 GetAdapterModeCount(D3D_U32) = 0;
+    virtual D3D_RESULT EnumAdapterModes(D3D_U32, D3D_U32, D3DDISPLAYMODE*) = 0;
+    virtual D3D_RESULT GetAdapterDisplayMode(D3D_U32, D3DDISPLAYMODE*) = 0;
+    virtual D3D_RESULT GetAdapterIdentifier(D3D_U32, D3DENUM, D3DADAPTER_IDENTIFIER8*) = 0;
+    virtual D3D_RESULT GetDeviceCaps(D3D_U32, D3DDEVTYPE, D3DCAPS8*) = 0;
+    virtual D3D_RESULT CheckDeviceFormat(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3D_U32, D3DRESOURCETYPE, D3DFORMAT) = 0;
+    virtual D3D_RESULT CheckDepthStencilMatch(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT) = 0;
+    virtual D3D_RESULT CreateDevice(
         int,
         D3DDEVTYPE,
         HWND,
         D3D_U32,
         D3DPRESENT_PARAMETERS*,
-        IDirect3DDevice8**);
+        IDirect3DDevice8**) = 0;
 };
 
 struct IDirect3DDevice8 : IDirect3DUnknown8
 {
     // general management
-    D3D_RESULT GetDeviceCaps(D3DCAPS8*);
-    D3D_RESULT GetDisplayMode(D3DDISPLAYMODE*);
-    D3D_RESULT ValidateDevice(D3D_U32*);
-    D3D_RESULT Reset(const D3DPRESENT_PARAMETERS*);
-    D3D_RESULT TestCooperativeLevel();
-    D3D_RESULT ResourceManagerDiscardBytes(D3D_U32);
-    D3D_U32    GetAvailableTextureMem();
+    virtual D3D_RESULT GetDeviceCaps(D3DCAPS8*) = 0;
+    virtual D3D_RESULT GetDisplayMode(D3DDISPLAYMODE*) = 0;
+    virtual D3D_RESULT ValidateDevice(D3D_U32*) = 0;
+    virtual D3D_RESULT Reset(const D3DPRESENT_PARAMETERS*) = 0;
+    virtual D3D_RESULT TestCooperativeLevel() = 0;
+    virtual D3D_RESULT ResourceManagerDiscardBytes(D3D_U32) = 0;
+    virtual D3D_U32 GetAvailableTextureMem() = 0;
 
     // resources
-    D3D_RESULT CreateVertexBuffer(D3D_U32, D3D_U32, D3D_U32, D3D_U32, IDirect3DVertexBuffer8**);
-    D3D_RESULT CreateIndexBuffer(D3D_U32, D3D_U32, D3D_U32, D3D_U32, IDirect3DIndexBuffer8**);
-    D3D_RESULT CreateImageSurface(D3D_U32, D3D_U32, D3DFORMAT, IDirect3DSurface8**);
-    D3D_RESULT UpdateTexture(IDirect3DBaseTexture8*, IDirect3DBaseTexture8*);
-    D3D_RESULT CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS*, IDirect3DSwapChain8**);
+    virtual D3D_RESULT CreateVertexBuffer(D3D_U32, D3D_U32, D3D_U32, D3D_U32, IDirect3DVertexBuffer8**) = 0;
+    virtual D3D_RESULT CreateIndexBuffer(D3D_U32, D3D_U32, D3D_U32, D3D_U32, IDirect3DIndexBuffer8**) = 0;
+    virtual D3D_RESULT CreateImageSurface(D3D_U32, D3D_U32, D3DFORMAT, IDirect3DSurface8**) = 0;
+    virtual D3D_RESULT CreateTexture(D3D_U32, D3D_U32, D3D_U32, D3D_U32, D3DFORMAT, D3DPOOL, IDirect3DTexture8**) = 0;
+    virtual D3D_RESULT UpdateTexture(IDirect3DBaseTexture8*, IDirect3DBaseTexture8*) = 0;
+    virtual D3D_RESULT CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS*, IDirect3DSwapChain8**) = 0;
 
     // presenting
-    D3D_RESULT GetFrontBuffer(IDirect3DSurface8*);
-    D3D_RESULT GetBackBuffer(D3D_U32, D3DBACKBUFFERTYPE, IDirect3DSurface8**);
-    D3D_RESULT GetDepthStencilSurface(IDirect3DSurface8**);
-    D3D_RESULT BeginScene();
-    D3D_RESULT EndScene();
-    D3D_RESULT GetRenderTarget(IDirect3DSurface8**);
-    D3D_RESULT SetRenderTarget(IDirect3DSurface8*, IDirect3DSurface8*);
-    D3D_RESULT SetGammaRamp(D3D_U32, const D3DGAMMARAMP*);
+    virtual D3D_RESULT GetFrontBuffer(IDirect3DSurface8*) = 0;
+    virtual D3D_RESULT GetBackBuffer(D3D_U32, D3DBACKBUFFERTYPE, IDirect3DSurface8**) = 0;
+    virtual D3D_RESULT GetDepthStencilSurface(IDirect3DSurface8**) = 0;
+    virtual D3D_RESULT BeginScene() = 0;
+    virtual D3D_RESULT EndScene() = 0;
+    virtual D3D_RESULT GetRenderTarget(IDirect3DSurface8**) = 0;
+    virtual D3D_RESULT SetRenderTarget(IDirect3DSurface8*, IDirect3DSurface8*) = 0;
+    virtual D3D_RESULT SetGammaRamp(D3D_U32, const D3DGAMMARAMP*) = 0;
     // Only used with NULLs
-    D3D_RESULT Present(void*, void*, void*, void*);
+    virtual D3D_RESULT Present(void*, void*, void*, void*) = 0;
 
     // render state
-    D3D_RESULT SetViewport(const D3DVIEWPORT8*);
-    D3D_RESULT SetLight(D3D_U32 index, const D3DLIGHT8*);
-    D3D_RESULT LightEnable(D3D_U32 index, D3D_BOOL);
-    D3D_RESULT SetTexture(D3D_U32 stage, IDirect3DBaseTexture8*);
-    D3D_RESULT SetTextureStageState(D3D_U32 stage, D3DTEXTURESTAGESTATETYPE state, D3D_U32 value);
-    D3D_RESULT SetMaterial(const D3DMATERIAL8*);
-    D3D_RESULT GetTransform(D3DTRANSFORMSTATETYPE, D3DMATRIX*);
-    D3D_RESULT SetTransform(D3DTRANSFORMSTATETYPE, const D3DMATRIX*);
-    D3D_RESULT SetRenderState(D3DRENDERSTATETYPE, D3D_U32);
-    D3D_RESULT SetStreamSource(D3D_U32, IDirect3DVertexBuffer8*, D3D_U32);
-    D3D_RESULT SetIndices(IDirect3DIndexBuffer8*, D3D_U32);
-    D3D_RESULT SetVertexShader(D3D_U32);
+    virtual D3D_RESULT SetViewport(const D3DVIEWPORT8*) = 0;
+    virtual D3D_RESULT SetLight(D3D_U32 index, const D3DLIGHT8*) = 0;
+    virtual D3D_RESULT LightEnable(D3D_U32 index, D3D_BOOL) = 0;
+    virtual D3D_RESULT SetTexture(D3D_U32 stage, IDirect3DBaseTexture8*) = 0;
+    virtual D3D_RESULT SetTextureStageState(D3D_U32 stage, D3DTEXTURESTAGESTATETYPE state, D3D_U32 value) = 0;
+    virtual D3D_RESULT SetMaterial(const D3DMATERIAL8*) = 0;
+    virtual D3D_RESULT GetTransform(D3DTRANSFORMSTATETYPE, D3DMATRIX*) = 0;
+    virtual D3D_RESULT SetTransform(D3DTRANSFORMSTATETYPE, const D3DMATRIX*) = 0;
+    virtual D3D_RESULT SetRenderState(D3DRENDERSTATETYPE, D3D_U32) = 0;
+    virtual D3D_RESULT SetStreamSource(D3D_U32, IDirect3DVertexBuffer8*, D3D_U32) = 0;
+    virtual D3D_RESULT SetIndices(IDirect3DIndexBuffer8*, D3D_U32) = 0;
+    virtual D3D_RESULT SetVertexShader(D3D_U32) = 0;
 
     // draw
-    D3D_RESULT Clear(D3D_U32, const D3DRECT*, D3D_U32, D3DCOLOR, D3D_F32, D3D_U32);
-    D3D_RESULT CopyRects(IDirect3DSurface8*, const RECT*, D3D_U32, IDirect3DSurface8*, const POINT*);
-    D3D_RESULT DrawIndexedPrimitive(D3DPRIMITIVETYPE, D3D_U32, D3D_U32, D3D_U32, D3D_U32);
+    virtual D3D_RESULT Clear(D3D_U32, const D3DRECT*, D3D_U32, D3DCOLOR, D3D_F32, D3D_U32) = 0;
+    virtual D3D_RESULT CopyRects(IDirect3DSurface8*, const RECT*, D3D_U32, IDirect3DSurface8*, const POINT*) = 0;
+    virtual D3D_RESULT DrawIndexedPrimitive(D3DPRIMITIVETYPE, D3D_U32, D3D_U32, D3D_U32, D3D_U32) = 0;
 };
 
 struct IDirect3DSwapChain8 : IDirect3DUnknown8
 {
-    D3D_RESULT GetBackBuffer(D3D_U32, D3DBACKBUFFERTYPE, IDirect3DSurface8**);
+    virtual D3D_RESULT GetBackBuffer(D3D_U32, D3DBACKBUFFERTYPE, IDirect3DSurface8**) = 0;
 };
 
 struct IDirect3DSurface8 : IDirect3DUnknown8
 {
-    D3D_RESULT GetDesc(D3DSURFACE_DESC*);
-    D3D_RESULT LockRect(D3DLOCKED_RECT*, RECT*, D3D_U32);
-    D3D_RESULT UnlockRect();
+    virtual D3D_RESULT GetDesc(D3DSURFACE_DESC*) = 0;
+    virtual D3D_RESULT LockRect(D3DLOCKED_RECT*, RECT*, D3D_U32) = 0;
+    virtual D3D_RESULT UnlockRect() = 0;
 };
 
 struct IDirect3DBaseTexture8 : IDirect3DUnknown8
 {
-    D3D_RESULT LockRect(D3D_U32, D3DLOCKED_RECT*, RECT*, D3D_U32);
-    D3D_RESULT UnlockRect(D3D_U32);
-    D3D_U32    GetLevelCount();
-    D3D_RESULT GetLevelDesc(D3D_U32, D3DSURFACE_DESC*);
-    D3D_RESULT GetSurfaceLevel(D3D_U32, IDirect3DSurface8**);
-    D3D_U32    GetPriority();
-    D3D_U32    SetPriority(D3D_U32);
+    virtual D3D_RESULT LockRect(D3D_U32, D3DLOCKED_RECT*, RECT*, D3D_U32) = 0;
+    virtual D3D_RESULT UnlockRect(D3D_U32) = 0;
+    virtual D3D_U32 GetLevelCount() = 0;
+    virtual D3D_RESULT GetLevelDesc(D3D_U32, D3DSURFACE_DESC*) = 0;
+    virtual D3D_RESULT GetSurfaceLevel(D3D_U32, IDirect3DSurface8**) = 0;
+    virtual D3D_U32 GetPriority() = 0;
+    virtual D3D_U32 SetPriority(D3D_U32) = 0;
 };
 
 struct IDirect3DTexture8 : IDirect3DBaseTexture8
@@ -233,12 +239,12 @@ struct IDirect3DTexture8 : IDirect3DBaseTexture8
 
 struct IDirect3DVertexBuffer8 : IDirect3DUnknown8
 {
-    D3D_RESULT Lock(D3D_U32, D3D_U32, D3D_U8**, D3D_U32);
-    D3D_RESULT Unlock();
+    virtual D3D_RESULT Lock(D3D_U32, D3D_U32, D3D_U8**, D3D_U32) = 0;
+    virtual D3D_RESULT Unlock() = 0;
 };
 
 struct IDirect3DIndexBuffer8 : IDirect3DUnknown8
 {
-    D3D_RESULT Lock(D3D_U32, D3D_U32, D3D_U8**, D3D_U32);
-    D3D_RESULT Unlock();
+    virtual D3D_RESULT Lock(D3D_U32, D3D_U32, D3D_U8**, D3D_U32) = 0;
+    virtual D3D_RESULT Unlock() = 0;
 };

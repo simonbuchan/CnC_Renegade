@@ -43,6 +43,8 @@
 #include "win.h"
 #include "_globals.h"
 
+#include <shellapi.h>
+
 WebBrowser* WebBrowser::_mInstance = NULL;
 
 /******************************************************************************
@@ -63,6 +65,8 @@ WebBrowser* WebBrowser::_mInstance = NULL;
 #ifdef _DEBUG
 bool WebBrowser::InstallPrerequisites(void)
 	{
+	return true;
+
 	// Check if the WOLBrowser component is installed by attempting to obtain
 	// the WOLBrowser class object. If we can get the class object then the
 	// component is already registered.
