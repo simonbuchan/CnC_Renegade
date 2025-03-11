@@ -1,5 +1,5 @@
 sdk_gamespy = static_library(
-    'sdk_bink',
+    'sdk_gamespy',
     'GameSpy.cpp',
 )
 sdk_gamespy_dep = declare_dependency(

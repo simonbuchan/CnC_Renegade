@@ -1,6 +1,7 @@
 //Microsoft Developer Studio generated resource script.
 //
 #include "resource.h"
+#include "windows.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -8,7 +9,6 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "dialogresource.h"
-#include "afxres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -36,7 +36,6 @@ END
 2 TEXTINCLUDE DISCARDABLE 
 BEGIN
     "#include ""dialogresource.h""\r\n"
-    "#include ""afxres.h""\r\n"
     "\0"
 END
 
@@ -2822,7 +2821,7 @@ FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "",IDC_IMAGE_CTRL,"Static",SS_BITMAP | SS_CENTERIMAGE,0,
                     0,399,300
-    LTEXT           "%s©2002 Electronic Arts Inc. All rights reserved.  EA GAMES™ and Westwood Studios™ are Electronic Arts™ brands.",
+    LTEXT           "%sï¿½2002 Electronic Arts Inc. All rights reserved.  EA GAMESï¿½ and Westwood Studiosï¿½ are Electronic Artsï¿½ brands.",
                     IDC_STATIC,0,279,400,21
 END
 

@@ -1,4 +1,6 @@
-executable(
+windows = import('windows')
+
+commando = executable(
     'commando',
     'AnnounceEvent.cpp',
     'apppacketstats.cpp',
@@ -213,6 +215,7 @@ executable(
     'WOLLoginProfile.cpp',
     'WOLLogonMgr.cpp',
     'WOLQuickMatch.cpp',
+    windows.compile_resources('chat.rc'),
 
     # dunno why it uses <WWUI\PopupDialog.h> etc.
     include_directories : include_directories('..', is_system : true),

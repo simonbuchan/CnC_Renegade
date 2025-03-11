@@ -41,6 +41,9 @@
 #ifndef __DIALOG_RESOURCE_H
 #define __DIALOG_RESOURCE_H
 
+#ifndef IDC_STATIC
+#define IDC_STATIC (-1)
+#endif
 
 //
 //	These button IDs are used for "simple" buttons
