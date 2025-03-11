@@ -120,347 +120,353 @@ enum {
 
 #define SCRIPT_COMMANDS_VERSION 174
 
-typedef struct {
-	unsigned int Size;
-	unsigned int Version;
+// Made a virtual interface so default arguments work again.
+// Should mostly work the same except the vtable is an additional indirection.
+// Alternative is a bunch of wrapping methods.
+struct ScriptCommands {
+protected:
+	~ScriptCommands() {}
+
+public:
+	unsigned int Version = SCRIPT_COMMANDS_VERSION;
 
 	// Debug messages
-	void (*	Debug_Message )( char *format, ... );
+	virtual void Debug_Message( const char *format, ... ) = 0;
 
 	// Action Commands
-	void ( * Action_Reset )( GameObject * obj, float priority );
-	void ( * Action_Goto )( GameObject * obj, const ActionParamsStruct & params );
-	void ( * Action_Attack )( GameObject * obj, const ActionParamsStruct & params );
-	void ( * Action_Play_Animation )( GameObject * obj, const ActionParamsStruct & params );
-	void ( * Action_Enter_Exit )( GameObject * obj, const ActionParamsStruct & params );
-	void ( * Action_Face_Location )( GameObject * obj, const ActionParamsStruct & params );
-	void ( * Action_Dock )( GameObject * obj, const ActionParamsStruct & params );
-	void ( * Action_Follow_Input )( GameObject * obj, const ActionParamsStruct & params );
+	virtual void Action_Reset( GameObject * obj, float priority ) = 0;
+	virtual void Action_Goto( GameObject * obj, const ActionParamsStruct & params ) = 0;
+	virtual void Action_Attack( GameObject * obj, const ActionParamsStruct & params ) = 0;
+	virtual void Action_Play_Animation( GameObject * obj, const ActionParamsStruct & params ) = 0;
+	virtual void Action_Enter_Exit( GameObject * obj, const ActionParamsStruct & params ) = 0;
+	virtual void Action_Face_Location( GameObject * obj, const ActionParamsStruct & params ) = 0;
+	virtual void Action_Dock( GameObject * obj, const ActionParamsStruct & params ) = 0;
+	virtual void Action_Follow_Input( GameObject * obj, const ActionParamsStruct & params ) = 0;
 
-	void ( * Modify_Action )( GameObject * obj, int action_id, const ActionParamsStruct & params, bool modify_move = true, bool modify_attack = true );
+	virtual void Modify_Action( GameObject * obj, int action_id, const ActionParamsStruct & params, bool modify_move = true, bool modify_attack = true ) = 0;
 
 	// Action information queries
-	int	( * Get_Action_ID )( GameObject * obj );
-	bool	( * Get_Action_Params )( GameObject * obj, ActionParamsStruct & params );
-	bool	( * Is_Performing_Pathfind_Action )( GameObject * obj );
+	virtual int	Get_Action_ID( GameObject * obj ) = 0;
+	virtual bool Get_Action_Params( GameObject * obj, ActionParamsStruct & params ) = 0;
+	virtual bool Is_Performing_Pathfind_Action( GameObject * obj ) = 0;
 
 	// Physical control
-	void ( * Set_Position )( GameObject * obj, const Vector3 & position );
-	Vector3 ( * Get_Position )( GameObject * obj );
-	Vector3 ( * Get_Bone_Position )( GameObject * obj, const char * bone_name );
-	float ( * Get_Facing )( GameObject * obj );
-	void ( * Set_Facing )( GameObject * obj, float degrees );
+	virtual void Set_Position( GameObject * obj, const Vector3 & position ) = 0;
+	virtual Vector3 Get_Position( GameObject * obj ) = 0;
+	virtual Vector3 Get_Bone_Position( GameObject * obj, const char * bone_name ) = 0;
+	virtual float Get_Facing( GameObject * obj ) = 0;
+	virtual void Set_Facing( GameObject * obj, float degrees ) = 0;
 
 	// Collision Control
-	void	( * Disable_All_Collisions )( GameObject * obj );
-	void	( * Disable_Physical_Collisions )( GameObject * obj );
-	void	( * Enable_Collisions )( GameObject * obj );
+	virtual void Disable_All_Collisions( GameObject * obj ) = 0;
+	virtual void Disable_Physical_Collisions( GameObject * obj ) = 0;
+	virtual void Enable_Collisions( GameObject * obj ) = 0;
 	
 	// Object Management
-	void ( * Destroy_Object )( GameObject * obj );
-	GameObject * ( * Find_Object )( int obj_id );
-	GameObject * ( * Create_Object )( const char * type_name, const Vector3 & position );
-	GameObject * ( * Create_Object_At_Bone )( GameObject * host_obj, const char * new_obj_type_name, const char * bone_name );
-	int	( * Get_ID )( GameObject * obj );
-	int	( * Get_Preset_ID )( GameObject * obj );
-	const char * ( * Get_Preset_Name )( GameObject * obj );
-	void (*Attach_Script)(GameObject* object, const char* scriptName, const char* scriptParams);
-	void (*Add_To_Dirty_Cull_List)(GameObject* object);
+	virtual void Destroy_Object( GameObject * obj ) = 0;
+	virtual GameObject * Find_Object( int obj_id ) = 0;
+	virtual GameObject * Create_Object( const char * type_name, const Vector3 & position ) = 0;
+	virtual GameObject * Create_Object_At_Bone( GameObject * host_obj, const char * new_obj_type_name, const char * bone_name ) = 0;
+	virtual int	Get_ID( GameObject * obj ) = 0;
+	virtual int	Get_Preset_ID( GameObject * obj ) = 0;
+	virtual const char * Get_Preset_Name( GameObject * obj ) = 0;
+	virtual void Attach_Script(GameObject* object, const char* scriptName, const char* scriptParams) = 0;
+	virtual void Add_To_Dirty_Cull_List(GameObject* object) = 0;
 
 	// Timers
-	void	( * Start_Timer )( GameObject * obj, ScriptClass * script, float duration, int timer_id );
+	virtual void	Start_Timer( GameObject * obj, ScriptClass * script, float duration, int timer_id ) = 0;
 
 	// Weapons
-	void	( * Trigger_Weapon )( GameObject * obj, bool trigger, const Vector3 & target, bool primary = true );
-	void	( * Select_Weapon )( GameObject * obj, const char * weapon_name );
+	virtual void	Trigger_Weapon( GameObject * obj, bool trigger, const Vector3 & target, bool primary = true ) = 0;
+	virtual void	Select_Weapon( GameObject * obj, const char * weapon_name ) = 0;
 
 	// Custom Script
-	void	( * Send_Custom_Event )( GameObject * from, GameObject * to, int type = 0, int param = 0, float delay = 0 );
-	void	( * Send_Damaged_Event )( GameObject * object, GameObject * damager );
+	virtual void 	Send_Custom_Event( GameObject * from, GameObject * to, int type = 0, int param = 0, float delay = 0 ) = 0;
+	virtual void 	Send_Damaged_Event( GameObject * object, GameObject * damager ) = 0;
 
 	// Random Numbers
-	float	( * Get_Random )( float min, float max );
-	int	( * Get_Random_Int )( int min, int max );  // Get a random number between min and max-1, INCLUSIVE 
+	virtual float Get_Random( float min, float max ) = 0;
+	virtual int Get_Random_Int( int min, int max ) = 0;  // Get a random number between min and max-1, INCLUSIVE
 
 	//	Random Selection
-	GameObject * ( * Find_Random_Simple_Object )( const char *preset_name );
+	virtual GameObject * Find_Random_Simple_Object( const char *preset_name ) = 0;
 
 	// Object Display
-	void	( * Set_Model )( GameObject * obj, const char * model_name );
-	void	( * Set_Animation )( GameObject * obj, const char * anim_name, bool looping, const char * sub_obj_name = NULL, float start_frame = 0.0F, float end_frame = -1.0F, bool is_blended = false );
-	void	( * Set_Animation_Frame )( GameObject * obj, const char * anim_name, int frame );
+	virtual void Set_Model( GameObject * obj, const char * model_name ) = 0;
+	virtual void Set_Animation( GameObject * obj, const char * anim_name, bool looping, const char * sub_obj_name = NULL, float start_frame = 0.0F, float end_frame = -1.0F, bool is_blended = false ) = 0;
+	virtual void Set_Animation_Frame( GameObject * obj, const char * anim_name, int frame ) = 0;
 
 	// Sounds
 	// Note: Each sound creation function returns the ID of the new sound (0 on error)
-	int	( * Create_Sound )( const char * sound_preset_name, const Vector3 & position, GameObject * creator );
-	int	( * Create_2D_Sound )( const char * sound_preset_name );
-	int	( * Create_2D_WAV_Sound )( const char * wav_filename );
-	int	( * Create_3D_WAV_Sound_At_Bone )( const char * wav_filename, GameObject * obj, const char * bone_name );
-	int	( * Create_3D_Sound_At_Bone )( const char * sound_preset_name, GameObject * obj, const char * bone_name );
-	int	( * Create_Logical_Sound )( GameObject * creator, int type, const Vector3 & position, float radius );	
-	void	( * Start_Sound )( int sound_id );
-	void	( * Stop_Sound )( int sound_id, bool destroy_sound = true );
-	void	( * Monitor_Sound )( GameObject * game_obj, int sound_id );
-	void	( * Set_Background_Music )( const char * wav_filename );
-	void	( * Fade_Background_Music )( const char * wav_filename, int fade_out_time, int fade_in_time );
-	void	( * Stop_Background_Music )( void );
+	virtual int	Create_Sound( const char * sound_preset_name, const Vector3 & position, GameObject * creator ) = 0;
+	virtual int	Create_2D_Sound( const char * sound_preset_name ) = 0;
+	virtual int	Create_2D_WAV_Sound( const char * wav_filename ) = 0;
+	virtual int	Create_3D_WAV_Sound_At_Bone( const char * wav_filename, GameObject * obj, const char * bone_name ) = 0;
+	virtual int	Create_3D_Sound_At_Bone( const char * sound_preset_name, GameObject * obj, const char * bone_name ) = 0;
+	virtual int	Create_Logical_Sound( GameObject * creator, int type, const Vector3 & position, float radius ) = 0;
+	virtual void Start_Sound( int sound_id ) = 0;
+	virtual void Stop_Sound( int sound_id, bool destroy_sound = true ) = 0;
+	virtual void Monitor_Sound( GameObject * game_obj, int sound_id ) = 0;
+	virtual void Set_Background_Music( const char * wav_filename ) = 0;
+	virtual void Fade_Background_Music( const char * wav_filename, int fade_out_time, int fade_in_time ) = 0;
+	virtual void Stop_Background_Music( void ) = 0;
 
 	// Object Properties
-	float	( * Get_Health )( GameObject * obj );
-	float	( * Get_Max_Health )( GameObject * obj );
-	void	( * Set_Health )( GameObject * obj, float health );
-	float	( * Get_Shield_Strength )( GameObject * obj );
-	float	( * Get_Max_Shield_Strength )( GameObject * obj );
-	void	( * Set_Shield_Strength )( GameObject * obj, float strength );
-	void	( * Set_Shield_Type )( GameObject * obj, const char * name );
-	int	( * Get_Player_Type )( GameObject * obj );
-	void	( * Set_Player_Type )( GameObject * obj, int type );
+	virtual float	Get_Health( GameObject * obj ) = 0;
+	virtual float	Get_Max_Health( GameObject * obj ) = 0;
+	virtual void	Set_Health( GameObject * obj, float health ) = 0;
+	virtual float	Get_Shield_Strength( GameObject * obj ) = 0;
+	virtual float	Get_Max_Shield_Strength( GameObject * obj ) = 0;
+	virtual void	Set_Shield_Strength( GameObject * obj, float strength ) = 0;
+	virtual void	Set_Shield_Type( GameObject * obj, const char * name ) = 0;
+	virtual int	Get_Player_Type( GameObject * obj ) = 0;
+	virtual void	Set_Player_Type( GameObject * obj, int type ) = 0;
 
 	// Math
-	float	( * Get_Distance )( const Vector3 & p1, const Vector3 & p2 );
+	virtual float	Get_Distance( const Vector3 & p1, const Vector3 & p2 ) = 0;
 
 	// Set Camera Host
-	void	( * Set_Camera_Host )( GameObject * obj );
-	void	( * Force_Camera_Look )( const Vector3 & target );
+	virtual void	Set_Camera_Host( GameObject * obj ) = 0;
+	virtual void	Force_Camera_Look( const Vector3 & target ) = 0;
 
 	// Get the Star
-	GameObject * ( * Get_The_Star )( void );
-	GameObject * ( * Get_A_Star )( const Vector3 & pos );
-	GameObject * ( * Find_Closest_Soldier )( const Vector3 & pos, float min_dist, float max_dist, bool only_human = true );
-	bool		    ( * Is_A_Star )( GameObject * obj );
+	virtual GameObject * Get_The_Star( void ) = 0;
+	virtual GameObject * Get_A_Star( const Vector3 & pos ) = 0;
+	virtual GameObject * Find_Closest_Soldier( const Vector3 & pos, float min_dist, float max_dist, bool only_human = true ) = 0;
+	virtual bool		    Is_A_Star( GameObject * obj ) = 0;
 
 	// Object Control
-	void	( * Control_Enable )( GameObject * obj, bool enable );
+	virtual void	Control_Enable( GameObject * obj, bool enable ) = 0;
 
 	// Hack
-	const char * ( * Get_Damage_Bone_Name )( void );
-	bool			 ( * Get_Damage_Bone_Direction )( void ); // true means shot in the back
+	virtual const char * Get_Damage_Bone_Name( void ) = 0;
+	virtual bool			 Get_Damage_Bone_Direction( void ) = 0; // true means shot in the back
 
 	// Visibility
-	bool	( * Is_Object_Visible)( GameObject * looker, GameObject * obj );
-	void	( * Enable_Enemy_Seen)( GameObject * obj, bool enable = true );
+	virtual bool	Is_Object_Visible( GameObject * looker, GameObject * obj ) = 0;
+	virtual void	Enable_Enemy_Seen( GameObject * obj, bool enable = true ) = 0;
 
 	// Display Text
-	void	(*	Set_Display_Color )( unsigned char red = 255, unsigned char green = 255, unsigned char blue = 255 );
-	void	(*	Display_Text )( int string_id );
-	void	(*	Display_Float )( float value, const char * format = "%f" );
-	void	(*	Display_Int )( int value, const char * format = "%d" );
+	virtual void Set_Display_Color( unsigned char red = 255, unsigned char green = 255, unsigned char blue = 255 ) = 0;
+	virtual void Display_Text( int string_id ) = 0;
+	virtual void Display_Float( float value, const char * format = "%f" ) = 0;
+	virtual void Display_Int( int value, const char * format = "%d" ) = 0;
 
 	// SaveLoad
-	void	(*	Save_Data )( ScriptSaver & saver, int id, int size, void * data );
-	void	(*	Save_Pointer )( ScriptSaver & saver, int id, void * pointer );
-	bool	(*	Load_Begin )( ScriptLoader & loader, int * id );
-	void	(*	Load_Data )( ScriptLoader & loader, int size, void * data );
-	void	(*	Load_Pointer )( ScriptLoader & loader, void ** pointer );
-	void	(*	Load_End )( ScriptLoader & loader );
+	virtual void 	Save_Data( ScriptSaver & saver, int id, int size, void * data ) = 0;
+	virtual void 	Save_Pointer( ScriptSaver & saver, int id, void * pointer ) = 0;
+	virtual bool 	Load_Begin( ScriptLoader & loader, int * id ) = 0;
+	virtual void 	Load_Data( ScriptLoader & loader, int size, void * data ) = 0;
+	virtual void 	Load_Pointer( ScriptLoader & loader, void ** pointer ) = 0;
+	virtual void 	Load_End( ScriptLoader & loader ) = 0;
 
-	void (*Begin_Chunk)(ScriptSaver& saver, unsigned int chunkID);
-	void (*End_Chunk)(ScriptSaver& saver);
-	bool (*Open_Chunk)(ScriptLoader& loader, unsigned int* chunkID);
-	void (*Close_Chunk)(ScriptLoader& loader);
+	virtual void Begin_Chunk(ScriptSaver& saver, unsigned int chunkID) = 0;
+	virtual void End_Chunk(ScriptSaver& saver) = 0;
+	virtual bool Open_Chunk(ScriptLoader& loader, unsigned int* chunkID) = 0;
+	virtual void Close_Chunk(ScriptLoader& loader) = 0;
 
 	// Radar Effects
-	void	(* Clear_Radar_Markers )( void );
-	void	(* Clear_Radar_Marker )( int id );
-	void	(* Add_Radar_Marker )( int id, const Vector3& position, int shape_type, int color_type );
-	void	(* Set_Obj_Radar_Blip_Shape )( GameObject * obj, int shape_type );	// Set to -1 to reset default
-	void	(* Set_Obj_Radar_Blip_Color )( GameObject * obj, int color_type );	// Set to -1 to reset default
-	void	(* Enable_Radar )( bool enable );
+	virtual void Clear_Radar_Markers( void ) = 0;
+	virtual void Clear_Radar_Marker( int id ) = 0;
+	virtual void Add_Radar_Marker( int id, const Vector3& position, int shape_type, int color_type ) = 0;
+	virtual void Set_Obj_Radar_Blip_Shape( GameObject * obj, int shape_type ) = 0;	// Set to -1 to reset default
+	virtual void Set_Obj_Radar_Blip_Color( GameObject * obj, int color_type ) = 0;	// Set to -1 to reset default
+	virtual void Enable_Radar( bool enable ) = 0;
 
 	//
 	//	Map support
 	//
-	void	(* Clear_Map_Cell )( int cell_x, int cell_y );	
-	void	(* Clear_Map_Cell_By_Pos )( const Vector3 &world_space_pos );
-	void	(* Clear_Map_Cell_By_Pixel_Pos )( int pixel_pos_x, int pixel_pos_y );
-	void	(* Clear_Map_Region_By_Pos )( const Vector3 &world_space_pos, int pixel_radius );
-	void	(* Reveal_Map )( void );
-	void	(* Shroud_Map )( void );
-	void	(* Show_Player_Map_Marker )( bool onoff );
+	virtual void Clear_Map_Cell( int cell_x, int cell_y ) = 0;
+	virtual void Clear_Map_Cell_By_Pos( const Vector3 &world_space_pos ) = 0;
+	virtual void Clear_Map_Cell_By_Pixel_Pos( int pixel_pos_x, int pixel_pos_y ) = 0;
+	virtual void Clear_Map_Region_By_Pos( const Vector3 &world_space_pos, int pixel_radius ) = 0;
+	virtual void Reveal_Map( void ) = 0;
+	virtual void Shroud_Map( void ) = 0;
+	virtual void Show_Player_Map_Marker( bool onoff ) = 0;
 
 	//
 	//	Height DB access
 	//
-	float	(* Get_Safe_Flight_Height )( float x_pos, float y_pos );
+	virtual float	Get_Safe_Flight_Height( float x_pos, float y_pos ) = 0;
 
 	// Explosions
-	void	(* Create_Explosion )( const char * explosion_def_name, const Vector3 & pos, GameObject * creator = NULL );
-	void	(* Create_Explosion_At_Bone )( const char * explosion_def_name, GameObject * object, const char * bone_name, GameObject * creator = NULL );
+	virtual void	Create_Explosion( const char * explosion_def_name, const Vector3 & pos, GameObject * creator = NULL ) = 0;
+	virtual void	Create_Explosion_At_Bone( const char * explosion_def_name, GameObject * object, const char * bone_name, GameObject * creator = NULL ) = 0;
 
 	// HUD
-	void	(* Enable_HUD )( bool enable );
-	void	(* Mission_Complete )( bool success );
+	virtual void Enable_HUD( bool enable ) = 0;
+	virtual void Mission_Complete( bool success ) = 0;
 
-	void	(* Give_PowerUp )( GameObject * obj, const char * preset_name, bool display_on_hud = false );
+	virtual void Give_PowerUp( GameObject * obj, const char * preset_name, bool display_on_hud = false ) = 0;
 
 	// Administration
-	void (*Innate_Disable)(GameObject* object);
-	void (*Innate_Enable)(GameObject* object);
+	virtual void Innate_Disable(GameObject* object) = 0;
+	virtual void Innate_Enable(GameObject* object) = 0;
 
 	// Innate Soldier AI Enable/Disable (returns old value)
-	bool	(* Innate_Soldier_Enable_Enemy_Seen )( GameObject * obj, bool state );
-	bool	(* Innate_Soldier_Enable_Gunshot_Heard )( GameObject * obj, bool state );
-	bool	(* Innate_Soldier_Enable_Footsteps_Heard )( GameObject * obj, bool state );
-	bool	(* Innate_Soldier_Enable_Bullet_Heard )( GameObject * obj, bool state );
-	bool	(* Innate_Soldier_Enable_Actions )( GameObject * obj, bool state );
-	void	(* Set_Innate_Soldier_Home_Location )( GameObject * obj, const Vector3& home_pos, float home_radius = 999999 );
-	void	(* Set_Innate_Aggressiveness )( GameObject * obj, float aggressiveness );
-	void	(* Set_Innate_Take_Cover_Probability )( GameObject * obj, float probability );
-	void	(* Set_Innate_Is_Stationary )( GameObject * obj, bool stationary );
+	virtual bool Innate_Soldier_Enable_Enemy_Seen( GameObject * obj, bool state ) = 0;
+	virtual bool Innate_Soldier_Enable_Gunshot_Heard( GameObject * obj, bool state ) = 0;
+	virtual bool Innate_Soldier_Enable_Footsteps_Heard( GameObject * obj, bool state ) = 0;
+	virtual bool Innate_Soldier_Enable_Bullet_Heard( GameObject * obj, bool state ) = 0;
+	virtual bool Innate_Soldier_Enable_Actions( GameObject * obj, bool state ) = 0;
+	virtual void Set_Innate_Soldier_Home_Location( GameObject * obj, const Vector3& home_pos, float home_radius = 999999 ) = 0;
+	virtual void Set_Innate_Aggressiveness( GameObject * obj, float aggressiveness ) = 0;
+	virtual void Set_Innate_Take_Cover_Probability( GameObject * obj, float probability ) = 0;
+	virtual void Set_Innate_Is_Stationary( GameObject * obj, bool stationary ) = 0;
 
-	void	(* Innate_Force_State_Bullet_Heard )( GameObject * obj, const Vector3 & pos );
-	void	(* Innate_Force_State_Footsteps_Heard )( GameObject * obj, const Vector3 & pos );
-	void	(* Innate_Force_State_Gunshots_Heard )( GameObject * obj, const Vector3 & pos );
-	void	(* Innate_Force_State_Enemy_Seen )( GameObject * obj, GameObject * enemy );
+	virtual void Innate_Force_State_Bullet_Heard( GameObject * obj, const Vector3 & pos ) = 0;
+	virtual void Innate_Force_State_Footsteps_Heard( GameObject * obj, const Vector3 & pos ) = 0;
+	virtual void Innate_Force_State_Gunshots_Heard( GameObject * obj, const Vector3 & pos ) = 0;
+	virtual void Innate_Force_State_Enemy_Seen( GameObject * obj, GameObject * enemy ) = 0;
 
 	// Control of StaticAnimPhys
-	void	(* Static_Anim_Phys_Goto_Frame )( int obj_id, float frame, const char * anim_name = NULL );
-	void	(* Static_Anim_Phys_Goto_Last_Frame )( int obj_id, const char * anim_name = NULL );
+	virtual void Static_Anim_Phys_Goto_Frame( int obj_id, float frame, const char * anim_name = NULL ) = 0;
+	virtual void Static_Anim_Phys_Goto_Last_Frame( int obj_id, const char * anim_name = NULL ) = 0;
 
 	// Timing
-	unsigned int (* Get_Sync_Time)( void );
+	virtual unsigned int Get_Sync_Time( void ) = 0;
 
 	// Objectives
-	void	(* Add_Objective)( int id, int type, int status, int short_description_id, char * description_sound_filename = NULL, int long_description_id = 0 );
-	void	(* Remove_Objective)( int id );
-	void	(* Set_Objective_Status)( int id, int status );
-	void	(* Change_Objective_Type)( int id, int type );
-	void	(* Set_Objective_Radar_Blip)( int id, const Vector3 & position );
-	void	(* Set_Objective_Radar_Blip_Object)( int id, ScriptableGameObj * unit );
-	void	(* Set_Objective_HUD_Info)( int id, float priority, const char * texture_name, int message_id );
-	void	(* Set_Objective_HUD_Info_Position)( int id, float priority, const char * texture_name, int message_id, const Vector3 & position );
+	virtual void Add_Objective( int id, int type, int status, int short_description_id, char * description_sound_filename = NULL, int long_description_id = 0 ) = 0;
+	virtual void Remove_Objective( int id ) = 0;
+	virtual void Set_Objective_Status( int id, int status ) = 0;
+	virtual void Change_Objective_Type( int id, int type ) = 0;
+	virtual void Set_Objective_Radar_Blip( int id, const Vector3 & position ) = 0;
+	virtual void Set_Objective_Radar_Blip_Object( int id, ScriptableGameObj * unit ) = 0;
+	virtual void Set_Objective_HUD_Info( int id, float priority, const char * texture_name, int message_id ) = 0;
+	virtual void Set_Objective_HUD_Info_Position( int id, float priority, const char * texture_name, int message_id, const Vector3 & position ) = 0;
 
 	// Camaera Shakes
-	void	(* Shake_Camera)( const Vector3 & pos, float radius = 25, float intensity = 0.25f, float duration = 1.5f );
+	virtual void Shake_Camera( const Vector3 & pos, float radius = 25, float intensity = 0.25f, float duration = 1.5f ) = 0;
 
 	// Spawners
-	void	(* Enable_Spawner)( int id, bool enable );
-	GameObject * (* Trigger_Spawner)( int id );
+	virtual void	Enable_Spawner( int id, bool enable ) = 0;
+	virtual GameObject * Trigger_Spawner( int id ) = 0;
 
 	// Vehicles
-	void	(* Enable_Engine)( GameObject* object, bool onoff );
+	virtual void	Enable_Engine( GameObject* object, bool onoff ) = 0;
 
 	// Difficulty Level
-	int	(* Get_Difficulty_Level)( void );
+	virtual int	Get_Difficulty_Level( void ) = 0;
 
 	// Keys
-	void	(* Grant_Key)( GameObject* object, int key, bool grant = true );
-	bool	(* Has_Key)( GameObject* object, int key );
+	virtual void	Grant_Key( GameObject* object, int key, bool grant = true ) = 0;
+	virtual bool	Has_Key( GameObject* object, int key ) = 0;
 
 	// Hibernation
-	void	(* Enable_Hibernation)( GameObject * object, bool enable );
+	virtual void	Enable_Hibernation( GameObject * object, bool enable ) = 0;
 
-	void	(* Attach_To_Object_Bone)( GameObject * object, GameObject * host_object, const char * bone_name );
+	virtual void	Attach_To_Object_Bone( GameObject * object, GameObject * host_object, const char * bone_name ) = 0;
 
 	// Conversation
-	int	(* Create_Conversation)( const char *conversation_name, int priority = 0, float max_dist = 0, bool is_interruptable = true );
-	void	(* Join_Conversation)( GameObject * object, int active_conversation_id, bool allow_move = true, bool allow_head_turn = true, bool allow_face = true );
-	void	(* Join_Conversation_Facing)( GameObject * object, int active_conversation_id, int obj_id_to_face );
-	void	(* Start_Conversation)( int active_conversation_id, int action_id = 0 );
-	void	(* Monitor_Conversation)( GameObject * object, int active_conversation_id );
-	void	(* Start_Random_Conversation)( GameObject * object );
-	void	(* Stop_Conversation)( int active_conversation_id );
-	void	(* Stop_All_Conversations)( void );
+	virtual int	Create_Conversation( const char *conversation_name, int priority = 0, float max_dist = 0, bool is_interruptable = true ) = 0;
+	virtual void	Join_Conversation( GameObject * object, int active_conversation_id, bool allow_move = true, bool allow_head_turn = true, bool allow_face = true ) = 0;
+	virtual void	Join_Conversation_Facing( GameObject * object, int active_conversation_id, int obj_id_to_face ) = 0;
+	virtual void	Start_Conversation( int active_conversation_id, int action_id = 0 ) = 0;
+	virtual void	Monitor_Conversation( GameObject * object, int active_conversation_id ) = 0;
+	virtual void	Start_Random_Conversation( GameObject * object ) = 0;
+	virtual void	Stop_Conversation( int active_conversation_id ) = 0;
+	virtual void	Stop_All_Conversations( void ) = 0;
 
 	// Locked facing support
-	void	(* Lock_Soldier_Facing)( GameObject * object, GameObject * object_to_face, bool turn_body );
-	void	(* Unlock_Soldier_Facing)( GameObject * object );
+	virtual void	Lock_Soldier_Facing( GameObject * object, GameObject * object_to_face, bool turn_body ) = 0;
+	virtual void	Unlock_Soldier_Facing( GameObject * object ) = 0;
 
 	// Apply Damage
-	void	(* Apply_Damage)( GameObject * object, float amount, const char * warhead_name, GameObject * damager = NULL );
+	virtual void	Apply_Damage( GameObject * object, float amount, const char * warhead_name, GameObject * damager = NULL ) = 0;
 
 	// Soldier
-	void	(* Set_Loiters_Allowed)( GameObject * object, bool allowed );
+	virtual void	Set_Loiters_Allowed( GameObject * object, bool allowed ) = 0;
 
-	void	(* Set_Is_Visible)( GameObject * object, bool visible );
-	void	(* Set_Is_Rendered)( GameObject * object, bool rendered );
+	virtual void	Set_Is_Visible( GameObject * object, bool visible ) = 0;
+	virtual void	Set_Is_Rendered( GameObject * object, bool rendered ) = 0;
 
 	// Points
-	float	(* Get_Points)( GameObject * object );
-	void	(* Give_Points)( GameObject * object, float points, bool entire_team );
+	virtual float	Get_Points( GameObject * object ) = 0;
+	virtual void	Give_Points( GameObject * object, float points, bool entire_team ) = 0;
 
 	// Money (points and money were separated 09/06/01)
-	float	(* Get_Money)( GameObject * object );
-	void	(* Give_Money)( GameObject * object, float money, bool entire_team );
+	virtual float	Get_Money( GameObject * object ) = 0;
+	virtual void	Give_Money( GameObject * object, float money, bool entire_team ) = 0;
 
 	// Buildings
-	bool	(* Get_Building_Power)( GameObject * object );
-	void	(* Set_Building_Power)( GameObject * object, bool onoff );
-	void	(* Play_Building_Announcement)( GameObject * object, int text_id );
-	GameObject * (* Find_Nearest_Building_To_Pos )( const Vector3 & position, const char * mesh_prefix );
-	GameObject * (* Find_Nearest_Building )( GameObject * object, const char * mesh_prefix );
+	virtual bool	Get_Building_Power( GameObject * object ) = 0;
+	virtual void	Set_Building_Power( GameObject * object, bool onoff ) = 0;
+	virtual void	Play_Building_Announcement( GameObject * object, int text_id ) = 0;
+	virtual GameObject * Find_Nearest_Building_To_Pos ( const Vector3 & position, const char * mesh_prefix ) = 0;
+	virtual GameObject * Find_Nearest_Building ( GameObject * object, const char * mesh_prefix ) = 0;
 
 	// Zones
-	int	(* Team_Members_In_Zone)( GameObject * object, int player_type );
+	virtual int	Team_Members_In_Zone( GameObject * object, int player_type ) = 0;
 
 	// Background
-	void  (*Set_Clouds) (float cloudcover, float cloudgloominess, float ramptime);
-	void  (*Set_Lightning) (float intensity, float startdistance, float enddistance, float heading, float distribution, float ramptime);
-	void  (*Set_War_Blitz) (float intensity, float startdistance, float enddistance, float heading, float distribution, float ramptime);
+	virtual void  Set_Clouds (float cloudcover, float cloudgloominess, float ramptime) = 0;
+	virtual void  Set_Lightning (float intensity, float startdistance, float enddistance, float heading, float distribution, float ramptime) = 0;
+	virtual void  Set_War_Blitz (float intensity, float startdistance, float enddistance, float heading, float distribution, float ramptime) = 0;
 
 	// Weather
-	void	(*Set_Wind)			(float heading, float speed, float variability, float ramptime);
-	void	(*Set_Rain)			(float density, float ramptime, bool prime);
-	void	(*Set_Snow)			(float density, float ramptime, bool prime);
-	void	(*Set_Ash)			(float density, float ramptime, bool prime);
-	void  (*Set_Fog_Enable) (bool enabled);
-	void  (*Set_Fog_Range)	(float startdistance, float enddistance, float ramptime);
+	virtual void	Set_Wind			(float heading, float speed, float variability, float ramptime) = 0;
+	virtual void	Set_Rain			(float density, float ramptime, bool prime) = 0;
+	virtual void	Set_Snow			(float density, float ramptime, bool prime) = 0;
+	virtual void	Set_Ash			(float density, float ramptime, bool prime) = 0;
+	virtual void  Set_Fog_Enable (bool enabled) = 0;
+	virtual void  Set_Fog_Range	(float startdistance, float enddistance, float ramptime) = 0;
 
 	// Stealth control
-	void	(*Enable_Stealth)	(GameObject * object, bool onoff);
+	virtual void	Enable_Stealth	(GameObject * object, bool onoff) = 0;
 
 	// Sniper control
-	void	(*Cinematic_Sniper_Control)	(bool enabled, float zoom);
+	virtual void	Cinematic_Sniper_Control	(bool enabled, float zoom) = 0;
 
 	// File Access
-	int	(*Text_File_Open)			( const char * filename );
-	bool	(*Text_File_Get_String)	( int handle, char * buffer, int size );
-	void	(*Text_File_Close)		( int handle );
+	virtual int	Text_File_Open			( const char * filename ) = 0;
+	virtual bool	Text_File_Get_String	( int handle, char * buffer, int size ) = 0;
+	virtual void	Text_File_Close		( int handle ) = 0;
 
 	// Vehicle Transitions
-	void	(*Enable_Vehicle_Transitions)	( GameObject * object, bool enable );
+	virtual void	Enable_Vehicle_Transitions	( GameObject * object, bool enable ) = 0;
 
 	// Player terminal support
-	void	(*Display_GDI_Player_Terminal)		();
-	void	(*Display_NOD_Player_Terminal)		();
-	void	(*Display_Mutant_Player_Terminal)	();
+	virtual void	Display_GDI_Player_Terminal		() = 0;
+	virtual void	Display_NOD_Player_Terminal		() = 0;
+	virtual void	Display_Mutant_Player_Terminal	() = 0;
 
 	// Encyclopedia support
-	bool	(*Reveal_Encyclopedia_Character)	( int object_id );
-	bool	(*Reveal_Encyclopedia_Weapon)		( int object_id );
-	bool	(*Reveal_Encyclopedia_Vehicle)	( int object_id );
-	bool	(*Reveal_Encyclopedia_Building)	( int object_id );
-	void	(*Display_Encyclopedia_Event_UI) ( void );
+	virtual bool	Reveal_Encyclopedia_Character	( int object_id ) = 0;
+	virtual bool	Reveal_Encyclopedia_Weapon		( int object_id ) = 0;
+	virtual bool	Reveal_Encyclopedia_Vehicle	( int object_id ) = 0;
+	virtual bool	Reveal_Encyclopedia_Building	( int object_id ) = 0;
+	virtual void	Display_Encyclopedia_Event_UI ( void ) = 0;
 
-	void	(* Scale_AI_Awareness)( float sight_scale, float hearing_scale );
+	virtual void	Scale_AI_Awareness( float sight_scale, float hearing_scale ) = 0;
 
 	// Cinematic Freeze
-	void	(* Enable_Cinematic_Freeze)( GameObject * object, bool enable );
+	virtual void	Enable_Cinematic_Freeze( GameObject * object, bool enable ) = 0;
 
-	void	(* Expire_Powerup )( GameObject * object );
+	virtual void	Expire_Powerup ( GameObject * object ) = 0;
 
 	// Hud stuff
-	void	(* Set_HUD_Help_Text )( int string_id, const Vector3 &color );
-	void	(* Enable_HUD_Pokable_Indicator )( GameObject * object, bool enable );
+	virtual void	Set_HUD_Help_Text ( int string_id, const Vector3 &color ) = 0;
+	virtual void	Enable_HUD_Pokable_Indicator ( GameObject * object, bool enable ) = 0;
 
-	void	(* Enable_Innate_Conversations )( GameObject * object, bool enable );
+	virtual void	Enable_Innate_Conversations ( GameObject * object, bool enable ) = 0;
 
-	void	(* Display_Health_Bar )( GameObject * object, bool display );
+	virtual void	Display_Health_Bar ( GameObject * object, bool display ) = 0;
 
 	// Shadow control.  In certain cases we need to manually disable shadow casting
 	// on an object.  Cinematics with too many characters are an example of this.
-	void	(* Enable_Shadow) ( GameObject * object, bool enable );
+	virtual void	Enable_Shadow ( GameObject * object, bool enable ) = 0;
 
-	void	(* Clear_Weapons) ( GameObject * object );
+	virtual void	Clear_Weapons ( GameObject * object ) = 0;
 
-	void	(* Set_Num_Tertiary_Objectives) ( int count );
+	virtual void	Set_Num_Tertiary_Objectives ( int count ) = 0;
 
 	// Letterbox and screen fading controls
-	void	(* Enable_Letterbox) ( bool onoff, float seconds );
-	void	(* Set_Screen_Fade_Color) ( float r, float g, float b, float seconds );
-	void	(* Set_Screen_Fade_Opacity) ( float opacity, float seconds );
+	virtual void	Enable_Letterbox ( bool onoff, float seconds ) = 0;
+	virtual void	Set_Screen_Fade_Color ( float r, float g, float b, float seconds ) = 0;
+	virtual void	Set_Screen_Fade_Opacity ( float opacity, float seconds ) = 0;
 
-} ScriptCommands;
+};
 
 
 /*

@@ -88,7 +88,7 @@ BOOL APIENTRY DllMain(HINSTANCE hinst, DWORD reason, LPVOID)
 *
 ******************************************************************************/
 
-ScriptClass* Create_Script(const char* name)
+SCRIPT_DLL_FUNCT ScriptClass* Create_Script(const char* name)
 {
 	return ScriptRegistrar::CreateScript(name);
 }
@@ -110,7 +110,7 @@ ScriptClass* Create_Script(const char* name)
 *
 ******************************************************************************/
 
-void Destroy_Script(ScriptClass* script)
+SCRIPT_DLL_FUNCT void Destroy_Script(ScriptClass* script)
 {
 	assert(script != NULL);
 	delete script;
@@ -133,7 +133,7 @@ void Destroy_Script(ScriptClass* script)
 *
 ******************************************************************************/
 
-int Get_Script_Count(void)
+SCRIPT_DLL_FUNCT int Get_Script_Count(void)
 {
 	return ScriptRegistrar::Count();
 }
@@ -155,7 +155,7 @@ int Get_Script_Count(void)
 *
 ******************************************************************************/
 
-const char* Get_Script_Name(int index)
+SCRIPT_DLL_FUNCT const char* Get_Script_Name(int index)
 {
 	ScriptFactory* factory = ScriptRegistrar::GetScriptFactory(index);
 
@@ -183,7 +183,7 @@ const char* Get_Script_Name(int index)
 *
 ******************************************************************************/
 
-const char* Get_Script_Param_Description(int index)
+SCRIPT_DLL_FUNCT const char* Get_Script_Param_Description(int index)
 {
 	ScriptFactory* factory = ScriptRegistrar::GetScriptFactory(index);
 
@@ -211,22 +211,19 @@ const char* Get_Script_Param_Description(int index)
 *
 ******************************************************************************/
 
-bool Set_Script_Commands(ScriptCommandsClass* commands)
+SCRIPT_DLL_FUNCT bool Set_Script_Commands(ScriptCommandsClass* commands)
 {
 	assert(commands != NULL);
 
 	// Save the commands list
 	Commands = commands->Commands;
 
-	DebugPrint("Setting script commands (Version %d, Size %d)\n",
-		Commands->Version, Commands->Size);
+	DebugPrint("Setting script commands (Version %d)\n",
+		Commands->Version);
 
 	// Check the commands version number
-	if ((Commands->Size != sizeof(ScriptCommands))
-			|| (Commands->Version != SCRIPT_COMMANDS_VERSION)) {
-
-		DebugPrint("***** Invalid script commands (Expected Version %d, Size %d)\n",
-			SCRIPT_COMMANDS_VERSION, sizeof(ScriptCommands));
+	if (Commands->Version != SCRIPT_COMMANDS_VERSION) {
+		DebugPrint("***** Invalid script commands (Expected Version %d)\n", SCRIPT_COMMANDS_VERSION);
 		Commands->Debug_Message("******** Incorrect Script Commands Version\n");
 		return false;
 	}
@@ -250,7 +247,7 @@ bool Set_Script_Commands(ScriptCommandsClass* commands)
 *
 ******************************************************************************/
 
-void Set_Request_Destroy_Func(void (*function)(ScriptClass*))
+SCRIPT_DLL_FUNCT void Set_Request_Destroy_Func(void (*function)(ScriptClass*))
 {
 	assert(function != NULL);
 	ScriptImpClass::Set_Request_Destroy_Func(function);

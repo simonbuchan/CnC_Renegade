@@ -99,10 +99,19 @@ bool	DamageModelDirection;		// HACK
 
 #define	SCRIPT_PRIORITY	2
 
+struct EngineCommands : ScriptCommands
+{
+	static EngineCommands Instance;
+
+protected:
+	~EngineCommands() {}
+
+public:
+
 /*
 ** Debug messages
 */
-void	Debug_Message( char *format, ... )
+void	Debug_Message( const char *format, ... ) override
 {
 #ifdef WWDEBUG
 	SCRIPT_PTR_CHECK( format );
@@ -115,7 +124,7 @@ void	Debug_Message( char *format, ... )
 #endif
 }
 
-void Modify_Action( GameObject * obj, int action_id, const ActionParamsStruct & params, bool modify_move, bool modify_attack )
+void Modify_Action( GameObject * obj, int action_id, const ActionParamsStruct & params, bool modify_move, bool modify_attack ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Modify_Action( %d, %d )\n", obj->Get_ID(), action_id ));
@@ -131,7 +140,7 @@ void Modify_Action( GameObject * obj, int action_id, const ActionParamsStruct & 
 }
 
 
-int	Get_Action_ID( GameObject * obj )
+int	Get_Action_ID( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, 0 );
 	SCRIPT_TRACE((	"ST>Get_Action_ID( %d )\n", obj->Get_ID() ));
@@ -149,7 +158,7 @@ int	Get_Action_ID( GameObject * obj )
 	return retval;
 }
 
-bool	Get_Action_Params( GameObject * obj, ActionParamsStruct & params )
+bool	Get_Action_Params( GameObject * obj, ActionParamsStruct & params ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, false );
 	SCRIPT_TRACE((	"ST>Get_Action_Params( %d )\n", obj->Get_ID() ));
@@ -171,7 +180,7 @@ bool	Get_Action_Params( GameObject * obj, ActionParamsStruct & params )
 	return retval;
 }
 
-bool	Is_Performing_Pathfind_Action( GameObject * obj )
+bool	Is_Performing_Pathfind_Action( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, false );
 	SCRIPT_TRACE((	"ST>Is_Performing_Pathfind_Action( %d )\n", obj->Get_ID() ));
@@ -191,7 +200,7 @@ bool	Is_Performing_Pathfind_Action( GameObject * obj )
 }
 
 
-void Action_Reset( GameObject * obj, float priority )
+void Action_Reset( GameObject * obj, float priority ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Action_Reset( %d, %f )\n", obj->Get_ID(), priority ));
@@ -202,7 +211,7 @@ void Action_Reset( GameObject * obj, float priority )
 	}
 }
 
-void Action_Goto( GameObject * obj, const ActionParamsStruct & params )
+void Action_Goto( GameObject * obj, const ActionParamsStruct & params ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Action_Goto( %d )\n", obj->Get_ID() ));
@@ -213,7 +222,7 @@ void Action_Goto( GameObject * obj, const ActionParamsStruct & params )
 	}
 }
 
-void Action_Attack( GameObject * obj, const ActionParamsStruct & params )
+void Action_Attack( GameObject * obj, const ActionParamsStruct & params ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Action_Attack( %d )\n", obj->Get_ID() ));
@@ -224,7 +233,7 @@ void Action_Attack( GameObject * obj, const ActionParamsStruct & params )
 	}
 }
 
-void Action_Play_Animation( GameObject * obj, const ActionParamsStruct & params )
+void Action_Play_Animation( GameObject * obj, const ActionParamsStruct & params ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Action_Play_Animation( %d )\n", obj->Get_ID() ));
@@ -235,7 +244,7 @@ void Action_Play_Animation( GameObject * obj, const ActionParamsStruct & params 
 	}
 }
 
-void Action_Enter_Exit( GameObject * obj, const ActionParamsStruct & params )
+void Action_Enter_Exit( GameObject * obj, const ActionParamsStruct & params ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Action_Enter_Exit( %d )\n", obj->Get_ID() ));
@@ -247,7 +256,7 @@ void Action_Enter_Exit( GameObject * obj, const ActionParamsStruct & params )
 }
 
 
-void Action_Face_Location( GameObject * obj, const ActionParamsStruct & params )
+void Action_Face_Location( GameObject * obj, const ActionParamsStruct & params ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Action_Face_Location( %d )\n", obj->Get_ID() ));
@@ -259,7 +268,7 @@ void Action_Face_Location( GameObject * obj, const ActionParamsStruct & params )
 }
 
 
-void Action_Dock( GameObject * obj, const ActionParamsStruct & params )
+void Action_Dock( GameObject * obj, const ActionParamsStruct & params ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Action_Dock( %d )\n", obj->Get_ID() ));
@@ -271,7 +280,7 @@ void Action_Dock( GameObject * obj, const ActionParamsStruct & params )
 }
 
 
-void Action_Follow_Input( GameObject * obj, const ActionParamsStruct & params )
+void Action_Follow_Input( GameObject * obj, const ActionParamsStruct & params ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Action_Follow_Input( %d )\n", obj->Get_ID() ));
@@ -287,7 +296,7 @@ void Action_Follow_Input( GameObject * obj, const ActionParamsStruct & params )
 /*
 ** Physical control
 */
-void	Set_Position( GameObject * obj, const Vector3 & position )
+void	Set_Position( GameObject * obj, const Vector3 & position ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 
@@ -301,7 +310,7 @@ void	Set_Position( GameObject * obj, const Vector3 & position )
 	pgobj->Peek_Physical_Object()->Set_Position( position );
 }
 
-Vector3 Get_Position( GameObject * obj )
+Vector3 Get_Position( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, Vector3(0,0,0) );
 
@@ -310,7 +319,7 @@ Vector3 Get_Position( GameObject * obj )
 	return pos;
 }
 
-Vector3 Get_Bone_Position( GameObject * obj, const char * bone_name )
+Vector3 Get_Bone_Position( GameObject * obj, const char * bone_name ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, Vector3(0,0,0) );
 
@@ -325,7 +334,7 @@ Vector3 Get_Bone_Position( GameObject * obj, const char * bone_name )
 	return tm.Get_Translation();
 }
 
-float Get_Facing( GameObject * obj )
+float Get_Facing( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, 0 );
 
@@ -338,7 +347,7 @@ float Get_Facing( GameObject * obj )
 	return RAD_TO_DEG( pgobj->Get_Facing() );
 }
 
-void	Set_Facing( GameObject * obj, float degrees )
+void	Set_Facing( GameObject * obj, float degrees ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 
@@ -364,7 +373,7 @@ void	Set_Facing( GameObject * obj, float degrees )
 /*
 ** Collision Control
 */
-void	Disable_All_Collisions( GameObject * obj )
+void	Disable_All_Collisions( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 
@@ -378,7 +387,7 @@ void	Disable_All_Collisions( GameObject * obj )
 	pgobj->Set_Collision_Group( UNCOLLIDEABLE_GROUP );
 }
 
-void	Disable_Physical_Collisions( GameObject * obj )
+void	Disable_Physical_Collisions( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 
@@ -392,7 +401,7 @@ void	Disable_Physical_Collisions( GameObject * obj )
 	pgobj->Set_Collision_Group( BULLET_ONLY_COLLISION_GROUP );
 }
 
-void	Enable_Collisions( GameObject * obj )
+void	Enable_Collisions( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 
@@ -413,7 +422,7 @@ void	Enable_Collisions( GameObject * obj )
 /*
 ** Object Management
 */
-void	Destroy_Object( GameObject * obj )
+void	Destroy_Object( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Destroy_Object( %d )\n", obj->Get_ID() ));
@@ -421,24 +430,24 @@ void	Destroy_Object( GameObject * obj )
 }
 
 
-GameObject * Find_Object( int obj_id )
+GameObject * Find_Object( int obj_id ) override
 {
 	return GameObjManager::Find_ScriptableGameObj( obj_id );
 }
 
-int	Get_ID( GameObject * obj )
+int	Get_ID( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, 0 );
 	return obj->Get_ID();
 }
 
-int	Get_Preset_ID( GameObject * obj )
+int	Get_Preset_ID( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, 0 );
 	return obj->Get_Definition ().Get_ID ();
 }
 
-const char * Get_Preset_Name( GameObject * obj )
+const char * Get_Preset_Name( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, "" );
 	return obj->Get_Definition ().Get_Name ();
@@ -479,7 +488,7 @@ GameObject* Create_Object(const char* name, const Matrix3D& tm)
 }
 
 
-GameObject* Create_Object(const char* type_name, const Vector3 & position)
+GameObject* Create_Object(const char* type_name, const Vector3 & position) override
 {
 	SCRIPT_PTR_CHECK_RET(type_name, NULL);
 	SCRIPT_TRACE((	"ST>Create_Object( %s (%f,%f,%f) )\n",
@@ -503,7 +512,7 @@ GameObject* Create_Object(const char* type_name, const Vector3 & position)
 }
 
 
-GameObject* Create_Object_At_Bone(GameObject* host_obj, const char* new_obj_type_name, const char* bone_name)
+GameObject* Create_Object_At_Bone(GameObject* host_obj, const char* new_obj_type_name, const char* bone_name) override
 {
 	SCRIPT_PTR_CHECK_RET( host_obj, NULL );
 	SCRIPT_PTR_CHECK_RET( new_obj_type_name, NULL );
@@ -534,7 +543,7 @@ GameObject* Create_Object_At_Bone(GameObject* host_obj, const char* new_obj_type
 
 
 // Attach a script to and object.
-void Attach_Script(GameObject* object, const char* scriptName, const char* scriptParams)
+void Attach_Script(GameObject* object, const char* scriptName, const char* scriptParams) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_PTR_CHECK( scriptName );
@@ -558,7 +567,7 @@ void Attach_Script(GameObject* object, const char* scriptName, const char* scrip
 	}
 }
 
-void Add_To_Dirty_Cull_List(GameObject* obj)
+void Add_To_Dirty_Cull_List(GameObject* obj) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	PhysicalGameObj *physobj = obj->As_PhysicalGameObj();
@@ -571,7 +580,7 @@ void Add_To_Dirty_Cull_List(GameObject* obj)
 /*
 ** Timers
 */
-void	Start_Timer( GameObject * obj, ScriptClass * script, float duration, int timer_id )
+void	Start_Timer( GameObject * obj, ScriptClass * script, float duration, int timer_id ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_PTR_CHECK( script );
@@ -584,7 +593,7 @@ void	Start_Timer( GameObject * obj, ScriptClass * script, float duration, int ti
 /*
 ** Weapons
 */
-void	Trigger_Weapon( GameObject * obj, bool trigger, const Vector3 & target, bool primary_fire )
+void	Trigger_Weapon( GameObject * obj, bool trigger, const Vector3 & target, bool primary_fire ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Trigger_Weapon( %d, %d, (%f %f %f ) %d\n", obj->Get_ID(), trigger, target.X, target.Y, target.Z, primary_fire ));
@@ -612,7 +621,7 @@ void	Trigger_Weapon( GameObject * obj, bool trigger, const Vector3 & target, boo
 	}
 }
 
-void	Select_Weapon( GameObject * obj, const char * weapon_name )
+void	Select_Weapon( GameObject * obj, const char * weapon_name ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Select_Weapon( %d, %s\n", obj->Get_ID(), weapon_name ));
@@ -633,7 +642,7 @@ void	Select_Weapon( GameObject * obj, const char * weapon_name )
 /*
 **
 */
-void	Send_Custom_Event( GameObject * from, GameObject * to, int type, int param, float delay )
+void	Send_Custom_Event( GameObject * from, GameObject * to, int type, int param, float delay ) override
 {
 #if(0) // Denzil 4/4/00 - From not required for most messages
 	SCRIPT_PTR_CHECK( from );
@@ -659,7 +668,7 @@ void	Send_Custom_Event( GameObject * from, GameObject * to, int type, int param,
 	}
 }
 
-void	Send_Damaged_Event( GameObject * object, GameObject * damager )
+void	Send_Damaged_Event( GameObject * object, GameObject * damager ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE(("ST>Send_Damaged_Event( %d, %d )\n",
@@ -677,13 +686,13 @@ void	Send_Damaged_Event( GameObject * object, GameObject * damager )
 /*
 **
 */
-float	Get_Random( float min, float max )
+float	Get_Random( float min, float max ) override
 {
 	return FreeRandom.Get_Float( min, max );
 }
 
 
-int	Get_Random_Int( int min, int max )
+int	Get_Random_Int( int min, int max ) override
 {
 	return FreeRandom.Get_Int( min, max );
 }
@@ -692,7 +701,7 @@ int	Get_Random_Int( int min, int max )
 /*
 **	Find_Random_Simple_Object
 */
-GameObject *Find_Random_Simple_Object ( const char *preset_name )
+GameObject *Find_Random_Simple_Object ( const char *preset_name ) override
 {
 	SCRIPT_TRACE((	"ST>Find_Random_Simple_Object( %s )\n", preset_name ));
 
@@ -740,7 +749,7 @@ GameObject *Find_Random_Simple_Object ( const char *preset_name )
 /*
 ** Object Display
 */
-void	Set_Model( GameObject * obj, const char * model_name )
+void	Set_Model( GameObject * obj, const char * model_name ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 
@@ -775,7 +784,7 @@ void	Set_Model( GameObject * obj, const char * model_name )
 	return ;
 }
 
-void	Set_Animation( GameObject * obj, const char * anim_name, bool looping, const char * sub_obj_name, float start_frame, float end_frame, bool is_blended )
+void	Set_Animation( GameObject * obj, const char * anim_name, bool looping, const char * sub_obj_name, float start_frame, float end_frame, bool is_blended ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Set_Animation( %d, %s, %d )\n", obj->Get_ID(), anim_name == NULL ? "NULL" : anim_name, looping ));
@@ -880,7 +889,7 @@ void	Set_Animation( GameObject * obj, const char * anim_name, bool looping, cons
 }
 
 
-void	Set_Animation_Frame( GameObject * obj, const char * anim_name, int frame )
+void	Set_Animation_Frame( GameObject * obj, const char * anim_name, int frame ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Set_Animation_Frame( %d, %s, %d )\n", obj->Get_ID(), anim_name == NULL ? "NULL" : anim_name, frame ));
@@ -906,7 +915,7 @@ void	Set_Animation_Frame( GameObject * obj, const char * anim_name, int frame )
 /*
 **
 */
-int Create_Sound(const char* sound_name, const Vector3& position, GameObject* creator)
+int Create_Sound(const char* sound_name, const Vector3& position, GameObject* creator) override
 {
 	SCRIPT_TRACE(("ST>Create_Sound( %s, (%f,%f,%f) )\n", sound_name, position[0], position[1], position[2]));
 
@@ -924,7 +933,7 @@ int Create_Sound(const char* sound_name, const Vector3& position, GameObject* cr
 	return sound_id;
 }
 
-int Create_2D_Sound( const char * sound_preset_name )
+int Create_2D_Sound( const char * sound_preset_name ) override
 {
 	WWAudioClass* audio = WWAudioClass::Get_Instance();
 	assert(audio != NULL);
@@ -944,7 +953,7 @@ int Create_2D_Sound( const char * sound_preset_name )
 	return sound_id;
 }
 
-int Create_2D_WAV_Sound( const char * wav_filename )
+int Create_2D_WAV_Sound( const char * wav_filename ) override
 {
 	WWAudioClass* audio = WWAudioClass::Get_Instance();
 	assert(audio != NULL);
@@ -963,7 +972,7 @@ int Create_2D_WAV_Sound( const char * wav_filename )
 }
 
 
-int Create_3D_Sound_At_Bone( const char * sound_preset_name, GameObject * obj, const char * bone_name )
+int Create_3D_Sound_At_Bone( const char * sound_preset_name, GameObject * obj, const char * bone_name ) override
 {
 	WWAudioClass* audio = WWAudioClass::Get_Instance();
 	assert(audio != NULL);
@@ -1000,7 +1009,7 @@ int Create_3D_Sound_At_Bone( const char * sound_preset_name, GameObject * obj, c
 }
 
 
-int Create_3D_WAV_Sound_At_Bone( const char * wav_filename, GameObject * obj, const char * bone_name )
+int Create_3D_WAV_Sound_At_Bone( const char * wav_filename, GameObject * obj, const char * bone_name ) override
 {
 	WWAudioClass* audio = WWAudioClass::Get_Instance();
 	assert(audio != NULL);
@@ -1034,7 +1043,7 @@ int Create_3D_WAV_Sound_At_Bone( const char * wav_filename, GameObject * obj, co
 	return sound_id;
 }
 
-int Create_Logical_Sound( GameObject * creator, int type, const Vector3 & position, float radius )
+int Create_Logical_Sound( GameObject * creator, int type, const Vector3 & position, float radius ) override
 {
 	SCRIPT_TRACE(("ST>Create_Sound( %d, (%f,%f,%f) )\n", type, position[0], position[1], position[2]));
 
@@ -1063,7 +1072,7 @@ int Create_Logical_Sound( GameObject * creator, int type, const Vector3 & positi
 	return sound_id;
 }
 
-void Monitor_Sound( GameObject * game_obj, int sound_id )
+void Monitor_Sound( GameObject * game_obj, int sound_id ) override
 {
 	SCRIPT_TRACE(("ST>Monitor_Sound( %d, %d )\n", game_obj->Get_ID(), sound_id));
 
@@ -1087,7 +1096,7 @@ void Monitor_Sound( GameObject * game_obj, int sound_id )
 }
 
 
-void Fade_Background_Music( const char * wav_filename, int fade_out_time, int fade_in_time )
+void Fade_Background_Music( const char * wav_filename, int fade_out_time, int fade_in_time ) override
 {
 	SCRIPT_TRACE(("ST>Fade_Background_Music( %s, %d, %d )\n", wav_filename, fade_out_time, fade_in_time));
 
@@ -1104,7 +1113,7 @@ void Fade_Background_Music( const char * wav_filename, int fade_out_time, int fa
 }
 
 
-void Set_Background_Music( const char * wav_filename )
+void Set_Background_Music( const char * wav_filename ) override
 {
 	SCRIPT_TRACE(("ST>Set_Background_Music( %s )\n", wav_filename));
 
@@ -1120,7 +1129,7 @@ void Set_Background_Music( const char * wav_filename )
 	return ;
 }
 
-void Stop_Background_Music( void )
+void Stop_Background_Music( void ) override
 {
 	SCRIPT_TRACE(("ST>Stop_Background_Music( )\n"));
 
@@ -1138,7 +1147,7 @@ void Stop_Background_Music( void )
 
 
 
-void Start_Sound( int sound_id )
+void Start_Sound( int sound_id ) override
 {
 	SCRIPT_TRACE(("ST>Stop_Sound( %d )\n", sound_id));
 
@@ -1172,7 +1181,7 @@ void Start_Sound( int sound_id )
 }
 
 
-void Stop_Sound( int sound_id, bool destroy_sound )
+void Stop_Sound( int sound_id, bool destroy_sound ) override
 {
 	SCRIPT_TRACE(("ST>Stop_Sound( %d )\n", sound_id));
 
@@ -1209,7 +1218,7 @@ void Stop_Sound( int sound_id, bool destroy_sound )
 /*
 **
 */
-float	Get_Health( GameObject * obj )
+float	Get_Health( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, 0 );
 
@@ -1222,7 +1231,7 @@ float	Get_Health( GameObject * obj )
 	return dgobj->Get_Defense_Object()->Get_Health();
 }
 
-float	Get_Max_Health( GameObject * obj )
+float	Get_Max_Health( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, 0 );
 
@@ -1235,7 +1244,7 @@ float	Get_Max_Health( GameObject * obj )
 	return dgobj->Get_Defense_Object()->Get_Health_Max();
 }
 
-void	Set_Health( GameObject * obj, float health )
+void	Set_Health( GameObject * obj, float health ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 
@@ -1248,7 +1257,7 @@ void	Set_Health( GameObject * obj, float health )
 	dgobj->Get_Defense_Object()->Set_Health( health );
 }
 
-float	Get_Shield_Strength( GameObject * obj )
+float	Get_Shield_Strength( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, 0 );
 
@@ -1261,7 +1270,7 @@ float	Get_Shield_Strength( GameObject * obj )
 	return dgobj->Get_Defense_Object()->Get_Shield_Strength();
 }
 
-float	Get_Max_Shield_Strength( GameObject * obj )
+float	Get_Max_Shield_Strength( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, 0 );
 
@@ -1274,7 +1283,7 @@ float	Get_Max_Shield_Strength( GameObject * obj )
 	return dgobj->Get_Defense_Object()->Get_Shield_Strength_Max();
 }
 
-void	Set_Shield_Strength( GameObject * obj, float strength )
+void	Set_Shield_Strength( GameObject * obj, float strength ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 
@@ -1287,7 +1296,7 @@ void	Set_Shield_Strength( GameObject * obj, float strength )
 	dgobj->Get_Defense_Object()->Set_Shield_Strength( strength );
 }
 
-void	Set_Shield_Type( GameObject * obj, const char * name )
+void	Set_Shield_Type( GameObject * obj, const char * name ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 
@@ -1301,7 +1310,7 @@ void	Set_Shield_Type( GameObject * obj, const char * name )
 }
 
 
-int	Get_Player_Type( GameObject * obj )
+int	Get_Player_Type( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, 0 );
 
@@ -1314,7 +1323,7 @@ int	Get_Player_Type( GameObject * obj )
 	return	pgobj->Get_Player_Type();
 }
 
-void	Set_Player_Type( GameObject * obj, int type )
+void	Set_Player_Type( GameObject * obj, int type ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 
@@ -1331,7 +1340,7 @@ void	Set_Player_Type( GameObject * obj, int type )
 /*
 **
 */
-float	Get_Distance( const Vector3 & p1, const Vector3 & p2 )
+float	Get_Distance( const Vector3 & p1, const Vector3 & p2 ) override
 {
 	Vector3 v = p1 - p2;
 	return v.Length();
@@ -1341,7 +1350,7 @@ float	Get_Distance( const Vector3 & p1, const Vector3 & p2 )
 /*
 **
 */
-void	Set_Camera_Host( GameObject * obj )
+void	Set_Camera_Host( GameObject * obj ) override
 {
 	//SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Set_Camera_Host( %p )\n", obj ));
@@ -1358,7 +1367,7 @@ void	Set_Camera_Host( GameObject * obj )
 	}
 }
 
-void	Force_Camera_Look( const Vector3 & target )
+void	Force_Camera_Look( const Vector3 & target ) override
 {
 	//SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Force_Camera_Look( %f %f %f )\n", target.X, target.Y, target.Z ));
@@ -1373,7 +1382,7 @@ void	Force_Camera_Look( const Vector3 & target )
 **	Find_Closest_Soldier
 **
 */
-GameObject * Find_Closest_Soldier( const Vector3 & pos, float min_dist, float max_dist, bool only_human )
+GameObject * Find_Closest_Soldier( const Vector3 & pos, float min_dist, float max_dist, bool only_human ) override
 {
 	AABoxClass box (pos, Vector3 (max_dist / 2, max_dist / 2, max_dist / 2));
 
@@ -1430,12 +1439,12 @@ GameObject * Find_Closest_Soldier( const Vector3 & pos, float min_dist, float ma
 /*
 **
 */
-GameObject * Get_The_Star( void )
+GameObject * Get_The_Star( void ) override
 {
 	return (GameObject*)COMBAT_STAR;
 }
 
-GameObject * Get_A_Star( const Vector3 & pos )
+GameObject * Get_A_Star( const Vector3 & pos ) override
 {
 	SoldierGameObj * nearest_human_player = NULL;
 	Vector3 n_c_pos = Vector3( 1000000,1000000,1000000 );
@@ -1457,7 +1466,7 @@ GameObject * Get_A_Star( const Vector3 & pos )
 	return nearest_human_player;
 }
 
-bool Is_A_Star( GameObject * obj )
+bool Is_A_Star( GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( obj, false );
 	if ( obj->As_SmartGameObj() ) {
@@ -1470,11 +1479,11 @@ bool Is_A_Star( GameObject * obj )
 /*
 ** HACK
 */
-const char * Get_Damage_Bone_Name( void )
+const char * Get_Damage_Bone_Name( void ) override
 {
 	return DamageModelName;
 }
-bool Get_Damage_Bone_Direction( void )
+bool Get_Damage_Bone_Direction( void ) override
 {
 	return DamageModelDirection;
 }
@@ -1483,7 +1492,7 @@ bool Get_Damage_Bone_Direction( void )
 /*
 **
 */
-void	Control_Enable( GameObject * obj, bool enable )
+void	Control_Enable( GameObject * obj, bool enable ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Control_Enable( %d, %d )\n", obj->Get_ID(), enable ));
@@ -1499,7 +1508,7 @@ void	Control_Enable( GameObject * obj, bool enable )
 /*
 **
 */
-bool	Is_Object_Visible( GameObject * looker, GameObject * obj )
+bool	Is_Object_Visible( GameObject * looker, GameObject * obj ) override
 {
 	SCRIPT_PTR_CHECK_RET( looker, false );
 	SCRIPT_PTR_CHECK_RET( obj, false );
@@ -1521,7 +1530,7 @@ bool	Is_Object_Visible( GameObject * looker, GameObject * obj )
 }
 
 
-void	Enable_Enemy_Seen( GameObject * obj, bool enable )
+void	Enable_Enemy_Seen( GameObject * obj, bool enable ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Enable_Enemy_Seen( %d, %d )\n", obj->Get_ID(), enable ));
@@ -1537,14 +1546,14 @@ void	Enable_Enemy_Seen( GameObject * obj, bool enable )
 **
 */
 
-Vector3 _DisplayColor( 1,1,1 );
+Vector3 _DisplayColor { 1,1,1 };
 
-void	Set_Display_Color( unsigned char red, unsigned char green, unsigned char blue )
+void	Set_Display_Color( unsigned char red, unsigned char green, unsigned char blue ) override
 {
 	_DisplayColor = Vector3( (float)red/255.0f, (float)green/255.0f, (float)blue/255.0f );
 }
 
-void	Display_Text( int string_id )
+void	Display_Text( int string_id ) override
 {
 	TDBObjClass *	 obj = TranslateDBClass::Find_Object( string_id );
 
@@ -1563,7 +1572,7 @@ void	Display_Text( int string_id )
 	}
 }
 
-void	Display_Float( float value, const char * format )
+void	Display_Float( float value, const char * format ) override
 {
 	WideStringClass wide_format;
 	wide_format.Convert_From( format );
@@ -1572,7 +1581,7 @@ void	Display_Float( float value, const char * format )
 	DebugManager::Display_Text( string, _DisplayColor );
 }
 
-void	Display_Int( int value, const char * format )
+void	Display_Int( int value, const char * format ) override
 {
 	WideStringClass wide_format;
 	wide_format.Convert_From( format );
@@ -1584,7 +1593,7 @@ void	Display_Int( int value, const char * format )
 /*
 **
 */
-void	Save_Data( ScriptSaver & saver, int id, int size, void * data )
+void	Save_Data( ScriptSaver & saver, int id, int size, void * data ) override
 {
 	SCRIPT_PTR_CHECK( data );
 	saver.CSave.Begin_Micro_Chunk(id);
@@ -1594,14 +1603,14 @@ void	Save_Data( ScriptSaver & saver, int id, int size, void * data )
 }
 
 
-void Save_Pointer(ScriptSaver& saver, int id, void* pointer)
+void Save_Pointer(ScriptSaver& saver, int id, void* pointer) override
 {
 	SCRIPT_PTR_CHECK(pointer);
 	Save_Data(saver, id, sizeof(pointer), pointer);
 }
 
 
-bool	Load_Begin( ScriptLoader & loader, int * id )
+bool	Load_Begin( ScriptLoader & loader, int * id ) override
 {
 	SCRIPT_PTR_CHECK_RET( id, false );
 	if ( !loader.CLoad.Open_Micro_Chunk()) {
@@ -1611,7 +1620,7 @@ bool	Load_Begin( ScriptLoader & loader, int * id )
 	return true;
 }
 
-void	Load_Data( ScriptLoader & loader, int size, void * data )
+void	Load_Data( ScriptLoader & loader, int size, void * data ) override
 {
 	SCRIPT_PTR_CHECK( data );
 	unsigned int chunkSize = loader.CLoad.Cur_Micro_Chunk_Length();
@@ -1621,7 +1630,7 @@ void	Load_Data( ScriptLoader & loader, int size, void * data )
 }
 
 
-void Load_Pointer(ScriptLoader& loader, void** pointer)
+void Load_Pointer(ScriptLoader& loader, void** pointer) override
 {
 	SCRIPT_PTR_CHECK(pointer);
 	Load_Data(loader, sizeof(void*), pointer);
@@ -1629,24 +1638,24 @@ void Load_Pointer(ScriptLoader& loader, void** pointer)
 }
 
 
-void	Load_End( ScriptLoader & loader )
+void	Load_End( ScriptLoader & loader ) override
 {
 	loader.CLoad.Close_Micro_Chunk();
 }
 
-void Begin_Chunk(ScriptSaver& saver, unsigned int chunkID)
+void Begin_Chunk(ScriptSaver& saver, unsigned int chunkID) override
 {
 	saver.CSave.Begin_Chunk(chunkID);
 }
 
 
-void End_Chunk(ScriptSaver& saver)
+void End_Chunk(ScriptSaver& saver) override
 {
 	saver.CSave.End_Chunk();
 }
 
 
-bool Open_Chunk(ScriptLoader& loader, unsigned int* chunkID)
+bool Open_Chunk(ScriptLoader& loader, unsigned int* chunkID) override
 {
 	SCRIPT_PTR_CHECK_RET(chunkID, false);
 
@@ -1659,7 +1668,7 @@ bool Open_Chunk(ScriptLoader& loader, unsigned int* chunkID)
 }
 
 
-void Close_Chunk(ScriptLoader& loader)
+void Close_Chunk(ScriptLoader& loader) override
 {
 	loader.CLoad.Close_Chunk();
 }
@@ -1669,7 +1678,7 @@ void Close_Chunk(ScriptLoader& loader)
 //	Clear_Map_Cell
 //
 void
-Clear_Map_Cell( int cell_x, int cell_y )
+Clear_Map_Cell( int cell_x, int cell_y ) override
 {
 	SCRIPT_TRACE((	"ST>Clear_Map_Cell( %d, %d)\n", cell_x, cell_y ));
 	MapMgrClass::Clear_Cloud_Cell( cell_x, cell_y );
@@ -1682,7 +1691,7 @@ Clear_Map_Cell( int cell_x, int cell_y )
 //	Clear_Map_Cell_By_Pos
 //
 void
-Clear_Map_Cell_By_Pos( const Vector3 &world_space_pos )
+Clear_Map_Cell_By_Pos( const Vector3 &world_space_pos ) override
 {
 	SCRIPT_TRACE((	"ST>Clear_Map_Cell_By_Pos( %f, %f, %f)\n", world_space_pos.X, world_space_pos.Y, world_space_pos.Z ));
 	MapMgrClass::Clear_Cloud_Cell( world_space_pos );
@@ -1695,7 +1704,7 @@ Clear_Map_Cell_By_Pos( const Vector3 &world_space_pos )
 //	Clear_Map_Region_By_Pos
 //
 void
-Clear_Map_Region_By_Pos( const Vector3 &world_space_pos, int pixel_radius )
+Clear_Map_Region_By_Pos( const Vector3 &world_space_pos, int pixel_radius ) override
 {
 	SCRIPT_TRACE((	"ST>Clear_Map_Region_By_Pos( %f, %f, %f, %d)\n", world_space_pos.X, world_space_pos.Y, world_space_pos.Z, pixel_radius ));
 	MapMgrClass::Clear_Cloud_Cells( world_space_pos, pixel_radius );
@@ -1708,7 +1717,7 @@ Clear_Map_Region_By_Pos( const Vector3 &world_space_pos, int pixel_radius )
 //	Clear_Map_Cell_By_Pixel_Pos
 //
 void
-Clear_Map_Cell_By_Pixel_Pos( int pixel_pos_x, int pixel_pos_y )
+Clear_Map_Cell_By_Pixel_Pos( int pixel_pos_x, int pixel_pos_y ) override
 {
 	SCRIPT_TRACE((	"ST>Clear_Map_Cell_By_Pixel_Pos( %d, %d)\n", pixel_pos_x, pixel_pos_y ));
 	MapMgrClass::Clear_Cloud_Cell_By_Pixel( pixel_pos_x, pixel_pos_y );
@@ -1721,7 +1730,7 @@ Clear_Map_Cell_By_Pixel_Pos( int pixel_pos_x, int pixel_pos_y )
 //	Show_Player_Map_Marker
 //
 void
-Show_Player_Map_Marker( bool onoff )
+Show_Player_Map_Marker( bool onoff ) override
 {
 	SCRIPT_TRACE((	"ST>Show_Player_Map_Marker()\n" ));
 	MapMgrClass::Show_Player_Marker( onoff );
@@ -1733,7 +1742,7 @@ Show_Player_Map_Marker( bool onoff )
 //	Reveal_Map
 //
 void
-Reveal_Map( void )
+Reveal_Map( void ) override
 {
 	SCRIPT_TRACE((	"ST>Reveal_Map()\n" ));
 	MapMgrClass::Clear_All_Cloud_Cells();
@@ -1745,7 +1754,7 @@ Reveal_Map( void )
 //	Shroud_Map
 //
 void
-Shroud_Map( void )
+Shroud_Map( void ) override
 {
 	SCRIPT_TRACE((	"ST>Shroud_Map()\n" ));
 	MapMgrClass::Cloud_All_Cells();
@@ -1756,7 +1765,7 @@ Shroud_Map( void )
 //	Get_Safe_Flight_Height
 //
 float
-Get_Safe_Flight_Height (float x_pos, float y_pos)
+Get_Safe_Flight_Height (float x_pos, float y_pos) override
 {
 	SCRIPT_TRACE((	"ST>Get_Safe_Flight_Height( %.2f, %.2f )\n", x_pos, y_pos ));
 	return HeightDBClass::Get_Height ( Vector3 ( x_pos, y_pos, 0 ) );
@@ -1766,13 +1775,13 @@ Get_Safe_Flight_Height (float x_pos, float y_pos)
 /*
 **
 */
-void Clear_Radar_Markers( void )
+void Clear_Radar_Markers( void ) override
 {
 	SCRIPT_TRACE((	"ST>Clear_Radar_Markers()\n" ));
 	RadarManager::Clear_Markers();
 }
 
-void	Clear_Radar_Marker( int id )
+void	Clear_Radar_Marker( int id ) override
 {
 	SCRIPT_TRACE((	"ST>Clear_Radar_Marker( %d )\n", id ));
 	RadarManager::Clear_Marker( id );
@@ -1791,7 +1800,7 @@ void	Add_Radar_Marker( int id, const Vector3& position, const Vector3& color, bo
 	RadarManager::Add_Marker( marker );*/
 }
 #else
-void	Add_Radar_Marker( int id, const Vector3& position, int shape_type, int color_type )
+void	Add_Radar_Marker( int id, const Vector3& position, int shape_type, int color_type ) override
 {
 	SCRIPT_TRACE((	"ST>Add_Radar_Marker( %d, (%f,%f,%f), %d, %d)\n",
 			id, position.X, position.Y, position.Z, shape_type, color_type ));
@@ -1828,7 +1837,7 @@ void	Add_Obj_Radar_Marker( int id, GameObject * obj, Vector3 color, bool flash )
 }
 #endif
 
-void	Set_Obj_Radar_Blip_Shape( GameObject * obj, int shape_type )
+void	Set_Obj_Radar_Blip_Shape( GameObject * obj, int shape_type ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Set_Obj_Radar_Blip_Shape( %d, %d )\n", obj->Get_ID(), shape_type ));
@@ -1845,7 +1854,7 @@ void	Set_Obj_Radar_Blip_Shape( GameObject * obj, int shape_type )
 	}
 }
 
-void	Set_Obj_Radar_Blip_Color( GameObject * obj, int color_type )
+void	Set_Obj_Radar_Blip_Color( GameObject * obj, int color_type ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Set_Obj_Radar_Blip_Color( %d, %d )\n", obj->Get_ID(), color_type ));
@@ -1862,7 +1871,7 @@ void	Set_Obj_Radar_Blip_Color( GameObject * obj, int color_type )
 	}
 }
 
-void	Enable_Radar( bool enable )
+void	Enable_Radar( bool enable ) override
 {
 	SCRIPT_TRACE((	"ST>Enable_Radar( %d )\n", enable ));
 	RadarManager::Set_Hidden( !enable );
@@ -1872,7 +1881,7 @@ void	Enable_Radar( bool enable )
 /*
 **
 */
-void	Create_Explosion( const char * explosion_def_name, const Vector3 & pos, GameObject * creator )
+void	Create_Explosion( const char * explosion_def_name, const Vector3 & pos, GameObject * creator ) override
 {
 	SCRIPT_PTR_CHECK( explosion_def_name );
 	SCRIPT_TRACE((	"ST>Create_Explosion( %s, (%f,%f,%f), %d )\n",
@@ -1890,7 +1899,7 @@ void	Create_Explosion( const char * explosion_def_name, const Vector3 & pos, Gam
 	}
 }
 
-void	Create_Explosion_At_Bone( const char * explosion_def_name, GameObject * object, const char * bone_name, GameObject * creator )
+void	Create_Explosion_At_Bone( const char * explosion_def_name, GameObject * object, const char * bone_name, GameObject * creator ) override
 {
 	SCRIPT_PTR_CHECK( explosion_def_name );
 	SCRIPT_PTR_CHECK( object );
@@ -1928,21 +1937,21 @@ void	Create_Explosion_At_Bone( const char * explosion_def_name, GameObject * obj
 /*
 **
 */
-void	Enable_HUD( bool enable )
+void	Enable_HUD( bool enable ) override
 {
 	SCRIPT_TRACE((	"ST>Enable_HUD( %d )\n", enable ));
 	HUDClass::Enable( enable );
 }
 
 
-void	Mission_Complete( bool success )
+void	Mission_Complete( bool success ) override
 {
 	SCRIPT_TRACE((	"ST>Mission_Complete( %d )\n", success ));
    CombatManager::Mission_Complete( success );
 }
 
 
-void	Give_PowerUp( GameObject * obj, const char * preset_name, bool display_on_hud )
+void	Give_PowerUp( GameObject * obj, const char * preset_name, bool display_on_hud ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_PTR_CHECK( preset_name );
@@ -1991,51 +2000,51 @@ bool Innate_Soldier_Enable( GameObject * obj, int bits, bool state )
 }
 
 
-bool	Innate_Soldier_Enable_Enemy_Seen( GameObject * obj, bool state )
+bool	Innate_Soldier_Enable_Enemy_Seen( GameObject * obj, bool state ) override
 {
 	return Innate_Soldier_Enable( obj, SOLDIER_INNATE_EVENT_ENEMY_SEEN, state );
 }
 
 
-bool	Innate_Soldier_Enable_Gunshot_Heard( GameObject * obj, bool state )
+bool	Innate_Soldier_Enable_Gunshot_Heard( GameObject * obj, bool state ) override
 {
 	return Innate_Soldier_Enable( obj, SOLDIER_INNATE_EVENT_GUNSHOT_HEARD, state );
 }
 
 
-bool	Innate_Soldier_Enable_Footsteps_Heard( GameObject * obj, bool state )
+bool	Innate_Soldier_Enable_Footsteps_Heard( GameObject * obj, bool state ) override
 {
 	return Innate_Soldier_Enable( obj, SOLDIER_INNATE_EVENT_FOOTSTEP_HEARD, state );
 }
 
 
-bool	Innate_Soldier_Enable_Bullet_Heard( GameObject * obj, bool state )
+bool	Innate_Soldier_Enable_Bullet_Heard( GameObject * obj, bool state ) override
 {
 	return Innate_Soldier_Enable( obj, SOLDIER_INNATE_EVENT_BULLET_HEARD, state );
 }
 
 
-bool	Innate_Soldier_Enable_Actions( GameObject * obj, bool state )
+bool	Innate_Soldier_Enable_Actions( GameObject * obj, bool state ) override
 {
 	return Innate_Soldier_Enable( obj, SOLDIER_INNATE_ACTIONS, state );
 }
 
 
 // Disable all innate abilities
-void Innate_Disable(GameObject* object)
+void Innate_Disable(GameObject* object) override
 {
 	Innate_Soldier_Enable(object, 0xFFFFFFFF, false);
 }
 
 
 // Enable all innate abilities
-void Innate_Enable(GameObject* object)
+void Innate_Enable(GameObject* object) override
 {
 	Innate_Soldier_Enable(object, 0xFFFFFFFF, true);
 }
 
 
-void	Set_Innate_Soldier_Home_Location( GameObject * obj, const Vector3& home_pos, float home_radius )
+void	Set_Innate_Soldier_Home_Location( GameObject * obj, const Vector3& home_pos, float home_radius ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Set_Innate_Soldier_Home_Location( %d, (%f %f %f), %f )\n", obj->Get_ID(), home_pos.X, home_pos.Y, home_pos.Z, home_radius ));
@@ -2053,7 +2062,7 @@ void	Set_Innate_Soldier_Home_Location( GameObject * obj, const Vector3& home_pos
 
 }
 
-void	Set_Innate_Aggressiveness( GameObject * obj, float aggressiveness )
+void	Set_Innate_Aggressiveness( GameObject * obj, float aggressiveness ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Set_Innate_Aggressiveness( %d, %f )\n", obj->Get_ID(), aggressiveness ));
@@ -2075,7 +2084,7 @@ void	Set_Innate_Aggressiveness( GameObject * obj, float aggressiveness )
 	}
 }
 
-void	Set_Innate_Take_Cover_Probability( GameObject * obj, float probability )
+void	Set_Innate_Take_Cover_Probability( GameObject * obj, float probability ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Set_Innate_Take_Cover_Probability( %d, %f )\n", obj->Get_ID(), probability ));
@@ -2097,7 +2106,7 @@ void	Set_Innate_Take_Cover_Probability( GameObject * obj, float probability )
 	}
 }
 
-void	Set_Innate_Is_Stationary( GameObject * obj, bool stationary )
+void	Set_Innate_Is_Stationary( GameObject * obj, bool stationary ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Set_Innate_Take_Cover_Probability( %d, %d )\n", obj->Get_ID(), stationary ));
@@ -2120,7 +2129,7 @@ void	Set_Innate_Is_Stationary( GameObject * obj, bool stationary )
 }
 
 
-void	Innate_Force_State_Bullet_Heard( GameObject * obj, const Vector3 & pos )
+void	Innate_Force_State_Bullet_Heard( GameObject * obj, const Vector3 & pos ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Innate_Force_State_Bullet_Heard( %d, ( %f, %f, %f, )  )\n", obj->Get_ID(), pos.X, pos.Y, pos.Z ));
@@ -2142,7 +2151,7 @@ void	Innate_Force_State_Bullet_Heard( GameObject * obj, const Vector3 & pos )
 	}
 }
 
-void	Innate_Force_State_Footsteps_Heard( GameObject * obj, const Vector3 & pos )
+void	Innate_Force_State_Footsteps_Heard( GameObject * obj, const Vector3 & pos ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Innate_Force_State_Footsteps_Heard( %d, ( %f, %f, %f, )  )\n", obj->Get_ID(), pos.X, pos.Y, pos.Z ));
@@ -2164,7 +2173,7 @@ void	Innate_Force_State_Footsteps_Heard( GameObject * obj, const Vector3 & pos )
 	}
 }
 
-void	Innate_Force_State_Gunshots_Heard( GameObject * obj, const Vector3 & pos )
+void	Innate_Force_State_Gunshots_Heard( GameObject * obj, const Vector3 & pos ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_TRACE((	"ST>Innate_Force_State_Gunshot_Heard( %d, ( %f, %f, %f, )  )\n", obj->Get_ID(), pos.X, pos.Y, pos.Z ));
@@ -2186,7 +2195,7 @@ void	Innate_Force_State_Gunshots_Heard( GameObject * obj, const Vector3 & pos )
 	}
 }
 
-void	Innate_Force_State_Enemy_Seen( GameObject * obj, GameObject * enemy )
+void	Innate_Force_State_Enemy_Seen( GameObject * obj, GameObject * enemy ) override
 {
 	SCRIPT_PTR_CHECK( obj );
 	SCRIPT_PTR_CHECK( enemy );
@@ -2214,7 +2223,7 @@ void	Innate_Force_State_Enemy_Seen( GameObject * obj, GameObject * enemy )
 **
 */
 
-void	Static_Anim_Phys_Goto_Frame( int obj_id, float frame, const char * anim_name )
+void	Static_Anim_Phys_Goto_Frame( int obj_id, float frame, const char * anim_name ) override
 {
 	SCRIPT_TRACE((	"ST>Static_Anim_Phys_Goto_Frame( %d, %d )\n", obj_id, frame ));
 
@@ -2232,7 +2241,7 @@ void	Static_Anim_Phys_Goto_Frame( int obj_id, float frame, const char * anim_nam
 }
 
 
-void	Static_Anim_Phys_Goto_Last_Frame( int obj_id, const char * anim_name )
+void	Static_Anim_Phys_Goto_Last_Frame( int obj_id, const char * anim_name ) override
 {
 	SCRIPT_TRACE((	"ST>Static_Anim_Phys_Goto_Last_Frame( %d )\n", obj_id ));
 
@@ -2249,7 +2258,7 @@ void	Static_Anim_Phys_Goto_Last_Frame( int obj_id, const char * anim_name )
 	}
 }
 
-unsigned int Get_Sync_Time( void )
+unsigned int Get_Sync_Time( void ) override
 {
 	return CombatManager::Get_Sync_Time();
 }
@@ -2257,37 +2266,37 @@ unsigned int Get_Sync_Time( void )
 /*
 ** Objectives
 */
-void	Add_Objective( int id, int type,  int status, int short_description_id, char * description_sound_filename, int long_description_id )
+void	Add_Objective( int id, int type,  int status, int short_description_id, char * description_sound_filename, int long_description_id ) override
 {
 	SCRIPT_TRACE((	"ST>Add_Objective( %d, %d, %d, %d %d )\n", id, type, status, short_description_id, long_description_id ));
 	ObjectiveManager::Add_Objective( id, type, status, short_description_id, long_description_id, description_sound_filename );
 }
 
-void	Remove_Objective( int id )
+void	Remove_Objective( int id ) override
 {
 	SCRIPT_TRACE((	"ST>Remove_Objective( %d )\n", id ));
 	ObjectiveManager::Remove_Objective( id );
 }
 
-void	Set_Objective_Status( int id, int status )
+void	Set_Objective_Status( int id, int status ) override
 {
 	SCRIPT_TRACE((	"ST>Set_Objective_Status( %d, %d )\n", id, status ));
 	ObjectiveManager::Set_Objective_Status( id, status );
 }
 
-void	Change_Objective_Type( int id, int type )
+void	Change_Objective_Type( int id, int type ) override
 {
 	SCRIPT_TRACE((	"ST>Change_Objective_Type( %d, %d )\n", id, type ));
 	ObjectiveManager::Change_Objective_Type( id, type );
 }
 
-void	Set_Objective_Radar_Blip( int id, const Vector3 & position )
+void	Set_Objective_Radar_Blip( int id, const Vector3 & position ) override
 {
 	SCRIPT_TRACE((	"ST>Set_Objective_Radar_Blip( %d, %f %f %f )\n", id, position ));
 	ObjectiveManager::Set_Objective_Radar_Blip( id, position );
 }
 
-void	Set_Objective_Radar_Blip_Object( int id, ScriptableGameObj * unit )
+void	Set_Objective_Radar_Blip_Object( int id, ScriptableGameObj * unit ) override
 {
 	SCRIPT_PTR_CHECK( unit );
 	SCRIPT_TRACE((	"ST>Set_Objective_Radar_Blip_Object( %d, %d )\n", id, unit->Get_ID() ));
@@ -2298,14 +2307,14 @@ void	Set_Objective_Radar_Blip_Object( int id, ScriptableGameObj * unit )
 	ObjectiveManager::Set_Objective_Radar_Blip( id, pobj );
 }
 
-void	Set_Objective_HUD_Info( int id, float priority, const char * texture_name, int message_id )
+void	Set_Objective_HUD_Info( int id, float priority, const char * texture_name, int message_id ) override
 {
 	SCRIPT_PTR_CHECK( texture_name );
 	SCRIPT_TRACE((	"ST>Set_Objective_HUD_Info( %d, %f, %s, %d )\n", id, priority, texture_name, message_id ));
 	ObjectiveManager::Set_Objective_HUD_Info( id, priority, texture_name, message_id );
 }
 
-void	Set_Objective_HUD_Info_Position( int id, float priority, const char * texture_name, int message_id, const Vector3 & position )
+void	Set_Objective_HUD_Info_Position( int id, float priority, const char * texture_name, int message_id, const Vector3 & position ) override
 {
 	SCRIPT_PTR_CHECK( texture_name );
 	SCRIPT_TRACE((	"ST>Set_Objective_HUD_Info_Position( %d, %f, %s, %d )\n", id, priority, texture_name, message_id ));
@@ -2315,7 +2324,7 @@ void	Set_Objective_HUD_Info_Position( int id, float priority, const char * textu
 /*
 **
 */
-void	Shake_Camera( const Vector3 & pos, float radius, float intensity, float duration )
+void	Shake_Camera( const Vector3 & pos, float radius, float intensity, float duration ) override
 {
 	SCRIPT_TRACE((	"ST>Shake_Camera( (%f, %f, %f), %f, %f, %f\n",pos.X, pos.Y, pos.Z, radius, intensity, duration ));
 	if ( COMBAT_SCENE ) {
@@ -2324,19 +2333,19 @@ void	Shake_Camera( const Vector3 & pos, float radius, float intensity, float dur
 }
 
 
-void	Enable_Spawner( int id, bool enable )
+void	Enable_Spawner( int id, bool enable ) override
 {
 	SCRIPT_TRACE((	"ST>Enable_Spawned( %d, %d )\n",id, enable ));
 	SpawnManager::Spawner_Enable( id, enable );
 }
 
-GameObject * Trigger_Spawner( int id )
+GameObject * Trigger_Spawner( int id ) override
 {
 	SCRIPT_TRACE((	"ST>Trigger_Spawned( %d )\n", id ));
 	return SpawnManager::Spawner_Trigger( id );
 }
 
-void	Enable_Engine( GameObject* object, bool onoff )
+void	Enable_Engine( GameObject* object, bool onoff ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Enable_Engine( %d, %d )\n", object, onoff ));
@@ -2354,12 +2363,12 @@ void	Enable_Engine( GameObject* object, bool onoff )
 /*
 **
 */
-int	Get_Difficulty_Level( void )
+int	Get_Difficulty_Level( void ) override
 {
 	return CombatManager::Get_Difficulty_Level();
 }
 
-void	Grant_Key( GameObject* object, int key, bool grant = true )
+void	Grant_Key( GameObject* object, int key, bool grant = true ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Grant_Key( %d, %d )\n", object->Get_ID(), key, grant ));
@@ -2380,7 +2389,7 @@ void	Grant_Key( GameObject* object, int key, bool grant = true )
 	}
 }
 
-bool	Has_Key( GameObject* object, int key )
+bool	Has_Key( GameObject* object, int key ) override
 {
 	SoldierGameObj * soldier = NULL;
 	if ( object->As_SmartGameObj() != NULL ) {
@@ -2390,7 +2399,7 @@ bool	Has_Key( GameObject* object, int key )
 	return soldier && soldier->Has_Key( key );
 }
 
-void	Enable_Hibernation( GameObject * object, bool enable )
+void	Enable_Hibernation( GameObject * object, bool enable ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Enable_Hibernation( %d, %d )\n", object->Get_ID(), enable ));
@@ -2400,7 +2409,7 @@ void	Enable_Hibernation( GameObject * object, bool enable )
 	}
 }
 
-void	Attach_To_Object_Bone( GameObject * object, GameObject * host_object, const char * bone_name )
+void	Attach_To_Object_Bone( GameObject * object, GameObject * host_object, const char * bone_name ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	if ( host_object == NULL ) {
@@ -2421,7 +2430,7 @@ void	Attach_To_Object_Bone( GameObject * object, GameObject * host_object, const
 	}
 }
 
-int	Create_Conversation( const char *conversation_name, int priority, float max_dist, bool is_interruptable )
+int	Create_Conversation( const char *conversation_name, int priority, float max_dist, bool is_interruptable ) override
 {
 	int active_conversation_id = -1;
 	SCRIPT_TRACE((	"ST>Create_Conversation( %s )\n", conversation_name ));
@@ -2461,7 +2470,7 @@ int	Create_Conversation( const char *conversation_name, int priority, float max_
 	return active_conversation_id;
 }
 
-void	Join_Conversation_Facing( GameObject * object, int active_conversation_id, int obj_id_to_face )
+void	Join_Conversation_Facing( GameObject * object, int active_conversation_id, int obj_id_to_face ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Join_Conversation_Facing( %d, %d, %d )\n", object->Get_ID (), active_conversation_id, obj_id_to_face ));
@@ -2501,7 +2510,7 @@ void	Join_Conversation_Facing( GameObject * object, int active_conversation_id, 
 }
 
 
-void	Join_Conversation( GameObject * object, int active_conversation_id, bool allow_move, bool allow_head_turn, bool allow_face )
+void	Join_Conversation( GameObject * object, int active_conversation_id, bool allow_move, bool allow_head_turn, bool allow_face ) override
 {
 	int obj_id = 0;
 	if ( object != NULL ) {
@@ -2544,7 +2553,7 @@ void	Join_Conversation( GameObject * object, int active_conversation_id, bool al
 }
 
 
-void	Stop_All_Conversations( void )
+void	Stop_All_Conversations( void ) override
 {
 	SCRIPT_TRACE((	"ST>Stop_All_Conversations( )\n" ));
 
@@ -2556,7 +2565,7 @@ void	Stop_All_Conversations( void )
 }
 
 
-void	Stop_Conversation( int active_conversation_id )
+void	Stop_Conversation( int active_conversation_id ) override
 {
 	SCRIPT_TRACE((	"ST>Stop_Conversation( %d )\n", active_conversation_id ));
 
@@ -2577,7 +2586,7 @@ void	Stop_Conversation( int active_conversation_id )
 }
 
 
-void	Start_Conversation( int active_conversation_id, int action_id )
+void	Start_Conversation( int active_conversation_id, int action_id ) override
 {
 	SCRIPT_TRACE((	"ST>Start_Conversation( %d, %d )\n", active_conversation_id, action_id ));
 
@@ -2599,7 +2608,7 @@ void	Start_Conversation( int active_conversation_id, int action_id )
 	return ;
 }
 
-void	Monitor_Conversation( GameObject * object, int active_conversation_id )
+void	Monitor_Conversation( GameObject * object, int active_conversation_id ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Monitor_Conversation( %d, %d )\n", object->Get_ID (), active_conversation_id ));
@@ -2622,7 +2631,7 @@ void	Monitor_Conversation( GameObject * object, int active_conversation_id )
 }
 
 
-void	Start_Random_Conversation( GameObject * object )
+void	Start_Random_Conversation( GameObject * object ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Start_Random_Conversation( %d )\n", object->Get_ID() ));
@@ -2649,7 +2658,7 @@ void	Start_Random_Conversation( GameObject * object )
 /*
 **
 */
-void	Lock_Soldier_Facing( GameObject * object, GameObject * object_to_face, bool turn_body )
+void	Lock_Soldier_Facing( GameObject * object, GameObject * object_to_face, bool turn_body ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Lock_Soldier_Facing( %d, %d )\n", object->Get_ID(), turn_body ));
@@ -2680,7 +2689,7 @@ void	Lock_Soldier_Facing( GameObject * object, GameObject * object_to_face, bool
 /*
 **
 */
-void	Unlock_Soldier_Facing( GameObject * object )
+void	Unlock_Soldier_Facing( GameObject * object ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Unlock_Soldier_Facing( %d )\n", object->Get_ID() ));
@@ -2707,7 +2716,7 @@ void	Unlock_Soldier_Facing( GameObject * object )
 /*
 **
 */
-void	Apply_Damage( GameObject * object, float amount, const char * warhead_name, GameObject * damager = NULL )
+void	Apply_Damage( GameObject * object, float amount, const char * warhead_name, GameObject * damager = NULL ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Apply_Damage( %d, %f, %s )\n", object->Get_ID(), amount, warhead_name ));
@@ -2730,7 +2739,7 @@ void	Apply_Damage( GameObject * object, float amount, const char * warhead_name,
 	}
 }
 
-void	Set_Loiters_Allowed( GameObject * object, bool allowed )
+void	Set_Loiters_Allowed( GameObject * object, bool allowed ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Set_Loiters_Allowed( %d, %d )\n", object->Get_ID(), allowed ));
@@ -2748,7 +2757,7 @@ void	Set_Loiters_Allowed( GameObject * object, bool allowed )
 
 }
 
-void	Set_Is_Visible( GameObject * object, bool visible )
+void	Set_Is_Visible( GameObject * object, bool visible ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Set_Is_Visible( %d, %d )\n", object->Get_ID(), visible ));
@@ -2766,7 +2775,7 @@ void	Set_Is_Visible( GameObject * object, bool visible )
 }
 
 
-void	Set_Is_Rendered( GameObject * object, bool rendered )
+void	Set_Is_Rendered( GameObject * object, bool rendered ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Set_Is_Rendered( %d, %d )\n", object->Get_ID(), rendered ));
@@ -2784,7 +2793,7 @@ void	Set_Is_Rendered( GameObject * object, bool rendered )
 /*
 **
 */
-float	Get_Points( GameObject * object )
+float	Get_Points( GameObject * object ) override
 {
 	if ( object && object->As_SmartGameObj() && object->As_SmartGameObj()->Get_Player_Data() ) {
 		return object->As_SmartGameObj()->Get_Player_Data()->Get_Score();
@@ -2793,7 +2802,7 @@ float	Get_Points( GameObject * object )
 	return 0;
 }
 
-void	Give_Points( GameObject * object, float points, bool entire_team )
+void	Give_Points( GameObject * object, float points, bool entire_team ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Give_Points( %d, %f, %d )\n", object->Get_ID(), points, entire_team ));
@@ -2821,7 +2830,7 @@ void	Give_Points( GameObject * object, float points, bool entire_team )
 /*
 **
 */
-float	Get_Money( GameObject * object )
+float	Get_Money( GameObject * object ) override
 {
 	if ( object && object->As_SmartGameObj() && object->As_SmartGameObj()->Get_Player_Data() ) {
 		return object->As_SmartGameObj()->Get_Player_Data()->Get_Money();
@@ -2830,7 +2839,7 @@ float	Get_Money( GameObject * object )
 	return 0;
 }
 
-void	Give_Money( GameObject * object, float money, bool entire_team )
+void	Give_Money( GameObject * object, float money, bool entire_team ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Give_Money( %d, %f, %d )\n", object->Get_ID(), money, entire_team ));
@@ -2858,7 +2867,7 @@ void	Give_Money( GameObject * object, float money, bool entire_team )
 /*
 **
 */
-bool	Get_Building_Power( GameObject * object )
+bool	Get_Building_Power( GameObject * object ) override
 {
 	SCRIPT_PTR_CHECK_RET( object, false );
 	BuildingGameObj *building = object->As_BuildingGameObj();
@@ -2869,7 +2878,7 @@ bool	Get_Building_Power( GameObject * object )
 	return false;
 }
 
-void	Set_Building_Power( GameObject * object, bool onoff )
+void	Set_Building_Power( GameObject * object, bool onoff ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Set_Building_Power( %d, %d )\n", object->Get_ID(), onoff ));
@@ -2883,7 +2892,7 @@ void	Set_Building_Power( GameObject * object, bool onoff )
 }
 
 
-void	Play_Building_Announcement( GameObject * object, int text_id )
+void	Play_Building_Announcement( GameObject * object, int text_id ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Play_Building_Announcement( %d, %d )\n", object->Get_ID(), text_id ));
@@ -2897,7 +2906,7 @@ void	Play_Building_Announcement( GameObject * object, int text_id )
 }
 
 
-GameObject * Find_Nearest_Building_To_Pos( const Vector3 & position, const char * mesh_prefix )
+GameObject * Find_Nearest_Building_To_Pos( const Vector3 & position, const char * mesh_prefix ) override
 {
 	SCRIPT_PTR_CHECK_RET( mesh_prefix, NULL );
 	SCRIPT_TRACE((	"ST>Find_Nearest_Building_To_Pos( (%f,%f,%f), %s )\n", position.X, position.Y, position.Z, mesh_prefix ));
@@ -2937,7 +2946,7 @@ GameObject * Find_Nearest_Building_To_Pos( const Vector3 & position, const char 
 }
 
 
-GameObject * Find_Nearest_Building( GameObject * object, const char * mesh_prefix )
+GameObject * Find_Nearest_Building( GameObject * object, const char * mesh_prefix ) override
 {
 	SCRIPT_PTR_CHECK_RET( object, NULL );
 	SCRIPT_PTR_CHECK_RET( mesh_prefix, NULL );
@@ -2956,7 +2965,7 @@ GameObject * Find_Nearest_Building( GameObject * object, const char * mesh_prefi
 }
 
 
-int	Team_Members_In_Zone( GameObject * object, int player_type )
+int	Team_Members_In_Zone( GameObject * object, int player_type ) override
 {
 	SCRIPT_PTR_CHECK_RET( object, 0 );
 
@@ -2970,68 +2979,68 @@ int	Team_Members_In_Zone( GameObject * object, int player_type )
 	return 0;
 }
 
-void Set_Clouds (float cloudcover, float cloudgloominess, float ramptime)
+void Set_Clouds (float cloudcover, float cloudgloominess, float ramptime) override
 {
 	if (!BackgroundMgrClass::Set_Clouds (cloudcover, cloudgloominess, ramptime)) {
 		Debug_Say (("Cannot set clouds\n"));
 	}
 }
 
-void Set_Lightning (float intensity, float startdistance, float enddistance, float heading, float distribution, float ramptime)
+void Set_Lightning (float intensity, float startdistance, float enddistance, float heading, float distribution, float ramptime) override
 {
 	if (!BackgroundMgrClass::Set_Lightning (intensity, startdistance, enddistance, heading, distribution, ramptime)) {
 		Debug_Say (("Cannot set lightning\n"));
 	}
 }
 
-void Set_War_Blitz (float intensity, float startdistance, float enddistance, float heading, float distribution, float ramptime)
+void Set_War_Blitz (float intensity, float startdistance, float enddistance, float heading, float distribution, float ramptime) override
 {
 	if (!BackgroundMgrClass::Set_War_Blitz (intensity, startdistance, enddistance, heading, distribution, ramptime)) {
 		Debug_Say (("Cannot set war blitz\n"));
 	}
 }
 
-void Set_Wind (float heading, float speed, float variability, float ramptime)
+void Set_Wind (float heading, float speed, float variability, float ramptime) override
 {
 	if (!WeatherMgrClass::Set_Wind (heading, speed, variability, ramptime)) {
 		Debug_Say (("Cannot set wind\n"));
 	}
 }
 
-void Set_Rain (float density, float ramptime, bool prime)
+void Set_Rain (float density, float ramptime, bool prime) override
 {
 	if (!WeatherMgrClass::Set_Precipitation (WeatherMgrClass::PRECIPITATION_RAIN, density, ramptime)) {
 		Debug_Say (("Cannot set rain\n"));
 	}
 }
 
-void Set_Snow (float density, float ramptime, bool prime)
+void Set_Snow (float density, float ramptime, bool prime) override
 {
 	if (!WeatherMgrClass::Set_Precipitation (WeatherMgrClass::PRECIPITATION_SNOW, density, ramptime)) {
 		Debug_Say (("Cannot set snow\n"));
 	}
 }
 
-void Set_Ash (float density, float ramptime, bool prime)
+void Set_Ash (float density, float ramptime, bool prime) override
 {
 	if (!WeatherMgrClass::Set_Precipitation (WeatherMgrClass::PRECIPITATION_ASH, density, ramptime)) {
 		Debug_Say (("Cannot set ash\n"));
 	}
 }
 
-void Set_Fog_Enable (bool enabled)
+void Set_Fog_Enable (bool enabled) override
 {
 	WeatherMgrClass::Set_Fog_Enable (enabled);
 }
 
-void Set_Fog_Range (float startdistance, float enddistance, float ramptime)
+void Set_Fog_Range (float startdistance, float enddistance, float ramptime) override
 {
 	if (!WeatherMgrClass::Set_Fog_Range (startdistance, enddistance, ramptime)) {
 		Debug_Say (("Cannot set fog range\n"));
 	}
 }
 
-void Enable_Stealth(GameObject * object, bool onoff)
+void Enable_Stealth(GameObject * object, bool onoff) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Enable_Stealth( %d, %d )\n", object->Get_ID(), (onoff ? 1 : 0)));
@@ -3042,7 +3051,7 @@ void Enable_Stealth(GameObject * object, bool onoff)
 	}
 }
 
-void	Cinematic_Sniper_Control(bool enabled, float zoom)
+void	Cinematic_Sniper_Control(bool enabled, float zoom) override
 {
 	SCRIPT_TRACE((	"ST>Sniper_Control( %d, %f )\n", enabled, zoom ));
 
@@ -3054,7 +3063,7 @@ void	Cinematic_Sniper_Control(bool enabled, float zoom)
 /*
 **
 */
-int	Text_File_Open( const char * filename )
+int	Text_File_Open( const char * filename ) override
 {
 	FileClass * file = _TheFileFactory->Get_File( filename );
 	if ( file ) {
@@ -3067,7 +3076,7 @@ int	Text_File_Open( const char * filename )
 	return (int)( file );
 }
 
-bool	Text_File_Get_String( int handle, char * buffer, int size )
+bool	Text_File_Get_String( int handle, char * buffer, int size ) override
 {
 	FileClass * file = (FileClass *)handle;
 	char ch[4];
@@ -3085,7 +3094,7 @@ bool	Text_File_Get_String( int handle, char * buffer, int size )
 	return (buffer[0] != 0);
 }
 
-void	Text_File_Close( int handle )
+void	Text_File_Close( int handle ) override
 {
 	FileClass * file = (FileClass *)handle;
 	if ( file != NULL ) {
@@ -3098,7 +3107,7 @@ void	Text_File_Close( int handle )
 /*
 **
 */
-void	Enable_Vehicle_Transitions( GameObject * object, bool enable )
+void	Enable_Vehicle_Transitions( GameObject * object, bool enable ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Enable_Vehicle_Transitions( %d, %d )\n", object->Get_ID(), enable ));
@@ -3119,7 +3128,7 @@ void	Enable_Vehicle_Transitions( GameObject * object, bool enable )
 /*
 **
 */
-void	Display_GDI_Player_Terminal (void)
+void	Display_GDI_Player_Terminal (void) override
 {
 	SCRIPT_TRACE((	"ST>Display_GDI_Player_Terminal( )\n" ));
 
@@ -3131,7 +3140,7 @@ void	Display_GDI_Player_Terminal (void)
 /*
 **
 */
-void	Display_NOD_Player_Terminal (void)
+void	Display_NOD_Player_Terminal (void) override
 {
 	SCRIPT_TRACE((	"ST>Display_NOD_Player_Terminal( )\n" ));
 
@@ -3143,7 +3152,7 @@ void	Display_NOD_Player_Terminal (void)
 /*
 **
 */
-void	Display_Mutant_Player_Terminal (void)
+void	Display_Mutant_Player_Terminal (void) override
 {
 	SCRIPT_TRACE((	"ST>Display_Mutant_Player_Terminal( )\n" ));
 
@@ -3155,7 +3164,7 @@ void	Display_Mutant_Player_Terminal (void)
 /*
 **
 */
-bool	Reveal_Encyclopedia_Character( int object_id )
+bool	Reveal_Encyclopedia_Character( int object_id ) override
 {
 	SCRIPT_TRACE((	"ST>Reveal_Encyclopedia_Character( %d )\n", object_id ));
 	return EncyclopediaMgrClass::Reveal_Object( EncyclopediaMgrClass::TYPE_CHARACTER, object_id );
@@ -3165,7 +3174,7 @@ bool	Reveal_Encyclopedia_Character( int object_id )
 /*
 **
 */
-bool	Reveal_Encyclopedia_Weapon( int object_id )
+bool	Reveal_Encyclopedia_Weapon( int object_id ) override
 {
 	SCRIPT_TRACE((	"ST>Reveal_Encyclopedia_Weapon( %d )\n", object_id ));
 	return EncyclopediaMgrClass::Reveal_Object( EncyclopediaMgrClass::TYPE_WEAPON, object_id );
@@ -3175,7 +3184,7 @@ bool	Reveal_Encyclopedia_Weapon( int object_id )
 /*
 **
 */
-bool	Reveal_Encyclopedia_Vehicle( int object_id )
+bool	Reveal_Encyclopedia_Vehicle( int object_id ) override
 {
 	SCRIPT_TRACE((	"ST>Reveal_Encyclopedia_Vehicle( %d )\n", object_id ));
 	return EncyclopediaMgrClass::Reveal_Object( EncyclopediaMgrClass::TYPE_VEHICLE, object_id );
@@ -3185,7 +3194,7 @@ bool	Reveal_Encyclopedia_Vehicle( int object_id )
 /*
 **
 */
-bool	Reveal_Encyclopedia_Building( int object_id )
+bool	Reveal_Encyclopedia_Building( int object_id ) override
 {
 	SCRIPT_TRACE((	"ST>Reveal_Encyclopedia_Building( %d )\n", object_id ));
 	return EncyclopediaMgrClass::Reveal_Object( EncyclopediaMgrClass::TYPE_BUILDING, object_id );
@@ -3195,7 +3204,7 @@ bool	Reveal_Encyclopedia_Building( int object_id )
 /*
 **
 */
-void	Display_Encyclopedia_Event_UI( void )
+void	Display_Encyclopedia_Event_UI( void ) override
 {
 	SCRIPT_TRACE((	"ST>Display_Encyclopedia_Event_UI( )\n" ));
 	EncyclopediaMgrClass::Display_Event_UI();
@@ -3208,7 +3217,7 @@ void	Display_Encyclopedia_Event_UI( void )
 /*
 **
 */
-void	Scale_AI_Awareness( float sight_scale, float hearing_scale )
+void	Scale_AI_Awareness( float sight_scale, float hearing_scale ) override
 {
 	SCRIPT_TRACE((	"ST>Scale_AI_Awareness ( %f %f )\n", sight_scale, hearing_scale ));
 	SmartGameObj::Set_Global_Sight_Range_Scale( sight_scale );
@@ -3219,7 +3228,7 @@ void	Scale_AI_Awareness( float sight_scale, float hearing_scale )
 /*
 **
 */
-void	Enable_Cinematic_Freeze( GameObject * object, bool enable )
+void	Enable_Cinematic_Freeze( GameObject * object, bool enable ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Enable_Cinematic_Freeze( %d, %d )\n", object->Get_ID(), enable ));
@@ -3227,7 +3236,7 @@ void	Enable_Cinematic_Freeze( GameObject * object, bool enable )
 	object->Enable_Cinematic_Freeze( enable );
 }
 
-void	Expire_Powerup( GameObject * object )
+void	Expire_Powerup( GameObject * object ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Expire_Powerup( %d )\n", object->Get_ID() ));
@@ -3241,7 +3250,7 @@ void	Expire_Powerup( GameObject * object )
 	}
 }
 
-void	Set_HUD_Help_Text( int string_id, const Vector3 &color )
+void	Set_HUD_Help_Text( int string_id, const Vector3 &color ) override
 {
 	SCRIPT_TRACE((	"ST>Set_HUD_Help_Text( %d )\n", string_id ));
 
@@ -3279,7 +3288,7 @@ void	Set_HUD_Help_Text( int string_id, const Vector3 &color )
 /*
 **
 */
-void	Enable_HUD_Pokable_Indicator( GameObject * object, bool enable )
+void	Enable_HUD_Pokable_Indicator( GameObject * object, bool enable ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Enable_HUD_Pokable_Indicator( %d, %d )\n", object->Get_ID(), enable ));
@@ -3290,7 +3299,7 @@ void	Enable_HUD_Pokable_Indicator( GameObject * object, bool enable )
 	}
 }
 
-void	Enable_Innate_Conversations( GameObject * object, bool enable )
+void	Enable_Innate_Conversations( GameObject * object, bool enable ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Enable_Innate_Conversations( %d, %d )\n", object->Get_ID(), enable ));
@@ -3301,7 +3310,7 @@ void	Enable_Innate_Conversations( GameObject * object, bool enable )
 	}
 }
 
-void	Display_Health_Bar( GameObject * object, bool display )
+void	Display_Health_Bar( GameObject * object, bool display ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE((	"ST>Display_Health_Bar( %d, %d )\n", object->Get_ID(), display ));
@@ -3312,7 +3321,7 @@ void	Display_Health_Bar( GameObject * object, bool display )
 	}
 }
 
-void	Enable_Shadow( GameObject * object, bool enable )
+void	Enable_Shadow( GameObject * object, bool enable ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE(( "ST>Enable_Shadow( %d, %d )\n", object->Get_ID(), enable));
@@ -3323,7 +3332,7 @@ void	Enable_Shadow( GameObject * object, bool enable )
 	}
 }
 
-void	Clear_Weapons( GameObject * object )
+void	Clear_Weapons( GameObject * object ) override
 {
 	SCRIPT_PTR_CHECK( object );
 	SCRIPT_TRACE(( "ST>Clear_Weapons( %d )\n", object->Get_ID() ));
@@ -3334,298 +3343,39 @@ void	Clear_Weapons( GameObject * object )
 	}
 }
 
-void	Set_Num_Tertiary_Objectives( int count )
+void	Set_Num_Tertiary_Objectives( int count ) override
 {
 	SCRIPT_TRACE(( "ST>Set_Num_Tertiary_Objectives( %d )\n", count ));
 	ObjectiveManager::Set_Num_Specified_Tertiary_Objectives( count );
 }
 
 
-void	Enable_Letterbox( bool onoff, float seconds )
+void	Enable_Letterbox( bool onoff, float seconds ) override
 {
 	SCRIPT_TRACE(( "ST>Enable_Letterbox( %d, %f)\n", onoff,seconds ));
 	ScreenFadeManager::Enable_Letterbox(onoff,seconds);
 }
 
-void	Set_Screen_Fade_Color( float r, float g, float b, float seconds )
+void	Set_Screen_Fade_Color( float r, float g, float b, float seconds ) override
 {
 	SCRIPT_TRACE(( "ST>Set_Screen_Fade_Color( %f, %f, %f, %f)\n", r,g,b,seconds ));
 	ScreenFadeManager::Set_Screen_Overlay_Color(r,g,b,seconds);
 }
 
-void	Set_Screen_Fade_Opacity( float opacity, float seconds )
+void	Set_Screen_Fade_Opacity( float opacity, float seconds ) override
 {
 	SCRIPT_TRACE(( "ST>Set_Screen_Fade_Opacity( %f, %f)\n", opacity,seconds ));
 	ScreenFadeManager::Set_Screen_Overlay_Opacity(opacity,seconds);
 }
 
+};
 
+EngineCommands EngineCommands::Instance;
 
 /*
 **
 */
 ScriptCommands* Get_Script_Commands( void )
 {
-	static ScriptCommands	EngineCommands;
-
-	memset(&EngineCommands, 0, sizeof(EngineCommands));
-
-	// Denzil 4/7/00 - Using the structure size automates the version check.
-	EngineCommands.Size = sizeof(EngineCommands);
-	EngineCommands.Version = SCRIPT_COMMANDS_VERSION;
-
-	EngineCommands.Debug_Message = &Debug_Message;
-
-	// Action Commands
-	EngineCommands.Action_Reset = Action_Reset;
-	EngineCommands.Action_Goto = Action_Goto;
-	EngineCommands.Action_Attack = Action_Attack;
-	EngineCommands.Action_Play_Animation = Action_Play_Animation;
-	EngineCommands.Action_Enter_Exit = Action_Enter_Exit;
-	EngineCommands.Action_Face_Location = Action_Face_Location;
-	EngineCommands.Action_Dock = Action_Dock;
-	EngineCommands.Action_Follow_Input = Action_Follow_Input;
-
-	EngineCommands.Modify_Action = Modify_Action;
-
-	EngineCommands.Set_Position = &Set_Position;
-	EngineCommands.Get_Position = &Get_Position;
-	EngineCommands.Get_Bone_Position = &Get_Bone_Position;
-	EngineCommands.Get_Facing = &Get_Facing;
-	EngineCommands.Set_Facing = &Set_Facing;
-
-	EngineCommands.Disable_All_Collisions = &Disable_All_Collisions;
-	EngineCommands.Disable_Physical_Collisions = &Disable_Physical_Collisions;
-	EngineCommands.Enable_Collisions = &Enable_Collisions;
-
-	EngineCommands.Destroy_Object = &Destroy_Object;
-	EngineCommands.Find_Object = &Find_Object;
-	EngineCommands.Create_Object = &Create_Object;
-	EngineCommands.Create_Object_At_Bone = &Create_Object_At_Bone;
-	EngineCommands.Attach_Script = Attach_Script;
-	EngineCommands.Add_To_Dirty_Cull_List = Add_To_Dirty_Cull_List;
-
-	EngineCommands.Get_ID = &Get_ID;
-	EngineCommands.Get_Preset_ID = &Get_Preset_ID;
-	EngineCommands.Get_Preset_Name = &Get_Preset_Name;
-	EngineCommands.Start_Timer = &Start_Timer;
-	EngineCommands.Trigger_Weapon = &Trigger_Weapon;
-	EngineCommands.Select_Weapon = &Select_Weapon;
-	EngineCommands.Send_Custom_Event = &Send_Custom_Event;
-	EngineCommands.Send_Damaged_Event = &Send_Damaged_Event;
-	EngineCommands.Get_Random = &Get_Random;
-	EngineCommands.Get_Random_Int = &Get_Random_Int;
-	EngineCommands.Find_Random_Simple_Object = &Find_Random_Simple_Object;
-	EngineCommands.Set_Model = &Set_Model;
-	EngineCommands.Set_Animation = &Set_Animation;
-	EngineCommands.Set_Animation_Frame = &Set_Animation_Frame;
-	EngineCommands.Create_Sound = Create_Sound;
-	EngineCommands.Create_2D_Sound = Create_2D_Sound;
-	EngineCommands.Create_2D_WAV_Sound = Create_2D_WAV_Sound;
-	EngineCommands.Create_3D_WAV_Sound_At_Bone = Create_3D_WAV_Sound_At_Bone;
-	EngineCommands.Create_3D_Sound_At_Bone = Create_3D_Sound_At_Bone;
-	EngineCommands.Create_Logical_Sound = Create_Logical_Sound;
-	EngineCommands.Set_Background_Music = Set_Background_Music;
-	EngineCommands.Fade_Background_Music = Fade_Background_Music;
-	EngineCommands.Stop_Background_Music = Stop_Background_Music;
-	EngineCommands.Monitor_Sound = Monitor_Sound;
-	EngineCommands.Stop_Sound = Stop_Sound;
-	EngineCommands.Start_Sound = Start_Sound;
-	EngineCommands.Get_Health = Get_Health;
-	EngineCommands.Get_Max_Health = Get_Max_Health;
-	EngineCommands.Set_Health = Set_Health;
-	EngineCommands.Get_Shield_Strength = Get_Shield_Strength;
-	EngineCommands.Get_Max_Shield_Strength = Get_Max_Shield_Strength;
-	EngineCommands.Set_Shield_Strength = Set_Shield_Strength;
-	EngineCommands.Set_Shield_Type = Set_Shield_Type;
-	EngineCommands.Get_Player_Type = Get_Player_Type;
-	EngineCommands.Set_Player_Type = Set_Player_Type;
-	EngineCommands.Get_Distance = Get_Distance;
-	EngineCommands.Set_Camera_Host = Set_Camera_Host;
-	EngineCommands.Force_Camera_Look = Force_Camera_Look;
-
-	EngineCommands.Get_The_Star = Get_The_Star;
-	EngineCommands.Get_A_Star = Get_A_Star;
-
-	EngineCommands.Find_Closest_Soldier = Find_Closest_Soldier;
-	EngineCommands.Is_A_Star = Is_A_Star;
-
-	EngineCommands.Control_Enable = Control_Enable;
-	EngineCommands.Get_Damage_Bone_Name = Get_Damage_Bone_Name;
-	EngineCommands.Get_Damage_Bone_Direction = Get_Damage_Bone_Direction;
-	EngineCommands.Is_Object_Visible = Is_Object_Visible;
-	EngineCommands.Enable_Enemy_Seen = Enable_Enemy_Seen;
-
-	EngineCommands.Set_Display_Color = Set_Display_Color;
-	EngineCommands.Display_Text = Display_Text;
-	EngineCommands.Display_Float = Display_Float;
-	EngineCommands.Display_Int = Display_Int;
-
-	EngineCommands.Save_Data = Save_Data;
-	EngineCommands.Save_Pointer = Save_Pointer;
-	EngineCommands.Load_Begin = Load_Begin;
-	EngineCommands.Load_Data = Load_Data;
-	EngineCommands.Load_Pointer = Load_Pointer;
-	EngineCommands.Load_End = Load_End;
-
-	EngineCommands.Begin_Chunk = Begin_Chunk;
-	EngineCommands.End_Chunk = End_Chunk;
-	EngineCommands.Open_Chunk = Open_Chunk;
-	EngineCommands.Close_Chunk = Close_Chunk;
-
-	EngineCommands.Clear_Radar_Markers = Clear_Radar_Markers;
-	EngineCommands.Clear_Radar_Marker = Clear_Radar_Marker;
-	EngineCommands.Add_Radar_Marker = Add_Radar_Marker;
-//	EngineCommands.Add_Obj_Radar_Marker = Add_Obj_Radar_Marker;
-	EngineCommands.Set_Obj_Radar_Blip_Shape = Set_Obj_Radar_Blip_Shape;
-	EngineCommands.Set_Obj_Radar_Blip_Color = Set_Obj_Radar_Blip_Color;
-	EngineCommands.Enable_Radar = Enable_Radar;
-
-	EngineCommands.Create_Explosion = Create_Explosion;
-	EngineCommands.Create_Explosion_At_Bone = Create_Explosion_At_Bone;
-
-	EngineCommands.Enable_HUD = Enable_HUD;
-	EngineCommands.Mission_Complete = Mission_Complete;
-	EngineCommands.Give_PowerUp = Give_PowerUp;
-
-	EngineCommands.Innate_Disable = Innate_Disable;
-	EngineCommands.Innate_Enable = Innate_Enable;
-	EngineCommands.Innate_Soldier_Enable_Enemy_Seen = &Innate_Soldier_Enable_Enemy_Seen;
-	EngineCommands.Innate_Soldier_Enable_Gunshot_Heard = &Innate_Soldier_Enable_Gunshot_Heard;
-	EngineCommands.Innate_Soldier_Enable_Footsteps_Heard = &Innate_Soldier_Enable_Footsteps_Heard;
-	EngineCommands.Innate_Soldier_Enable_Bullet_Heard = &Innate_Soldier_Enable_Bullet_Heard;
-	EngineCommands.Innate_Soldier_Enable_Actions = &Innate_Soldier_Enable_Actions;
-	EngineCommands.Set_Innate_Soldier_Home_Location = Set_Innate_Soldier_Home_Location;
-	EngineCommands.Set_Innate_Aggressiveness = Set_Innate_Aggressiveness;
-	EngineCommands.Set_Innate_Take_Cover_Probability = Set_Innate_Take_Cover_Probability;
-	EngineCommands.Set_Innate_Is_Stationary = Set_Innate_Is_Stationary;
-	EngineCommands.Innate_Force_State_Bullet_Heard = &Innate_Force_State_Bullet_Heard;
-	EngineCommands.Innate_Force_State_Footsteps_Heard = &Innate_Force_State_Footsteps_Heard;
-	EngineCommands.Innate_Force_State_Gunshots_Heard = &Innate_Force_State_Gunshots_Heard;
-	EngineCommands.Innate_Force_State_Enemy_Seen = &Innate_Force_State_Enemy_Seen;
-
-	EngineCommands.Static_Anim_Phys_Goto_Frame = &Static_Anim_Phys_Goto_Frame;
-	EngineCommands.Static_Anim_Phys_Goto_Last_Frame = &Static_Anim_Phys_Goto_Last_Frame;
-
-	EngineCommands.Get_Sync_Time = &Get_Sync_Time;
-
-	EngineCommands.Add_Objective = &Add_Objective;
-	EngineCommands.Remove_Objective = &Remove_Objective;
-	EngineCommands.Set_Objective_Status = &Set_Objective_Status;
-	EngineCommands.Change_Objective_Type = &Change_Objective_Type;
-	EngineCommands.Set_Objective_Radar_Blip = &Set_Objective_Radar_Blip;
-	EngineCommands.Set_Objective_Radar_Blip_Object = &Set_Objective_Radar_Blip_Object;
-	EngineCommands.Set_Objective_HUD_Info = &Set_Objective_HUD_Info;
-	EngineCommands.Set_Objective_HUD_Info_Position = &Set_Objective_HUD_Info_Position;
-
-	EngineCommands.Shake_Camera = Shake_Camera;
-
-	EngineCommands.Enable_Spawner = Enable_Spawner;
-	EngineCommands.Trigger_Spawner = Trigger_Spawner;
-
-	EngineCommands.Enable_Engine = Enable_Engine;
-	EngineCommands.Get_Difficulty_Level = Get_Difficulty_Level;
-
-	EngineCommands.Grant_Key = Grant_Key;
-	EngineCommands.Has_Key = Has_Key;
-	EngineCommands.Enable_Hibernation = Enable_Hibernation;
-	EngineCommands.Attach_To_Object_Bone = Attach_To_Object_Bone;
-
-	EngineCommands.Create_Conversation			= Create_Conversation;
-	EngineCommands.Join_Conversation				= Join_Conversation;
-	EngineCommands.Join_Conversation_Facing	= Join_Conversation_Facing;
-	EngineCommands.Start_Conversation			= Start_Conversation;
-	EngineCommands.Monitor_Conversation			= Monitor_Conversation;
-	EngineCommands.Start_Random_Conversation	= Start_Random_Conversation;
-	EngineCommands.Stop_Conversation				= Stop_Conversation;
-	EngineCommands.Stop_All_Conversations		= Stop_All_Conversations;
-
-	EngineCommands.Apply_Damage					= Apply_Damage;
-	EngineCommands.Set_Loiters_Allowed			= Set_Loiters_Allowed;
-
-	EngineCommands.Set_Is_Visible					= Set_Is_Visible;
-	EngineCommands.Set_Is_Rendered				= Set_Is_Rendered;
-
-	EngineCommands.Get_Points						= Get_Points;
-	EngineCommands.Give_Points						= Give_Points;
-
-	EngineCommands.Get_Money						= Get_Money;
-	EngineCommands.Give_Money						= Give_Money;
-
-	EngineCommands.Get_Building_Power				= Get_Building_Power;
-	EngineCommands.Set_Building_Power				= Set_Building_Power;
-	EngineCommands.Play_Building_Announcement		= Play_Building_Announcement;
-	EngineCommands.Find_Nearest_Building			= Find_Nearest_Building;
-	EngineCommands.Find_Nearest_Building_To_Pos	= Find_Nearest_Building_To_Pos;
-
-	EngineCommands.Team_Members_In_Zone			= Team_Members_In_Zone;
-
-	EngineCommands.Set_Clouds						= Set_Clouds;
-	EngineCommands.Set_Lightning					= Set_Lightning;
-	EngineCommands.Set_War_Blitz					= Set_War_Blitz;
-
-	EngineCommands.Set_Wind							= Set_Wind;
-	EngineCommands.Set_Rain							= Set_Rain;
-	EngineCommands.Set_Snow							= Set_Snow;
-	EngineCommands.Set_Ash							= Set_Ash;
-	EngineCommands.Set_Fog_Enable					= Set_Fog_Enable;
-	EngineCommands.Set_Fog_Range					= Set_Fog_Range;
-
-	EngineCommands.Clear_Map_Cell						= Clear_Map_Cell;
-	EngineCommands.Clear_Map_Cell_By_Pos			= Clear_Map_Cell_By_Pos;
-	EngineCommands.Clear_Map_Cell_By_Pixel_Pos	= Clear_Map_Cell_By_Pixel_Pos;
-	EngineCommands.Clear_Map_Region_By_Pos			= Clear_Map_Region_By_Pos;
-	EngineCommands.Reveal_Map							= Reveal_Map;
-	EngineCommands.Shroud_Map							= Shroud_Map;
-	EngineCommands.Show_Player_Map_Marker			= Show_Player_Map_Marker;
-
-	EngineCommands.Get_Safe_Flight_Height		= Get_Safe_Flight_Height;
-
-	EngineCommands.Enable_Stealth					= Enable_Stealth;
-	EngineCommands.Cinematic_Sniper_Control	= Cinematic_Sniper_Control;
-
-	EngineCommands.Text_File_Open					= Text_File_Open;
-	EngineCommands.Text_File_Get_String			= Text_File_Get_String;
-	EngineCommands.Text_File_Close				= Text_File_Close;
-
-	EngineCommands.Enable_Vehicle_Transitions	= Enable_Vehicle_Transitions;
-
-	EngineCommands.Display_GDI_Player_Terminal		= Display_GDI_Player_Terminal;
-	EngineCommands.Display_NOD_Player_Terminal		= Display_NOD_Player_Terminal;
-	EngineCommands.Display_Mutant_Player_Terminal	= Display_Mutant_Player_Terminal;
-
-	EngineCommands.Reveal_Encyclopedia_Character		= Reveal_Encyclopedia_Character;
-	EngineCommands.Reveal_Encyclopedia_Weapon			= Reveal_Encyclopedia_Weapon;
-	EngineCommands.Reveal_Encyclopedia_Vehicle		= Reveal_Encyclopedia_Vehicle;
-	EngineCommands.Reveal_Encyclopedia_Building		= Reveal_Encyclopedia_Building;
-	EngineCommands.Display_Encyclopedia_Event_UI		= Display_Encyclopedia_Event_UI;
-
-	EngineCommands.Scale_AI_Awareness			=	Scale_AI_Awareness;
-	EngineCommands.Enable_Cinematic_Freeze		= Enable_Cinematic_Freeze;
-	EngineCommands.Expire_Powerup					= Expire_Powerup;
-
-	EngineCommands.Get_Action_ID							= Get_Action_ID;
-	EngineCommands.Get_Action_Params						= Get_Action_Params;
-	EngineCommands.Is_Performing_Pathfind_Action		= Is_Performing_Pathfind_Action;
-
-	EngineCommands.Set_HUD_Help_Text				= Set_HUD_Help_Text;
-	EngineCommands.Enable_HUD_Pokable_Indicator	= Enable_HUD_Pokable_Indicator;
-
-	EngineCommands.Enable_Innate_Conversations	= Enable_Innate_Conversations;
-
-	EngineCommands.Lock_Soldier_Facing				= Lock_Soldier_Facing;
-	EngineCommands.Unlock_Soldier_Facing			= Unlock_Soldier_Facing;
-
-	EngineCommands.Display_Health_Bar				= Display_Health_Bar;
-	EngineCommands.Enable_Shadow						= Enable_Shadow;
-
-	EngineCommands.Clear_Weapons						= Clear_Weapons;
-
-	EngineCommands.Set_Num_Tertiary_Objectives	= Set_Num_Tertiary_Objectives;
-
-	EngineCommands.Enable_Letterbox					= Enable_Letterbox;
-	EngineCommands.Set_Screen_Fade_Color			= Set_Screen_Fade_Color;
-	EngineCommands.Set_Screen_Fade_Opacity			= Set_Screen_Fade_Opacity;
-
-	return &EngineCommands;
+	return &EngineCommands::Instance;
 }

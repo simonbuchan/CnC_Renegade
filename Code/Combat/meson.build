@@ -139,6 +139,7 @@ combat = static_library(
         wwaudio_dep,
         wwphys_dep,
         wwtranslatedb_dep,
+        scripts_dep,
     ],
 )
 combat_dep = declare_dependency(

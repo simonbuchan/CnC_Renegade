@@ -110,4 +110,5 @@ wwlib_dep = declare_dependency(
     link_with : wwlib,
     include_directories : include_directories('.'),
     dependencies : [wwdebug_dep],
+    link_args : '-lwinmm',
 )

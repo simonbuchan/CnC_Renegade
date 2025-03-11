@@ -33,6 +33,7 @@ subdir('Code/BinkMovie')
 
 # logic
 subdir('Code/SControl')
+subdir('Code/Scripts')
 subdir('Code/Combat')
 
 # online
