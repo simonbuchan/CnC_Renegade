@@ -217,6 +217,9 @@ commando = executable(
     'WOLQuickMatch.cpp',
     windows.compile_resources('chat.rc'),
 
+    install : true,
+    install_dir : run_dir,
+
     # dunno why it uses <WWUI\PopupDialog.h> etc.
     include_directories : include_directories('..', is_system : true),
 
@@ -238,6 +241,7 @@ commando = executable(
         wwonline_dep,
         wolbrowser_dep,
 
+        scripts_dep.partial_dependency(), # only ensure it's built
         scontrol_dep,
         combat_dep,
     ],

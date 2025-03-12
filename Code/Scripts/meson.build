@@ -61,7 +61,9 @@ scripts = shared_library(
     #'unitcombat.cpp',
     dependencies : wwlib_dep,
     cpp_args : '-DBUILDING_DLL',
+
     install : true,
+    install_dir : run_dir,
 )
 
 scripts_dep = declare_dependency(
