@@ -116,8 +116,6 @@ static BOOL Create_Main_Window(HANDLE hInstance, int nCmdShow);
 long FAR PASCAL Main_Window_Proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 void On_Focus_Loss(void);
 void On_Focus_Restore(void);
-void Split_Command_Line_Args(HINSTANCE instance, char *path_to_exe, char *command_line);
-void Set_Working_Directory(char *old_path, char *new_path);
 int Start_Application( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow );
 void Set_Working_Directory(HINSTANCE hInstance);
 
@@ -429,7 +427,7 @@ int Start_Application( HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /
 		/*
 		** Set the working directory.
 		*/
-		// Set_Working_Directory(hInstance);
+		Set_Working_Directory(hInstance);
 
 		//
 		// TEMP Dev code - check the working folder is correct!
@@ -811,8 +809,15 @@ void Set_Working_Directory(HINSTANCE instance)
 	char dir[_MAX_DIR];
 	char path[_MAX_PATH];
 
-	GetModuleFileName(instance, path_to_exe, sizeof(path_to_exe));
-	_splitpath(path_to_exe, drive, dir, NULL, NULL);
-	_makepath(path, drive, dir, NULL, NULL);
-	SetCurrentDirectory(path);
+	if (!cUserOptions::DataDir.Is_Empty())
+	{
+		SetCurrentDirectory(cUserOptions::DataDir.Peek_Buffer());
+	}
+	else
+	{
+		GetModuleFileName(instance, path_to_exe, sizeof(path_to_exe));
+		_splitpath(path_to_exe, drive, dir, NULL, NULL);
+		_makepath(path, drive, dir, NULL, NULL);
+		SetCurrentDirectory(path);
+	}
 }

@@ -36,7 +36,7 @@
 #include "boolean.h"
 #include "regstring.h"
 #include "bandwidth.h"
-
+#include "wwstring.h"
 
 //-----------------------------------------------------------------------------
 //
@@ -55,6 +55,9 @@ class cUserOptions
 		static void Set_Bandwidth_Bps(int bandwidth_bbs);
 
 		static void Reread(void);
+
+		// Not a registry string, we aren't going to write this to the registry
+		static StringClass DataDir;
 
 		static cRegistryBool ShowNamesOnSoldier;
 		static cRegistryBool SkipQuitConfirmDialog;

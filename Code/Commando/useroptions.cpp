@@ -53,6 +53,8 @@ extern char DefaultRegistryModifier[1024];
 //
 // Class statics
 //
+StringClass cUserOptions::DataDir;
+
 cRegistryBool cUserOptions::ShowNamesOnSoldier(					APPLICATION_SUB_KEY_NAME_NETOPTIONS, "ShowNamesOnSoldier",           true);
 cRegistryBool cUserOptions::SkipQuitConfirmDialog(				APPLICATION_SUB_KEY_NAME_OPTIONS,	"SkipQuitConfirmDialog",			false);
 cRegistryBool cUserOptions::SkipIngameQuitConfirmDialog(		APPLICATION_SUB_KEY_NAME_OPTIONS,	"SkipIngameQuitConfirmDialog",	false);
@@ -117,6 +119,12 @@ bool cUserOptions::Parse_Command_Line(LPCSTR command)
 	char *cmd;
 	for (int i=1 ; i<argc ; i++) {
 		cmd = strupr(argv[i]);
+
+		// Allow for specifying the data directory
+		if (strstr(cmd, "DATA=")) {
+			DataDir = strstr(cmd, "DATA=") + 5;
+			continue;
+		}
 
 		// Look for ip override.
 		if (strstr(cmd, "IP=")) {
