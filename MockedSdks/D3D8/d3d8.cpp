@@ -52,10 +52,10 @@ struct Ptr
     T* ptr;
 };
 
-static const D3DDISPLAYMODE DummyMode = {
-    .Width = 800,
-    .Height = 600,
-    .Format = D3DFMT_X8R8G8B8,
+// offer both a 32 and 16 bit format so it can find either.
+static const D3DDISPLAYMODE DummyModes[] = {
+    { .Width = 800, .Height = 600, .Format = D3DFMT_X8R8G8B8 },
+    { .Width = 800, .Height = 600, .Format = D3DFMT_R5G6B5 },
 };
 
 static const D3DCAPS8 MockCaps = {
@@ -275,25 +275,32 @@ D3D_U32 Adapter::GetAdapterCount()
 
 D3D_U32 Adapter::GetAdapterModeCount(D3D_U32)
 {
-    return 1;
+    return ARRAYSIZE(DummyModes);
 }
 
-D3D_RESULT Adapter::EnumAdapterModes(D3D_U32, D3D_U32, D3DDISPLAYMODE* mode)
+D3D_RESULT Adapter::EnumAdapterModes(D3D_U32 adapter, D3D_U32 index, D3DDISPLAYMODE* mode)
 {
-    *mode = DummyMode;
+    if (adapter != 0)
+        return D3DERR_INVALIDCALL;
+    if (index >= ARRAYSIZE(DummyModes))
+        return D3DERR_INVALIDCALL;
+    *mode = DummyModes[index];
     return D3D_OK;
 }
 
-D3D_RESULT Adapter::GetAdapterDisplayMode(D3D_U32, D3DDISPLAYMODE* mode)
+D3D_RESULT Adapter::GetAdapterDisplayMode(D3D_U32 adapter, D3DDISPLAYMODE* mode)
 {
-    *mode = DummyMode;
+    if (adapter != 0)
+        return D3DERR_INVALIDCALL;
+    *mode = DummyModes[0];
     return D3D_OK;
 }
 
 D3D_RESULT Adapter::GetAdapterIdentifier(D3D_U32, D3DENUM, D3DADAPTER_IDENTIFIER8* id)
 {
     *id = {
-        .Driver = "Mock",
+        .Driver = "MockDriver",
+        .Description = "MockDevice",
     };
     return D3D_OK;
 }
