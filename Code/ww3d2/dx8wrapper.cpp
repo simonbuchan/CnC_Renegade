@@ -790,9 +790,9 @@ bool DX8Wrapper::Set_Render_Device(int dev, int width, int height, int bits, int
 		// Recommended in DX docs to prevent other windows on the desktop from attempting
 		// to repaint. This also prevents the OS from spending time calculating invalid
 		// rects for windows that will never been seen.
-		// SetWindowPos(_Hwnd, HWND_TOPMOST, 0, 0,
-		// 	GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
-		// 	SWP_SHOWWINDOW|SWP_NOCOPYBITS);
+		SetWindowPos(_Hwnd, HWND_TOPMOST, 0, 0,
+			GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
+			SWP_SHOWWINDOW|SWP_NOCOPYBITS);
 
 		// We already resized the window
 		resize_window = false;
