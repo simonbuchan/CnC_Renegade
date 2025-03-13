@@ -3,6 +3,8 @@
 
 #include "d3d8.h"
 
+#include "render_crate.h"
+
 template <typename T>
 struct Ptr
 {
@@ -131,6 +133,9 @@ struct Adapter final : Unknown<IDirect3D8>
     D3D_RESULT CheckDeviceFormat(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3D_U32, D3DRESOURCETYPE, D3DFORMAT) override;
     D3D_RESULT CheckDepthStencilMatch(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT) override;
     D3D_RESULT CreateDevice(int, D3DDEVTYPE, HWND, D3D_U32, D3DPRESENT_PARAMETERS*, IDirect3DDevice8** device) override;
+
+private:
+    Adapter();
 };
 
 struct Device final : Unknown<IDirect3DDevice8>
@@ -331,6 +336,16 @@ D3D_RESULT Adapter::CreateDevice(
 {
     *device = Device::Create().move();
     return D3D_OK;
+}
+
+void render_message(const char* message)
+{;
+    render_message(message, strlen(message));
+}
+
+Adapter::Adapter()
+{
+    render_message("Mocked Direct3D8 adapter created");
 }
 
 Ptr<Device> Device::Create()

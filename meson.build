@@ -1,4 +1,18 @@
-project('renegade', 'c', 'cpp')
+project(
+    'renegade',
+    'c',
+    'cpp',
+    'rust',
+    meson_version : '1.7.0',
+    default_options : [
+        'rust_std=2024',
+        # don't conflict with the library pulled in by rust
+        'b_vscrt=none',
+    ],
+)
+
+add_project_arguments('-C', 'target-feature=+crt-static', language : 'rust')
+add_project_arguments('-C', 'target-feature=+crt-static', language : 'rust', native: true)
 
 # pointer-truncation warnings!!!
 add_project_arguments('-wd4302', '-wd4311', '-wd4312', language : 'cpp')
@@ -10,6 +24,8 @@ add_project_arguments('-DWIN32_LEAN_AND_MEAN', language : 'cpp')
 add_project_arguments('-DWWDEBUG', language : 'cpp')
 
 run_dir = meson.current_source_dir() / 'Run'
+
+subdir('Crates')
 
 subdir('MockedSdks/Bink')
 subdir('MockedSdks/D3D8')

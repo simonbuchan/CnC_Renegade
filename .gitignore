@@ -1,3 +1,5 @@
+# Cargo output
+target/
 
 # Ignore RUNable folder
 [Rr]un

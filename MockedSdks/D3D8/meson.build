@@ -5,6 +5,7 @@ sdk_d3d8 = static_library(
     'd3dx8math.cpp',
 
     cpp_args : '/std:c++20',
+    dependencies: render_crate_dep,
 )
 sdk_d3d8_dep = declare_dependency(
     link_with : sdk_d3d8,
