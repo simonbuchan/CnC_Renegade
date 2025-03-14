@@ -5,6 +5,9 @@
 
 #include "render_crate.h"
 
+using WgpuInstancePtr = std::unique_ptr<WgpuInstance, decltype(&wgpu_instance_destroy)>;
+using WgpuDevicePtr = std::unique_ptr<WgpuDevice, decltype(&wgpu_device_destroy)>;
+
 template <typename T>
 struct Ptr
 {
@@ -56,8 +59,8 @@ struct Ptr
 
 // offer both a 32 and 16 bit format so it can find either.
 static const D3DDISPLAYMODE DummyModes[] = {
-    { .Width = 800, .Height = 600, .Format = D3DFMT_X8R8G8B8 },
-    { .Width = 800, .Height = 600, .Format = D3DFMT_R5G6B5 },
+    {.Width = 800, .Height = 600, .Format = D3DFMT_X8R8G8B8},
+    {.Width = 800, .Height = 600, .Format = D3DFMT_R5G6B5},
 };
 
 static const D3DCAPS8 MockCaps = {
@@ -90,7 +93,7 @@ static const D3DCAPS8 MockCaps = {
     .PixelShaderVersion = 0,
 };
 
-struct Adapter;
+struct Instance;
 struct Device;
 struct SwapChain;
 struct Surface;
@@ -120,9 +123,9 @@ private:
     std::atomic_uint32_t count;
 };
 
-struct Adapter final : Unknown<IDirect3D8>
+struct Instance final : Unknown<IDirect3D8>
 {
-    static Ptr<Adapter> Create();
+    static Ptr<Instance> Create();
 
     D3D_U32 GetAdapterCount() override;
     D3D_U32 GetAdapterModeCount(D3D_U32) override;
@@ -132,15 +135,21 @@ struct Adapter final : Unknown<IDirect3D8>
     D3D_RESULT GetDeviceCaps(D3D_U32, D3DDEVTYPE, D3DCAPS8* caps) override;
     D3D_RESULT CheckDeviceFormat(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3D_U32, D3DRESOURCETYPE, D3DFORMAT) override;
     D3D_RESULT CheckDepthStencilMatch(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT) override;
-    D3D_RESULT CreateDevice(int, D3DDEVTYPE, HWND, D3D_U32, D3DPRESENT_PARAMETERS*, IDirect3DDevice8** device) override;
+    D3D_RESULT CreateDevice(D3D_U32, D3DDEVTYPE, HWND, D3D_U32, D3DPRESENT_PARAMETERS*,
+                            IDirect3DDevice8** device) override;
 
 private:
-    Adapter();
+    Instance()
+        : wgpu(wgpu_instance_create(), &wgpu_instance_destroy)
+    {
+    }
+
+    std::unique_ptr<WgpuInstance, decltype(&wgpu_instance_destroy)> wgpu;
 };
 
 struct Device final : Unknown<IDirect3DDevice8>
 {
-    static Ptr<Device> Create();
+    static Ptr<Device> Create(WgpuDevicePtr);
     D3D_RESULT GetDeviceCaps(D3DCAPS8*) override;
     D3D_RESULT GetDisplayMode(D3DDISPLAYMODE*) override;
     D3D_RESULT ValidateDevice(D3D_U32*) override;
@@ -180,8 +189,9 @@ struct Device final : Unknown<IDirect3DDevice8>
     D3D_RESULT DrawIndexedPrimitive(D3DPRIMITIVETYPE, D3D_U32, D3D_U32, D3D_U32, D3D_U32) override;
 
 protected:
-    Device();
+    Device(WgpuDevicePtr wgpu);
 
+    WgpuDevicePtr wgpu;
     Ptr<SwapChain> swap_chain;
 };
 
@@ -265,25 +275,25 @@ private:
 
 IDirect3D8* Direct3DCreate8(int)
 {
-    return Adapter::Create().move();
+    return Instance::Create().move();
 }
 
-Ptr<Adapter> Adapter::Create()
+Ptr<Instance> Instance::Create()
 {
-    return Ptr(new Adapter());
+    return Ptr(new Instance());
 }
 
-D3D_U32 Adapter::GetAdapterCount()
+D3D_U32 Instance::GetAdapterCount()
 {
-    return 1;
+    return wgpu_instance_adapter_count(wgpu.get());
 }
 
-D3D_U32 Adapter::GetAdapterModeCount(D3D_U32)
+D3D_U32 Instance::GetAdapterModeCount(D3D_U32 index)
 {
     return ARRAYSIZE(DummyModes);
 }
 
-D3D_RESULT Adapter::EnumAdapterModes(D3D_U32 adapter, D3D_U32 index, D3DDISPLAYMODE* mode)
+D3D_RESULT Instance::EnumAdapterModes(D3D_U32 adapter, D3D_U32 index, D3DDISPLAYMODE* mode)
 {
     if (adapter != 0)
         return D3DERR_INVALIDCALL;
@@ -293,7 +303,7 @@ D3D_RESULT Adapter::EnumAdapterModes(D3D_U32 adapter, D3D_U32 index, D3DDISPLAYM
     return D3D_OK;
 }
 
-D3D_RESULT Adapter::GetAdapterDisplayMode(D3D_U32 adapter, D3DDISPLAYMODE* mode)
+D3D_RESULT Instance::GetAdapterDisplayMode(D3D_U32 adapter, D3DDISPLAYMODE* mode)
 {
     if (adapter != 0)
         return D3DERR_INVALIDCALL;
@@ -301,56 +311,55 @@ D3D_RESULT Adapter::GetAdapterDisplayMode(D3D_U32 adapter, D3DDISPLAYMODE* mode)
     return D3D_OK;
 }
 
-D3D_RESULT Adapter::GetAdapterIdentifier(D3D_U32, D3DENUM, D3DADAPTER_IDENTIFIER8* id)
+D3D_RESULT Instance::GetAdapterIdentifier(D3D_U32 index, D3DENUM, D3DADAPTER_IDENTIFIER8* id)
 {
-    *id = {
-        .Driver = "MockDriver",
-        .Description = "MockDevice",
+    auto info = wgpu_instance_adapter_id(wgpu.get(), index);
+    *id = D3DADAPTER_IDENTIFIER8{
+        .VendorId = info.vendor_id,
+        .DeviceId = info.device_id,
     };
+    memcpy(id->Driver, info.driver, ARRAYSIZE(id->Driver));
+    memcpy(id->Description, info.name, ARRAYSIZE(id->Description));
     return D3D_OK;
 }
 
-D3D_RESULT Adapter::GetDeviceCaps(D3D_U32, D3DDEVTYPE, D3DCAPS8* caps)
+D3D_RESULT Instance::GetDeviceCaps(D3D_U32, D3DDEVTYPE, D3DCAPS8* caps)
 {
     *caps = MockCaps;
     return D3D_OK;
 }
 
-D3D_RESULT Adapter::CheckDeviceFormat(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3D_U32, D3DRESOURCETYPE, D3DFORMAT)
+D3D_RESULT Instance::CheckDeviceFormat(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3D_U32, D3DRESOURCETYPE, D3DFORMAT)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Adapter::CheckDepthStencilMatch(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT)
+D3D_RESULT Instance::CheckDepthStencilMatch(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Adapter::CreateDevice(
-    int,
+D3D_RESULT Instance::CreateDevice(
+    D3D_U32 index,
     D3DDEVTYPE,
-    HWND,
+    HWND hwnd,
     D3D_U32,
-    D3DPRESENT_PARAMETERS*,
+    D3DPRESENT_PARAMETERS* present_params,
     IDirect3DDevice8** device)
 {
-    *device = Device::Create().move();
+    WgpuDevicePtr wgpu(
+        wgpu_instance_device_create(this->wgpu.get(), index),
+        &wgpu_device_destroy);
+    if (!wgpu)
+        return D3DERR_INVALIDCALL;
+    // present_params->BackBufferWidth; ...
+    *device = Device::Create(std::move(wgpu)).move();
     return D3D_OK;
 }
 
-void render_message(const char* message)
-{;
-    render_message(message, strlen(message));
-}
-
-Adapter::Adapter()
+Ptr<Device> Device::Create(WgpuDevicePtr wgpu)
 {
-    render_message("Mocked Direct3D8 adapter created");
-}
-
-Ptr<Device> Device::Create()
-{
-    return Ptr(new Device());
+    return Ptr(new Device(std::move(wgpu)));
 }
 
 D3D_RESULT Device::GetDeviceCaps(D3DCAPS8* caps)
@@ -627,8 +636,8 @@ D3D_RESULT Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE, D3D_U32, D3D_U32, D3D_
     return D3D_OK;
 }
 
-Device::Device()
-    : swap_chain(new SwapChain())
+Device::Device(WgpuDevicePtr wgpu)
+    : wgpu(std::move(wgpu)), swap_chain(new SwapChain())
 {
 }
 

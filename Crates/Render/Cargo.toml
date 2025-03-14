@@ -3,10 +3,15 @@
 name = "render"
 version = "1.0.0"
 edition = "2024"
+publish = false
 
 [lib]
 crate-type = ["staticlib"]
 
-[dependencies.windows]
-version = "0.60.0"
-features = ["Win32_UI_WindowsAndMessaging"]
+[dependencies]
+pollster = "0.4.0"
+wgpu = "24.0.1"
+
+#[dependencies.windows]
+#version = "0.60.0"
+#features = ["Win32_UI_WindowsAndMessaging"]

@@ -30,11 +30,11 @@ enum D3DMULTISAMPLE
 
 struct D3DADAPTER_IDENTIFIER8
 {
-    int VendorId;
-    int DeviceId;
-    int SubSysId;
-    int Revision;
-    int DriverId;
+    unsigned VendorId;
+    unsigned DeviceId;
+    unsigned SubSysId;
+    unsigned Revision;
+    unsigned DriverId;
     char Driver[256];
     D3DVERSION DriverVersion;
     UUID DeviceIdentifier;
@@ -151,7 +151,7 @@ struct IDirect3D8 : IDirect3DUnknown8
     virtual D3D_RESULT CheckDeviceFormat(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3D_U32, D3DRESOURCETYPE, D3DFORMAT) = 0;
     virtual D3D_RESULT CheckDepthStencilMatch(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT) = 0;
     virtual D3D_RESULT CreateDevice(
-        int,
+        D3D_U32,
         D3DDEVTYPE,
         HWND,
         D3D_U32,
