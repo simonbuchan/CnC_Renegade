@@ -75,6 +75,8 @@
 #include "dx8texman.h"
 #include "bound.h"
 
+#include "render_crate.hpp"
+
 const int DEFAULT_RESOLUTION_WIDTH = 800;
 const int DEFAULT_RESOLUTION_HEIGHT = 600;
 const int DEFAULT_BIT_DEPTH = 32;
@@ -428,6 +430,7 @@ bool DX8Wrapper::Create_Device(void)
 	vertex_processing_type|=D3DCREATE_FPU_PRESERVE;
 #endif
 
+#ifdef D3D_BUFFER_ACCESS
 	// JANI HACK! Some objects flicker on ATI Radeons. This can be fixed by locking the back buffer before flipping.
 	// For this to work the back buffers need to be created as lockable!
 	DX8Caps dx8_caps(
@@ -438,6 +441,7 @@ bool DX8Wrapper::Create_Device(void)
 	if (dx8_caps.Get_Vendor()==DX8Caps::VENDOR_ATI) {
 		_PresentParameters.Flags=D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 	}
+#endif
 
 	HRESULT hr = D3DInterface->CreateDevice(
 		CurRenderDevice,
@@ -535,8 +539,15 @@ void DX8Wrapper::Enumerate_Devices()
 {
 	DX8_Assert();
 
+	// Just to test compatibility for now. Probably not really needed, but I wrote the APIs
+	// debugging surface setup anyway so may as well keep it around.
+	auto surface = D3DInterface->wgpu.create_surface(_Hwnd);
+
 	int adapter_count = D3DInterface->GetAdapterCount();
 	for (int adapter_index=0; adapter_index<adapter_count; adapter_index++) {
+		if (!D3DInterface->wgpu.adapter_supports_surface(adapter_index, surface)) {
+			continue;
+		}
 
 		D3DADAPTER_IDENTIFIER8 id;
 		::ZeroMemory(&id, sizeof(D3DADAPTER_IDENTIFIER8));
@@ -1440,6 +1451,7 @@ void DX8Wrapper::End_Scene(bool flip_frames)
 	DX8CALL(EndScene());
 
 	if (flip_frames) {
+#ifdef D3D_BUFFER_ACCESS
 		// JANI HACK! Some objects flicker on ATI Radeons. This can be fixed by locking the back buffer before flipping.
 		// Remember that for this to work the back buffers need to have been create as lockable!
 		if (Get_Current_Caps()->Get_Vendor()==DX8Caps::VENDOR_ATI) {
@@ -1455,6 +1467,7 @@ void DX8Wrapper::End_Scene(bool flip_frames)
 				bb->Release();
 			}
 		}
+#endif
 
 		DX8_Assert();
 		HRESULT hr;
@@ -2425,6 +2438,7 @@ void DX8Wrapper::Set_Light_Environment(LightEnvironmentClass* light_env)
 */
 }
 
+#ifdef D3D_BUFFER_ACCESS
 IDirect3DSurface8 * DX8Wrapper::_Get_DX8_Front_Buffer()
 {
 	DX8_THREAD_ASSERT();
@@ -2455,6 +2469,7 @@ SurfaceClass * DX8Wrapper::_Get_DX8_Back_Buffer(unsigned int num)
 
 	return surf;
 }
+#endif
 
 
 TextureClass *
@@ -2524,6 +2539,7 @@ DX8Wrapper::Set_Render_Target (TextureClass * texture)
 	IsRenderToTexture = true;
 }
 
+#ifdef D3D_ADDITIONAL_SWAP_CHAIN
 void
 DX8Wrapper::Set_Render_Target(IDirect3DSwapChain8 *swap_chain)
 {
@@ -2553,6 +2569,7 @@ DX8Wrapper::Set_Render_Target(IDirect3DSwapChain8 *swap_chain)
 
 	return ;
 }
+#endif
 
 void
 DX8Wrapper::Set_Render_Target(IDirect3DSurface8 *render_target, bool use_default_depth_buffer)
@@ -2647,7 +2664,7 @@ DX8Wrapper::Set_Render_Target(IDirect3DSurface8 *render_target, bool use_default
 	return ;
 }
 
-
+#ifdef D3D_ADDITIONAL_SWAP_CHAIN
 IDirect3DSwapChain8 *
 DX8Wrapper::Create_Additional_Swap_Chain (HWND render_window)
 {
@@ -2676,6 +2693,7 @@ DX8Wrapper::Create_Additional_Swap_Chain (HWND render_window)
 	DX8CALL(CreateAdditionalSwapChain(&params, &swap_chain));
 	return swap_chain;
 }
+#endif
 
 void DX8Wrapper::Flush_DX8_Resource_Manager(unsigned int bytes)
 {

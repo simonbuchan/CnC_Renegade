@@ -799,10 +799,12 @@ WW3DErrorType WW3D::Begin_Render(bool clear,bool clearz,const Vector3 & color, v
 #endif //WW3D_DX8
 	Debug_Statistics::Begin_Statistics();
 
+#ifdef D3D_BUFFER_ACCESS
 	if (IsCapturing && (!PauseRecord || RecordNextFrame)) {
 		Update_Movie_Capture();
 		RecordNextFrame = false;
 	}
+#endif
 
 	WWASSERT(!IsRendering);
 	IsRendering = true;
@@ -1238,6 +1240,7 @@ void WW3D::Normalize_Coordinates(int x, int y, float &fx, float &fy)
 }
 
 
+#ifdef D3D_BUFFER_ACCESS
 /***********************************************************************************************
  * WW3D::Make_Screen_Shot -- saves a screenshot with the given base filename                   *
  *                                                                                             *
@@ -1598,6 +1601,7 @@ void WW3D::Update_Movie_Capture( void )
 	Movie->Grab(image);
 #endif
 }
+#endif
 
 
 /***********************************************************************************************

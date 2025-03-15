@@ -172,6 +172,7 @@ public:
 	** Screen/Movie capturing
 	** These functions allow you to create screenshots and movies.
 	*/
+#ifdef D3D_BUFFER_ACCESS
 	static void					Make_Screen_Shot( const char * filename = "ScreenShot");
 	static void					Start_Movie_Capture( const char * filename_base = "Movie", float frame_rate = 15);
 	static void					Stop_Movie_Capture( void);
@@ -179,6 +180,7 @@ public:
 	static void					Start_Single_Frame_Movie_Capture(const char *filename_base = "Frames");
 	static void					Capture_Next_Movie_Frame();
 	static void					Update_Movie_Capture( void);
+#endif
 	static float				Get_Movie_Capture_Frame_Rate( void);
 	static void					Pause_Movie(bool mode);
 	static bool					Is_Movie_Paused();

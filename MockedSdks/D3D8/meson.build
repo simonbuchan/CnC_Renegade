@@ -10,4 +10,5 @@ sdk_d3d8 = static_library(
 sdk_d3d8_dep = declare_dependency(
     link_with : sdk_d3d8,
     include_directories : include_directories('.', is_system : true),
+    dependencies: render_crate_dep,
 )

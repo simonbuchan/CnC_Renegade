@@ -15,7 +15,7 @@ fn main() {
     let expected_build_output =
         manifest_dir.join(format!("target/{target}/debug/{crate_name}.lib"));
 
-    Command::new("cargo")
+    let build_status = Command::new("cargo")
         .arg("build")
         .arg("--manifest-path")
         .arg(manifest_dir.join("Cargo.toml"))
@@ -24,8 +24,14 @@ fn main() {
         .arg("--package")
         .arg(&crate_name)
         .arg("--lib")
+        .arg("--color")
+        .arg("always")
         .status()
         .unwrap();
+    if !build_status.success() {
+        eprintln!("cargo build failed");
+        std::process::exit(1);
+    }
 
     println!("copying {} to {}", expected_build_output.display(), output_path);
     fs::copy(expected_build_output, output_path).expect("copy output");

@@ -148,6 +148,7 @@ void	DebugManager::Update( void )
 {
 	// Tell the profiler that a frame has passed
 
+#if D3D_BUFFER_ACCESS
 	if ( Input::Get_State( INPUT_FUNCTION_MAKE_SCREEN_SHOT) ) {
 		WW3D::Make_Screen_Shot();
 	}
@@ -157,6 +158,7 @@ void	DebugManager::Update( void )
 		WW3D::Toggle_Movie_Capture();
 #endif
 	}
+#endif
 
 #if 0
 	// Single Step code

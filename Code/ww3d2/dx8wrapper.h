@@ -313,8 +313,10 @@ public:
 
 	static IDirect3DSurface8 * _Create_DX8_Surface(unsigned int width, unsigned int height, WW3DFormat format);
 	static IDirect3DSurface8 * _Create_DX8_Surface(const char *filename);
+#ifdef D3D_BUFFER_ACCESS
 	static IDirect3DSurface8 * _Get_DX8_Front_Buffer();
 	static SurfaceClass * _Get_DX8_Back_Buffer(unsigned int num=0);
+#endif
 
 	static void _Copy_DX8_Rects(
 			IDirect3DSurface8* pSourceSurface,
@@ -364,6 +366,7 @@ public:
 	static void _Enable_Triangle_Draw(bool enable) { _EnableTriangleDraw=enable; }
 	static bool _Is_Triangle_Draw_Enabled() { return _EnableTriangleDraw; }
 
+#ifdef D3D_ADDITIONAL_SWAP_CHAIN
 	/*
 	** Additional swap chain interface
 	**
@@ -383,6 +386,7 @@ public:
 	**
 	*/
 	static IDirect3DSwapChain8 *	Create_Additional_Swap_Chain (HWND render_window);
+#endif
 
 	/*
 	** Render target interface. If render target format is WW3D_FORMAT_UNKNOWN, current display format is used.
@@ -391,7 +395,9 @@ public:
 
 	static void					Set_Render_Target (TextureClass * texture);
 	static void					Set_Render_Target (IDirect3DSurface8 *render_target, bool use_default_depth_buffer = false);
+#ifdef D3D_ADDITIONAL_SWAP_CHAIN
 	static void					Set_Render_Target (IDirect3DSwapChain8 *swap_chain);
+#endif
 	static bool					Is_Render_To_Texture(void) { return IsRenderToTexture; }
 
 	static IDirect3DDevice8* _Get_D3D_Device8() { return D3DDevice; }

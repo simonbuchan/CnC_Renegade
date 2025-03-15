@@ -1,61 +1,4 @@
-#include <atomic>
-#include <vector>
-
 #include "d3d8.h"
-
-#include "render_crate.h"
-
-using WgpuInstancePtr = std::unique_ptr<WgpuInstance, decltype(&wgpu_instance_destroy)>;
-using WgpuDevicePtr = std::unique_ptr<WgpuDevice, decltype(&wgpu_device_destroy)>;
-
-template <typename T>
-struct Ptr
-{
-    Ptr() : ptr(nullptr)
-    {
-    }
-
-    explicit Ptr(T* ptr) : ptr(ptr)
-    {
-    }
-
-    Ptr(Ptr&& other) noexcept : ptr(other.move())
-    {
-    }
-
-    ~Ptr()
-    {
-        if (ptr)
-            ptr->Release();
-    }
-
-    Ptr& operator=(Ptr&& other) noexcept
-    {
-        if (ptr)
-            ptr->Release();
-        ptr = other.move();
-        return *this;
-    }
-
-    T* add_ref()
-    {
-        if (ptr)
-            ptr->AddRef();
-        return ptr;
-    }
-
-    T* move()
-    {
-        auto result = ptr;
-        ptr = nullptr;
-        return result;
-    }
-
-    T* operator->() { return ptr; }
-    T& operator*() { return *ptr; }
-
-    T* ptr;
-};
 
 // offer both a 32 and 16 bit format so it can find either.
 static const D3DDISPLAYMODE DummyModes[] = {
@@ -93,207 +36,41 @@ static const D3DCAPS8 MockCaps = {
     .PixelShaderVersion = 0,
 };
 
-struct Instance;
-struct Device;
-struct SwapChain;
-struct Surface;
-struct Texture;
-struct VertexBuffer;
-struct IndexBuffer;
+D3D_U32 IDirect3DUnknown8::AddRef() { return ++count; }
 
-template <typename I>
-struct Unknown : I
+D3D_U32 IDirect3DUnknown8::Release()
 {
-    D3D_U32 AddRef() override { return ++count; }
+    if (--count)
+        return count;
+    delete this;
+    return 0;
+}
 
-    D3D_U32 Release() override
-    {
-        if (--count)
-            return count;
-        delete this;
-        return 0;
-    }
-
-protected:
-    Unknown() : count(1)
-    {
-    }
-
-private:
-    std::atomic_uint32_t count;
-};
-
-struct Instance final : Unknown<IDirect3D8>
+IDirect3DDevice8::IDirect3DDevice8(wgpu::Device device, wgpu::Surface surface)
+    : device(std::move(device)),
+      surface(std::move(surface)),
+      commands(this->device.create_commands())
 {
-    static Ptr<Instance> Create();
-
-    D3D_U32 GetAdapterCount() override;
-    D3D_U32 GetAdapterModeCount(D3D_U32) override;
-    D3D_RESULT EnumAdapterModes(D3D_U32, D3D_U32, D3DDISPLAYMODE* mode) override;
-    D3D_RESULT GetAdapterDisplayMode(D3D_U32, D3DDISPLAYMODE* mode) override;
-    D3D_RESULT GetAdapterIdentifier(D3D_U32, D3DENUM, D3DADAPTER_IDENTIFIER8* id) override;
-    D3D_RESULT GetDeviceCaps(D3D_U32, D3DDEVTYPE, D3DCAPS8* caps) override;
-    D3D_RESULT CheckDeviceFormat(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3D_U32, D3DRESOURCETYPE, D3DFORMAT) override;
-    D3D_RESULT CheckDepthStencilMatch(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT) override;
-    D3D_RESULT CreateDevice(D3D_U32, D3DDEVTYPE, HWND, D3D_U32, D3DPRESENT_PARAMETERS*,
-                            IDirect3DDevice8** device) override;
-
-private:
-    Instance()
-        : wgpu(wgpu_instance_create(), &wgpu_instance_destroy)
-    {
-    }
-
-    std::unique_ptr<WgpuInstance, decltype(&wgpu_instance_destroy)> wgpu;
-};
-
-struct Device final : Unknown<IDirect3DDevice8>
-{
-    static Ptr<Device> Create(WgpuDevicePtr);
-    D3D_RESULT GetDeviceCaps(D3DCAPS8*) override;
-    D3D_RESULT GetDisplayMode(D3DDISPLAYMODE*) override;
-    D3D_RESULT ValidateDevice(D3D_U32*) override;
-    D3D_RESULT Reset(const D3DPRESENT_PARAMETERS*) override;
-    D3D_RESULT TestCooperativeLevel() override;
-    D3D_RESULT ResourceManagerDiscardBytes(D3D_U32) override;
-    D3D_U32 GetAvailableTextureMem() override;
-    D3D_RESULT CreateVertexBuffer(D3D_U32, D3D_U32, D3D_U32, D3D_U32, IDirect3DVertexBuffer8**) override;
-    D3D_RESULT CreateIndexBuffer(D3D_U32, D3D_U32, D3D_U32, D3D_U32, IDirect3DIndexBuffer8**) override;
-    D3D_RESULT CreateImageSurface(D3D_U32, D3D_U32, D3DFORMAT, IDirect3DSurface8**) override;
-    D3D_RESULT CreateTexture(D3D_U32, D3D_U32, D3D_U32, D3D_U32, D3DFORMAT, D3DPOOL, IDirect3DTexture8**) override;
-    D3D_RESULT UpdateTexture(IDirect3DBaseTexture8*, IDirect3DBaseTexture8*) override;
-    D3D_RESULT CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS*, IDirect3DSwapChain8**) override;
-    D3D_RESULT GetFrontBuffer(IDirect3DSurface8*) override;
-    D3D_RESULT GetBackBuffer(D3D_U32, D3DBACKBUFFERTYPE, IDirect3DSurface8**) override;
-    D3D_RESULT GetDepthStencilSurface(IDirect3DSurface8**) override;
-    D3D_RESULT BeginScene() override;
-    D3D_RESULT EndScene() override;
-    D3D_RESULT GetRenderTarget(IDirect3DSurface8**) override;
-    D3D_RESULT SetRenderTarget(IDirect3DSurface8*, IDirect3DSurface8*) override;
-    D3D_RESULT SetGammaRamp(D3D_U32, const D3DGAMMARAMP*) override;
-    D3D_RESULT Present(void*, void*, void*, void*) override;
-    D3D_RESULT SetViewport(const D3DVIEWPORT8*) override;
-    D3D_RESULT SetLight(D3D_U32 index, const D3DLIGHT8*) override;
-    D3D_RESULT LightEnable(D3D_U32 index, D3D_BOOL) override;
-    D3D_RESULT SetTexture(D3D_U32 stage, IDirect3DBaseTexture8*) override;
-    D3D_RESULT SetTextureStageState(D3D_U32 stage, D3DTEXTURESTAGESTATETYPE state, D3D_U32 value) override;
-    D3D_RESULT SetMaterial(const D3DMATERIAL8*) override;
-    D3D_RESULT GetTransform(D3DTRANSFORMSTATETYPE, D3DMATRIX*) override;
-    D3D_RESULT SetTransform(D3DTRANSFORMSTATETYPE, const D3DMATRIX*) override;
-    D3D_RESULT SetRenderState(D3DRENDERSTATETYPE, D3D_U32) override;
-    D3D_RESULT SetStreamSource(D3D_U32, IDirect3DVertexBuffer8*, D3D_U32) override;
-    D3D_RESULT SetIndices(IDirect3DIndexBuffer8*, D3D_U32) override;
-    D3D_RESULT SetVertexShader(D3D_U32) override;
-    D3D_RESULT Clear(D3D_U32, const D3DRECT*, D3D_U32, D3DCOLOR, D3D_F32, D3D_U32) override;
-    D3D_RESULT CopyRects(IDirect3DSurface8*, const RECT*, D3D_U32, IDirect3DSurface8*, const POINT*) override;
-    D3D_RESULT DrawIndexedPrimitive(D3DPRIMITIVETYPE, D3D_U32, D3D_U32, D3D_U32, D3D_U32) override;
-
-protected:
-    Device(WgpuDevicePtr wgpu);
-
-    WgpuDevicePtr wgpu;
-    Ptr<SwapChain> swap_chain;
-};
-
-struct SwapChain final : Unknown<IDirect3DSwapChain8>
-{
-    static Ptr<SwapChain> Create() { return Ptr(new SwapChain()); }
-
-    D3D_RESULT GetBackBuffer(D3D_U32, D3DBACKBUFFERTYPE, IDirect3DSurface8**) override;
-
-protected:
-    Ptr<Surface> back_buffer;
-};
-
-struct Surface : Unknown<IDirect3DSurface8>
-{
-    static Ptr<Surface> Create(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp);
-
-    D3D_RESULT GetDesc(D3DSURFACE_DESC*) override;
-    D3D_RESULT LockRect(D3DLOCKED_RECT*, RECT*, D3D_U32) override;
-    D3D_RESULT UnlockRect() override;
-
-protected:
-    explicit Surface(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp);
-
-    std::vector<D3D_U8> data;
-    D3DSURFACE_DESC desc;
-    D3D_U32 bpp;
-    D3D_U32 pitch;
-};
-
-struct Texture final : Unknown<IDirect3DTexture8>
-{
-    static Ptr<Texture> Create(
-        D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp, D3D_U32 levels
-    );
-
-    D3D_RESULT LockRect(D3D_U32 level, D3DLOCKED_RECT* lock, RECT* rect, D3D_U32 flags) override;
-    D3D_RESULT UnlockRect(D3D_U32) override;
-    D3D_U32 GetLevelCount() override;
-    D3D_RESULT GetLevelDesc(D3D_U32, D3DSURFACE_DESC*) override;
-    D3D_RESULT GetSurfaceLevel(D3D_U32, IDirect3DSurface8**) override;
-    D3D_U32 GetPriority() override;
-    D3D_U32 SetPriority(D3D_U32) override;
-
-protected:
-    explicit Texture(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp, D3D_U32 levels);
-
-    std::vector<Ptr<Surface>> levels;
-};
-
-struct VertexBuffer final : Unknown<IDirect3DVertexBuffer8>
-{
-    static Ptr<VertexBuffer> Create(D3D_U32 length)
-    {
-        return Ptr(new VertexBuffer(length));
-    }
-
-    D3D_RESULT Lock(D3D_U32, D3D_U32, D3D_U8**, D3D_U32) override;
-    D3D_RESULT Unlock() override;
-
-private:
-    explicit VertexBuffer(D3D_U32 length) : data(length)
-    {
-    }
-
-    std::vector<D3D_U8> data;
-};
-
-struct IndexBuffer final : Unknown<IDirect3DIndexBuffer8>
-{
-    static Ptr<IndexBuffer> Create(D3D_U32 length);
-
-    D3D_RESULT Lock(D3D_U32, D3D_U32, D3D_U8**, D3D_U32) override;
-    D3D_RESULT Unlock() override;
-
-private:
-    explicit IndexBuffer(D3D_U32 length);
-
-    std::vector<D3D_U8> data;
-};
+}
 
 IDirect3D8* Direct3DCreate8(int)
 {
-    return Instance::Create().move();
+    auto instance = new IDirect3D8();
+    instance->AddRef();
+    return instance;
 }
 
-Ptr<Instance> Instance::Create()
+D3D_U32 IDirect3D8::GetAdapterCount()
 {
-    return Ptr(new Instance());
+    return wgpu.adapter_count();
 }
 
-D3D_U32 Instance::GetAdapterCount()
-{
-    return wgpu_instance_adapter_count(wgpu.get());
-}
-
-D3D_U32 Instance::GetAdapterModeCount(D3D_U32 index)
+D3D_U32 IDirect3D8::GetAdapterModeCount(D3D_U32 index)
 {
     return ARRAYSIZE(DummyModes);
 }
 
-D3D_RESULT Instance::EnumAdapterModes(D3D_U32 adapter, D3D_U32 index, D3DDISPLAYMODE* mode)
+D3D_RESULT IDirect3D8::EnumAdapterModes(D3D_U32 adapter, D3D_U32 index, D3DDISPLAYMODE* mode)
 {
     if (adapter != 0)
         return D3DERR_INVALIDCALL;
@@ -303,7 +80,7 @@ D3D_RESULT Instance::EnumAdapterModes(D3D_U32 adapter, D3D_U32 index, D3DDISPLAY
     return D3D_OK;
 }
 
-D3D_RESULT Instance::GetAdapterDisplayMode(D3D_U32 adapter, D3DDISPLAYMODE* mode)
+D3D_RESULT IDirect3D8::GetAdapterDisplayMode(D3D_U32 adapter, D3DDISPLAYMODE* mode)
 {
     if (adapter != 0)
         return D3DERR_INVALIDCALL;
@@ -311,9 +88,9 @@ D3D_RESULT Instance::GetAdapterDisplayMode(D3D_U32 adapter, D3DDISPLAYMODE* mode
     return D3D_OK;
 }
 
-D3D_RESULT Instance::GetAdapterIdentifier(D3D_U32 index, D3DENUM, D3DADAPTER_IDENTIFIER8* id)
+D3D_RESULT IDirect3D8::GetAdapterIdentifier(D3D_U32 index, D3DENUM, D3DADAPTER_IDENTIFIER8* id)
 {
-    auto info = wgpu_instance_adapter_id(wgpu.get(), index);
+    auto info = wgpu.adapter_id(index);
     *id = D3DADAPTER_IDENTIFIER8{
         .VendorId = info.vendor_id,
         .DeviceId = info.device_id,
@@ -323,92 +100,91 @@ D3D_RESULT Instance::GetAdapterIdentifier(D3D_U32 index, D3DENUM, D3DADAPTER_IDE
     return D3D_OK;
 }
 
-D3D_RESULT Instance::GetDeviceCaps(D3D_U32, D3DDEVTYPE, D3DCAPS8* caps)
+D3D_RESULT IDirect3D8::GetDeviceCaps(D3D_U32, D3DDEVTYPE, D3DCAPS8* caps)
 {
     *caps = MockCaps;
     return D3D_OK;
 }
 
-D3D_RESULT Instance::CheckDeviceFormat(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3D_U32, D3DRESOURCETYPE, D3DFORMAT)
+D3D_RESULT IDirect3D8::CheckDeviceFormat(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3D_U32, D3DRESOURCETYPE, D3DFORMAT)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Instance::CheckDepthStencilMatch(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT)
+D3D_RESULT IDirect3D8::CheckDepthStencilMatch(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Instance::CreateDevice(
+D3D_RESULT IDirect3D8::CreateDevice(
     D3D_U32 index,
     D3DDEVTYPE,
     HWND hwnd,
     D3D_U32,
     D3DPRESENT_PARAMETERS* present_params,
-    IDirect3DDevice8** device)
+    IDirect3DDevice8** result)
 {
-    WgpuDevicePtr wgpu(
-        wgpu_instance_device_create(this->wgpu.get(), index),
-        &wgpu_device_destroy);
-    if (!wgpu)
-        return D3DERR_INVALIDCALL;
-    // present_params->BackBufferWidth; ...
-    *device = Device::Create(std::move(wgpu)).move();
+    auto wgpu_device = wgpu.create_device(index);
+    auto wgpu_surface = wgpu.create_surface(hwnd);
+
+    D3D_U32 width = present_params->BackBufferWidth;
+    D3D_U32 height = present_params->BackBufferHeight;
+    D3DFORMAT format = present_params->BackBufferFormat;
+
+    if (!wgpu_surface.configure(wgpu_device.ptr.get(), width, height))
+        return D3DERR_WRONGTEXTUREFORMAT;
+
+    *result = IDirect3DDevice8::Create(std::move(wgpu_device), std::move(wgpu_surface)).Detach();
     return D3D_OK;
 }
 
-Ptr<Device> Device::Create(WgpuDevicePtr wgpu)
-{
-    return Ptr(new Device(std::move(wgpu)));
-}
-
-D3D_RESULT Device::GetDeviceCaps(D3DCAPS8* caps)
+D3D_RESULT IDirect3DDevice8::GetDeviceCaps(D3DCAPS8* caps)
 {
     *caps = MockCaps;
     return D3D_OK;
 }
 
-D3D_RESULT Device::ValidateDevice(D3D_U32*)
+D3D_RESULT IDirect3DDevice8::ValidateDevice(D3D_U32*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::Reset(const D3DPRESENT_PARAMETERS*)
+D3D_RESULT IDirect3DDevice8::Reset(const D3DPRESENT_PARAMETERS*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::GetDisplayMode(D3DDISPLAYMODE*)
+D3D_RESULT IDirect3DDevice8::GetDisplayMode(D3DDISPLAYMODE*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::TestCooperativeLevel()
+D3D_RESULT IDirect3DDevice8::TestCooperativeLevel()
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::ResourceManagerDiscardBytes(D3D_U32)
+D3D_RESULT IDirect3DDevice8::ResourceManagerDiscardBytes(D3D_U32)
 {
     return D3D_OK;
 }
 
-D3D_U32 Device::GetAvailableTextureMem()
+D3D_U32 IDirect3DDevice8::GetAvailableTextureMem()
 {
     return 0x1000000;
 }
 
-D3D_RESULT Device::CreateVertexBuffer(D3D_U32 length, D3D_U32 usage, D3D_U32 fvf, D3D_U32 pool,
-                                      IDirect3DVertexBuffer8** result)
+D3D_RESULT IDirect3DDevice8::CreateVertexBuffer(D3D_U32 length, D3D_U32 usage, D3D_U32 fvf, D3D_U32 pool,
+                                                IDirect3DVertexBuffer8** result)
 {
-    *result = VertexBuffer::Create(length).move();
+    *result = IDirect3DVertexBuffer8::Create(length).Detach();
     return D3D_OK;
 }
 
-D3D_RESULT Device::CreateIndexBuffer(D3D_U32 length, D3D_U32 usage, D3D_U32 format, D3D_U32 pool,
-                                     IDirect3DIndexBuffer8** result)
+D3D_RESULT IDirect3DDevice8::CreateIndexBuffer(D3D_U32 length, D3D_U32 usage, D3D_U32 format, D3D_U32 pool,
+                                               IDirect3DIndexBuffer8** result)
 {
-    *result = IndexBuffer::Create(length).move();
+    *result = IDirect3DIndexBuffer8::Create(length).Detach();
     return D3D_OK;
 }
 
@@ -479,17 +255,18 @@ D3D_U32 FormatBitsPerPixel(D3DFORMAT format)
     }
 }
 
-D3D_RESULT Device::CreateImageSurface(D3D_U32 width, D3D_U32 height, D3DFORMAT format, IDirect3DSurface8** result)
+D3D_RESULT IDirect3DDevice8::CreateImageSurface(D3D_U32 width, D3D_U32 height, D3DFORMAT format,
+                                                IDirect3DSurface8** result)
 {
     auto bpp = FormatBitsPerPixel(format);
     if (bpp == 0)
         return D3DERR_INVALIDCALL;
-    *result = Surface::Create(width, height, format, bpp).move();
+    *result = IDirect3DSurface8::Create(width, height, format, bpp).Detach();
     return D3D_OK;
 }
 
-D3D_RESULT Device::CreateTexture(D3D_U32 width, D3D_U32 height, D3D_U32 levels, D3D_U32 usage,
-                                 D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** result)
+D3D_RESULT IDirect3DDevice8::CreateTexture(D3D_U32 width, D3D_U32 height, D3D_U32 levels, D3D_U32 usage,
+                                           D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** result)
 {
     if (levels == 0)
     {
@@ -500,145 +277,170 @@ D3D_RESULT Device::CreateTexture(D3D_U32 width, D3D_U32 height, D3D_U32 levels, 
     auto bpp = FormatBitsPerPixel(format);
     if (bpp == 0)
         return D3DERR_INVALIDCALL;
-    *result = Texture::Create(width, height, format, bpp, levels).move();
+    *result = IDirect3DTexture8::Create(width, height, format, bpp, levels).Detach();
     return D3D_OK;
 }
 
-D3D_RESULT Device::UpdateTexture(IDirect3DBaseTexture8*, IDirect3DBaseTexture8*)
+D3D_RESULT IDirect3DDevice8::UpdateTexture(IDirect3DBaseTexture8*, IDirect3DBaseTexture8*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS*, IDirect3DSwapChain8** result)
+#ifdef D3D_ADDITIONAL_SWAP_CHAIN
+D3D_RESULT IDirect3DDevice8::CreateAdditionalSwapChain(
+    D3DPRESENT_PARAMETERS* present_parameters,
+    IDirect3DSwapChain8** result)
 {
-    *result = SwapChain::Create().move();
+    D3D_U32 width = present_parameters->BackBufferWidth;
+    D3D_U32 height = present_parameters->BackBufferHeight;
+    D3DFORMAT format = present_parameters->BackBufferFormat;
+    auto surface = IDirect3DSurface8::Create(width, height, format);
+    *result = IDirect3DSwapChain8::Create(std::move(surface)).Detach();
+    return D3D_OK;
+}
+#endif
+
+#ifdef D3D_BUFFER_ACCESS
+D3D_RESULT IDirect3DDevice8::GetFrontBuffer(IDirect3DSurface8*)
+{
     return D3D_OK;
 }
 
-D3D_RESULT Device::GetFrontBuffer(IDirect3DSurface8*)
-{
-    return D3D_OK;
-}
-
-D3D_RESULT Device::GetBackBuffer(D3D_U32 index, D3DBACKBUFFERTYPE type, IDirect3DSurface8** result)
+D3D_RESULT IDirect3DDevice8::GetBackBuffer(D3D_U32 index, D3DBACKBUFFERTYPE type, IDirect3DSurface8** result)
 {
     return swap_chain->GetBackBuffer(index, type, result);
 }
+#endif
 
-D3D_RESULT Device::GetDepthStencilSurface(IDirect3DSurface8**)
+D3D_RESULT IDirect3DDevice8::GetDepthStencilSurface(IDirect3DSurface8** result)
+{
+    *result = set_depth_stencil_target;
+    return D3D_OK;
+}
+
+D3D_RESULT IDirect3DDevice8::BeginScene()
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::BeginScene()
+D3D_RESULT IDirect3DDevice8::EndScene()
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::EndScene()
+D3D_RESULT IDirect3DDevice8::GetRenderTarget(IDirect3DSurface8** result)
+{
+    *result = set_color_target;
+    return D3D_OK;
+}
+
+D3D_RESULT IDirect3DDevice8::SetRenderTarget(
+    IDirect3DSurface8* color_target,
+    IDirect3DSurface8* depth_stencil_target)
+{
+    this->set_color_target = color_target;
+    this->set_depth_stencil_target = depth_stencil_target;
+    return D3D_OK;
+}
+
+D3D_RESULT IDirect3DDevice8::SetGammaRamp(D3D_U32, const D3DGAMMARAMP*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::GetRenderTarget(IDirect3DSurface8** result)
+D3D_RESULT IDirect3DDevice8::Present(void*, void*, void*, void*)
 {
-    *result = nullptr;
+    device.submit(commands);
+    surface.present();
     return D3D_OK;
 }
 
-D3D_RESULT Device::SetRenderTarget(IDirect3DSurface8*, IDirect3DSurface8*)
-{
-    return D3D_OK;
-}
-
-D3D_RESULT Device::SetGammaRamp(D3D_U32, const D3DGAMMARAMP*)
+D3D_RESULT IDirect3DDevice8::SetViewport(const D3DVIEWPORT8*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::Present(void*, void*, void*, void*)
+D3D_RESULT IDirect3DDevice8::SetLight(D3D_U32 index, const D3DLIGHT8*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::SetViewport(const D3DVIEWPORT8*)
+D3D_RESULT IDirect3DDevice8::LightEnable(D3D_U32 index, D3D_BOOL)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::SetLight(D3D_U32 index, const D3DLIGHT8*)
+D3D_RESULT IDirect3DDevice8::SetTexture(D3D_U32 stage, IDirect3DBaseTexture8*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::LightEnable(D3D_U32 index, D3D_BOOL)
+D3D_RESULT IDirect3DDevice8::SetTextureStageState(D3D_U32 stage, D3DTEXTURESTAGESTATETYPE state, D3D_U32 value)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::SetTexture(D3D_U32 stage, IDirect3DBaseTexture8*)
+D3D_RESULT IDirect3DDevice8::SetMaterial(const D3DMATERIAL8*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::SetTextureStageState(D3D_U32 stage, D3DTEXTURESTAGESTATETYPE state, D3D_U32 value)
+D3D_RESULT IDirect3DDevice8::GetTransform(D3DTRANSFORMSTATETYPE, D3DMATRIX*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::SetMaterial(const D3DMATERIAL8*)
+D3D_RESULT IDirect3DDevice8::SetTransform(D3DTRANSFORMSTATETYPE, const D3DMATRIX*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::GetTransform(D3DTRANSFORMSTATETYPE, D3DMATRIX*)
+D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE, D3D_U32)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::SetTransform(D3DTRANSFORMSTATETYPE, const D3DMATRIX*)
+D3D_RESULT IDirect3DDevice8::SetStreamSource(D3D_U32, IDirect3DVertexBuffer8*, D3D_U32)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::SetRenderState(D3DRENDERSTATETYPE, D3D_U32)
+D3D_RESULT IDirect3DDevice8::SetIndices(IDirect3DIndexBuffer8*, D3D_U32)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::SetStreamSource(D3D_U32, IDirect3DVertexBuffer8*, D3D_U32)
+D3D_RESULT IDirect3DDevice8::SetVertexShader(D3D_U32)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::SetIndices(IDirect3DIndexBuffer8*, D3D_U32)
+D3D_RESULT IDirect3DDevice8::Clear(
+    D3D_U32,
+    const D3DRECT*,
+    D3D_U32,
+    D3DCOLOR color,
+    D3D_F32 z,
+    D3D_U32 stencil)
+{
+    commands.begin_render_pass(surface.ptr.get(), nullptr);
+    return D3D_OK;
+}
+
+D3D_RESULT IDirect3DDevice8::CopyRects(IDirect3DSurface8*, const RECT*, D3D_U32, IDirect3DSurface8*, const POINT*)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::SetVertexShader(D3D_U32)
+D3D_RESULT IDirect3DDevice8::DrawIndexedPrimitive(D3DPRIMITIVETYPE, D3D_U32, D3D_U32, D3D_U32, D3D_U32)
 {
     return D3D_OK;
 }
 
-D3D_RESULT Device::Clear(D3D_U32, const D3DRECT*, D3D_U32, D3DCOLOR, D3D_F32, D3D_U32)
+#ifdef D3D_ADDITIONAL_SWAP_CHAIN
+Ptr<SwapChain> SwapChain::Create(Ptr<Surface> surface)
 {
-    return D3D_OK;
-}
-
-D3D_RESULT Device::CopyRects(IDirect3DSurface8*, const RECT*, D3D_U32, IDirect3DSurface8*, const POINT*)
-{
-    return D3D_OK;
-}
-
-D3D_RESULT Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE, D3D_U32, D3D_U32, D3D_U32, D3D_U32)
-{
-    return D3D_OK;
-}
-
-Device::Device(WgpuDevicePtr wgpu)
-    : wgpu(std::move(wgpu)), swap_chain(new SwapChain())
-{
+    return Ptr(new SwapChain(std::move(surface)));
 }
 
 D3D_RESULT SwapChain::GetBackBuffer(D3D_U32, D3DBACKBUFFERTYPE, IDirect3DSurface8** result)
@@ -646,19 +448,26 @@ D3D_RESULT SwapChain::GetBackBuffer(D3D_U32, D3DBACKBUFFERTYPE, IDirect3DSurface
     *result = back_buffer.add_ref();
     return D3D_OK;
 }
+#endif
 
-Ptr<Surface> Surface::Create(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp)
+
+CComPtr<IDirect3DSurface8> IDirect3DSurface8::Create(D3D_U32 width, D3D_U32 height, D3DFORMAT format)
 {
-    return Ptr(new Surface(width, height, format, bpp));
+    return new IDirect3DSurface8(width, height, format, FormatBitsPerPixel(format));
 }
 
-D3D_RESULT Surface::GetDesc(D3DSURFACE_DESC* result)
+CComPtr<IDirect3DSurface8> IDirect3DSurface8::Create(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp)
+{
+    return new IDirect3DSurface8(width, height, format, bpp);
+}
+
+D3D_RESULT IDirect3DSurface8::GetDesc(D3DSURFACE_DESC* result)
 {
     *result = desc;
     return D3D_OK;
 }
 
-Surface::Surface(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp)
+IDirect3DSurface8::IDirect3DSurface8(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp)
     : data(width * height * bpp / 8),
       bpp(bpp),
       desc({
@@ -671,7 +480,7 @@ Surface::Surface(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp)
 {
 }
 
-D3D_RESULT Surface::LockRect(D3DLOCKED_RECT* lock, RECT* rect, D3D_U32 flags)
+D3D_RESULT IDirect3DSurface8::LockRect(D3DLOCKED_RECT* lock, RECT* rect, D3D_U32 flags)
 {
     // I assume DXTn formats don't support offsets?
     auto bits = data.data();
@@ -681,17 +490,12 @@ D3D_RESULT Surface::LockRect(D3DLOCKED_RECT* lock, RECT* rect, D3D_U32 flags)
     return D3D_OK;
 }
 
-D3D_RESULT Surface::UnlockRect()
+D3D_RESULT IDirect3DSurface8::UnlockRect()
 {
     return D3D_OK;
 }
 
-Ptr<Texture> Texture::Create(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp, D3D_U32 levels)
-{
-    return Ptr(new Texture(width, height, format, bpp, levels));
-}
-
-D3D_RESULT Texture::LockRect(
+D3D_RESULT IDirect3DBaseTexture8::LockRect(
     D3D_U32 level,
     D3DLOCKED_RECT* lock,
     RECT* rect,
@@ -702,82 +506,62 @@ D3D_RESULT Texture::LockRect(
     return levels[level]->LockRect(lock, rect, flags);
 }
 
-D3D_RESULT Texture::UnlockRect(D3D_U32 level)
+D3D_RESULT IDirect3DBaseTexture8::UnlockRect(D3D_U32 level)
 {
     if (level >= levels.size())
         return D3DERR_INVALIDCALL;
     return levels[level]->UnlockRect();
 }
 
-D3D_U32 Texture::GetLevelCount()
+D3D_U32 IDirect3DBaseTexture8::GetLevelCount()
 {
     return levels.size();
 }
 
-D3D_RESULT Texture::GetLevelDesc(D3D_U32 level, D3DSURFACE_DESC*)
+D3D_RESULT IDirect3DBaseTexture8::GetLevelDesc(D3D_U32 level, D3DSURFACE_DESC*)
 {
     if (level >= levels.size())
         return D3DERR_INVALIDCALL;
     return D3D_OK;
 }
 
-D3D_RESULT Texture::GetSurfaceLevel(D3D_U32 level, IDirect3DSurface8** surface)
+D3D_RESULT IDirect3DBaseTexture8::GetSurfaceLevel(D3D_U32 level, IDirect3DSurface8** surface)
 {
     if (level >= levels.size())
         return D3DERR_INVALIDCALL;
-    *surface = levels[level].add_ref();
-    return D3D_OK;
+    return levels[level].CopyTo(surface);
 }
 
-D3D_U32 Texture::GetPriority()
+D3D_U32 IDirect3DBaseTexture8::GetPriority()
 {
     return D3D_OK;
 }
 
-D3D_U32 Texture::SetPriority(D3D_U32)
+D3D_U32 IDirect3DBaseTexture8::SetPriority(D3D_U32)
 {
     return D3D_OK;
 }
 
-Texture::Texture(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp, D3D_U32 levels)
+IDirect3DTexture8::IDirect3DTexture8(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp,
+                                             D3D_U32 levels)
 {
     for (D3D_U32 i = 0; i < levels; ++i)
     {
         if (!width) width = 1;
         if (!height) height = 1;
-        this->levels.push_back(Surface::Create(width, height, format, bpp));
+        this->levels.push_back(IDirect3DSurface8::Create(width, height, format, bpp));
         width >>= 1;
         height >>= 1;
     }
 }
 
-D3D_RESULT VertexBuffer::Lock(D3D_U32 offset, D3D_U32 size, D3D_U8** result, D3D_U32 flags)
+D3D_RESULT IDirect3DResource8::Lock(D3D_U32 offset, D3D_U32 size, D3D_U8** result, D3D_U32 flags)
 {
     *result = data.data() + offset;
     return D3D_OK;
 }
 
-D3D_RESULT VertexBuffer::Unlock()
+D3D_RESULT IDirect3DResource8::Unlock()
 {
     return D3D_OK;
-}
-
-Ptr<IndexBuffer> IndexBuffer::Create(D3D_U32 length)
-{
-    return Ptr(new IndexBuffer(length));
-}
-
-D3D_RESULT IndexBuffer::Lock(D3D_U32 offset, D3D_U32 size, D3D_U8** result, D3D_U32 flags)
-{
-    *result = data.data() + offset;
-    return D3D_OK;
-}
-
-D3D_RESULT IndexBuffer::Unlock()
-{
-    return D3D_OK;
-}
-
-IndexBuffer::IndexBuffer(D3D_U32 length): data(length)
-{
 }
