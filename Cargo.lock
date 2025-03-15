@@ -722,6 +722,7 @@ version = "1.0.0"
 dependencies = [
  "pollster",
  "wgpu",
+ "windows",
 ]
 
 [[package]]
