@@ -9,6 +9,7 @@ publish = false
 crate-type = ["staticlib"]
 
 [dependencies]
+image = "0.25.5"
 pollster = "0.4.0"
 wgpu = "24.0.1"
 

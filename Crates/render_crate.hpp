@@ -1,15 +1,44 @@
 #pragma once
 
 #include <memory>
+#include <string_view>
 #include <windows.h>
 
 #include "render_crate.h"
+
+namespace image
+{
+    struct RgbaData
+    {
+        static RgbaData load(const char* path)
+        {
+            return RgbaData(image_rgba_data_load(path));
+        }
+
+        std::unique_ptr<ImageRgbaData, decltype(&image_rgba_data_destroy)> ptr;
+
+        ImageRgbaData* operator->() const
+        {
+            return ptr.get();
+        }
+
+    private:
+        explicit RgbaData(ImageRgbaData* ptr)
+            : ptr(ptr, &image_rgba_data_destroy)
+        {
+        }
+    };
+}
 
 namespace wgpu
 {
     struct Instance;
     struct Device;
     struct Surface;
+    struct Buffer;
+    struct Texture;
+    struct ShaderModule;
+    struct Pipeline;
     struct Commands;
 
     struct Instance
@@ -46,7 +75,13 @@ namespace wgpu
         {
         }
 
+        Buffer create_buffer(uint64_t size, uint32_t usage);
+        Texture create_texture(WgpuTextureFormat format, uint32_t width, uint32_t height, uint32_t mip_level_count,
+                               uint32_t usage);
         Commands create_commands();
+        ShaderModule create_shader_module(std::string_view wgsl_source);
+        Pipeline create_pipeline(WgpuPipelineDesc const& desc);
+
         void submit(Commands&);
     };
 
@@ -70,6 +105,69 @@ namespace wgpu
         }
     };
 
+    struct Buffer
+    {
+        std::unique_ptr<WgpuBuffer, decltype(&wgpu_buffer_destroy)> ptr;
+
+        explicit Buffer(WgpuDevice* device, uint64_t size, uint32_t usage)
+            : ptr(wgpu_device_create_buffer(device, size, usage), &wgpu_buffer_destroy)
+        {
+        }
+
+        void write(uint64_t offset, const uint8_t* data, uintptr_t len)
+        {
+            wgpu_buffer_write(ptr.get(), offset, data, len);
+        }
+    };
+
+    struct Texture
+    {
+        std::unique_ptr<WgpuTexture, decltype(&wgpu_texture_destroy)> ptr;
+
+        explicit Texture(
+            WgpuDevice* device,
+            WgpuTextureFormat format,
+            uint32_t width,
+            uint32_t height,
+            uint32_t mip_level_count,
+            uint32_t usage)
+            : ptr(wgpu_device_create_texture(device, format, width, height, mip_level_count, usage),
+                  &wgpu_texture_destroy)
+        {
+        }
+
+        void write(uint32_t level, uint8_t* data_ptr, uint32_t data_len)
+        {
+            wgpu_texture_write(ptr.get(), level, data_ptr, data_len);
+        }
+    };
+
+    struct ShaderModule
+    {
+        std::unique_ptr<WgpuShaderModule, decltype(&wgpu_shader_module_destroy)> ptr;
+
+        explicit ShaderModule(WgpuDevice* device, std::string_view wgsl_source)
+            : ptr(wgpu_device_create_wgsl_shader_module(device, WgpuString{wgsl_source.data(), wgsl_source.length()}),
+                  &wgpu_shader_module_destroy)
+        {
+        }
+
+        WgpuShaderDesc desc(std::string_view entry_point)
+        {
+            return {ptr.get(), WgpuString{entry_point.data(), entry_point.length()}};
+        }
+    };
+
+    struct Pipeline
+    {
+        std::unique_ptr<WgpuPipeline, decltype(&wgpu_pipeline_destroy)> ptr;
+
+        explicit Pipeline(WgpuDevice* device, WgpuPipelineDesc const& desc)
+            : ptr(wgpu_device_create_pipeline(device, &desc), &wgpu_pipeline_destroy)
+        {
+        }
+    };
+
     struct Commands
     {
         std::unique_ptr<WgpuCommands, decltype(&wgpu_commands_destroy)> ptr;
@@ -79,9 +177,35 @@ namespace wgpu
         {
         }
 
-        void begin_render_pass(WgpuSurface* surface, float (*clear_color)[4])
+        void begin_render_pass(Surface& surface, float (*clear_color)[4])
         {
-            wgpu_commands_begin_render_pass(ptr.get(), surface, clear_color);
+            wgpu_commands_begin_render_pass(ptr.get(), surface.ptr.get(), clear_color);
+        }
+
+        void set_pipeline(Pipeline& pipeline)
+        {
+            wgpu_commands_set_pipeline(ptr.get(), pipeline.ptr.get());
+        }
+
+        void set_vertex_buffer(uint32_t slot, Buffer& buffer, uint64_t offset = 0, uint64_t size = WGPU_SIZE_ALL)
+        {
+            wgpu_commands_set_vertex_buffer(ptr.get(), slot, buffer.ptr.get(), offset, size);
+        }
+
+        void set_index_buffer(Buffer& buffer, WgpuIndexFormat format, uint64_t offset = 0,
+                              uint64_t size = WGPU_SIZE_ALL)
+        {
+            wgpu_commands_set_index_buffer(ptr.get(), buffer.ptr.get(), format, offset, size);
+        }
+
+        void set_bind_group_to_texture(uint32_t index, Texture& texture)
+        {
+            wgpu_commands_set_bind_group_to_texture(ptr.get(), index, texture.ptr.get());
+        }
+
+        void draw_indexed(WgpuDrawIndexed const& args)
+        {
+            wgpu_commands_draw_indexed(ptr.get(), &args);
         }
     };
 
@@ -103,9 +227,30 @@ namespace wgpu
         return Surface(ptr.get(), hwnd);
     }
 
+    inline Buffer Device::create_buffer(uint64_t size, uint32_t usage)
+    {
+        return Buffer(ptr.get(), size, usage);
+    }
+
+    inline Texture Device::create_texture(WgpuTextureFormat format, uint32_t width, uint32_t height,
+                                          uint32_t mip_level_count, uint32_t usage)
+    {
+        return Texture(ptr.get(), format, width, height, mip_level_count, usage);
+    }
+
     inline Commands Device::create_commands()
     {
         return Commands(ptr.get());
+    }
+
+    inline ShaderModule Device::create_shader_module(std::string_view wgsl_source)
+    {
+        return ShaderModule(ptr.get(), wgsl_source);
+    }
+
+    inline Pipeline Device::create_pipeline(WgpuPipelineDesc const& desc)
+    {
+        return Pipeline(ptr.get(), desc);
     }
 
     inline void Device::submit(Commands& commands)

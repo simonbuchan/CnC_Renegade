@@ -60,6 +60,8 @@ struct D3DVERSION
 
 struct D3DMATRIX
 {
+    static D3DMATRIX IDENTITY;
+
     D3D_F32 m[4][4];
 };
 
@@ -71,6 +73,7 @@ enum D3DPOOL
 };
 
 #define D3DCOLOR_DEFINED
+
 struct D3DCOLOR
 {
     D3D_U8 r, g, b, a;
@@ -331,37 +334,37 @@ enum D3DTADRESS
     D3DTADDRESS_CLAMP,
 };
 
+// matched in case it's read from a file like D3DFMT from .dds files
 enum D3DFVF
 {
-    D3DFVF_XYZ = 1 << 0,
-    D3DFVF_XYZB4 = 1 << 1,
-    D3DFVF_DIFFUSE = 1 << 2,
-    D3DFVF_SPECULAR = 1 << 3,
-    D3DFVF_NORMAL = 1 << 4,
+    D3DFVF_XYZ = 0x002, // location: 3 floats
+    D3DFVF_XYZB4 = 0x006, // location: 3 floats, blend: 4 bytes
 
-    D3DFVF_TEX1 = 1 << 16,
-    D3DFVF_TEX2 = 1 << 17,
+    D3DFVF_NORMAL = 0x010, // normal: 3 floats
+    D3DFVF_DIFFUSE = 0x040, // color: 4 bytes
+    D3DFVF_SPECULAR = 0x080, // color: 4 bytes
+
+    D3DFVF_TEXCOUNT_MASK = 0xF00,
+    D3DFVF_TEXCOUNT_SHIFT = 8,
+    // number of texture coordinates
+    D3DFVF_TEX0 = 0x000,
+    D3DFVF_TEX1 = 0x100,
+    D3DFVF_TEX2 = 0x200,
     // only 2 actually used
-    D3DFVF_TEX3 = 1 << 18,
-    D3DFVF_TEX4 = 1 << 19,
-    D3DFVF_TEX5 = 1 << 20,
-    D3DFVF_TEX6 = 1 << 21,
-    D3DFVF_TEX7 = 1 << 22,
-    D3DFVF_TEX8 = 1 << 23,
+    D3DFVF_TEX3 = 0x300,
+    D3DFVF_TEX4 = 0x400,
+    D3DFVF_TEX5 = 0x500,
+    D3DFVF_TEX6 = 0x600,
+    D3DFVF_TEX7 = 0x700,
+    D3DFVF_TEX8 = 0x800,
 
-    D3DFVF_LASTBETA_UBYTE4 = 1 << 24,
-
-    D3DFVF_TEXTUREFORMAT1 = 1 << 25,
-    D3DFVF_TEXTUREFORMAT2 = 1 << 26,
-    D3DFVF_TEXTUREFORMAT3 = 1 << 27,
-    D3DFVF_TEXTUREFORMAT4 = 1 << 28,
+    D3DFVF_LASTBETA_UBYTE4 = 0x1000,
 };
 
-#define D3DFVF_TEXCOORDSIZEN(CoordIndex)
-#define D3DFVF_TEXCOORDSIZE1(CoordIndex) (D3DFVF_TEXTUREFORMAT1 << (CoordIndex*2 + 16))
-#define D3DFVF_TEXCOORDSIZE2(CoordIndex) (D3DFVF_TEXTUREFORMAT2)
-#define D3DFVF_TEXCOORDSIZE3(CoordIndex) (D3DFVF_TEXTUREFORMAT3 << (CoordIndex*2 + 16))
-#define D3DFVF_TEXCOORDSIZE4(CoordIndex) (D3DFVF_TEXTUREFORMAT4 << (CoordIndex*2 + 16))
+#define D3DFVF_TEXCOORDSIZE1(CoordIndex) (3 << (CoordIndex*2 + 16))
+#define D3DFVF_TEXCOORDSIZE2(CoordIndex) (0)
+#define D3DFVF_TEXCOORDSIZE3(CoordIndex) (1 << (CoordIndex*2 + 16))
+#define D3DFVF_TEXCOORDSIZE4(CoordIndex) (2 << (CoordIndex*2 + 16))
 
 enum D3DPRIMITIVETYPE
 {

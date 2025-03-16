@@ -41,7 +41,11 @@ D3D_RESULT D3DXCreateTextureFromFileExA(
     void* palette,
     IDirect3DTexture8** texture)
 {
-    return device->CreateTexture(width, height, mip_level_count, usage, format, pool, texture);
+    auto data = image::RgbaData::load(filename);
+    auto hr = device->CreateTexture(data->width, data->height, mip_level_count, usage, D3DFMT_A8R8G8B8, pool, texture);
+    if (FAILED(hr)) return hr;
+    (*texture)->texture.write(0, data->data_ptr, data->data_len);
+    return hr;
 }
 
 D3D_RESULT D3DXLoadSurfaceFromSurface(IDirect3DSurface8*, const PALETTEENTRY*, const RECT*, IDirect3DSurface8*,

@@ -180,7 +180,28 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
 
     wgpu::Device device;
     wgpu::Surface surface; // wgpu Surface ~= IDirect3DSwapChain8
+    wgpu::ShaderModule shader_module;
     wgpu::Commands commands;
+    D3D_U32 base_vertex_index = 0;
+
+    // D3DTS_WORLD,
+    // D3DTS_VIEW,
+    // D3DTS_PROJECTION,
+    // D3DTS_TEXTURE0,
+    D3DMATRIX matrices[4] = {
+        D3DMATRIX::IDENTITY,
+        D3DMATRIX::IDENTITY,
+        D3DMATRIX::IDENTITY,
+        D3DMATRIX::IDENTITY,
+    };
+
+    struct FVFPipleline
+    {
+        D3D_U32 fvf;
+        wgpu::Pipeline pipeline;
+    };
+
+    std::vector<FVFPipleline> pipelines;
 
 private:
     IDirect3DDevice8(wgpu::Device device, wgpu::Surface surface);
@@ -252,16 +273,36 @@ struct IDirect3DSwapChain8 : IDirect3DUnknown8
 
 struct IDirect3DSurface8 : IDirect3DUnknown8
 {
-    static CComPtr<IDirect3DSurface8> Create(D3D_U32 width, D3D_U32 height, D3DFORMAT format);
-    static CComPtr<IDirect3DSurface8> Create(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp);
+    static CComPtr<IDirect3DSurface8> Create(D3D_U32 texture_level, IDirect3DBaseTexture8* texture, D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp);
 
     D3D_RESULT GetDesc(D3DSURFACE_DESC*);
     D3D_RESULT LockRect(D3DLOCKED_RECT*, RECT*, D3D_U32);
     D3D_RESULT UnlockRect();
 
 private:
-    IDirect3DSurface8(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp);
+    IDirect3DSurface8(
+        D3D_U32 texture_level,
+        IDirect3DBaseTexture8* texture,
+        D3D_U32 width,
+        D3D_U32 height,
+        D3DFORMAT format,
+        D3D_U32 bpp)
+    : texture_level(texture_level),
+      texture(texture),
+      data(width * height * bpp / 8),
+      bpp(bpp),
+      desc({
+          data.size(),
+          width,
+          height,
+          format,
+      }),
+      pitch(width * bpp / 8)
+    {
+    }
 
+    D3D_U32 texture_level;
+    IDirect3DBaseTexture8* texture;
     std::vector<D3D_U8> data;
     D3DSURFACE_DESC desc;
     D3D_U32 bpp;
@@ -270,6 +311,9 @@ private:
 
 struct IDirect3DBaseTexture8 : IDirect3DUnknown8
 {
+    wgpu::Texture texture;
+    std::vector<CComPtr<IDirect3DSurface8>> levels;
+
     D3D_RESULT LockRect(D3D_U32, D3DLOCKED_RECT*, RECT*, D3D_U32);
     D3D_RESULT UnlockRect(D3D_U32);
     D3D_U32 GetLevelCount();
@@ -279,57 +323,77 @@ struct IDirect3DBaseTexture8 : IDirect3DUnknown8
     D3D_U32 SetPriority(D3D_U32);
 
 protected:
-    std::vector<CComPtr<IDirect3DSurface8>> levels;
+    IDirect3DBaseTexture8(wgpu::Texture texture)
+        : texture(std::move(texture))
+    {
+    }
 };
 
 struct IDirect3DTexture8 : IDirect3DBaseTexture8
 {
     static CComPtr<IDirect3DTexture8> Create(
-        D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp, D3D_U32 levels
-    )
+        wgpu::Texture texture,
+        D3D_U32 width,
+        D3D_U32 height,
+        D3DFORMAT format,
+        D3D_U32 bpp,
+        D3D_U32 levels)
     {
-        return new IDirect3DTexture8(width, height, format, bpp, levels);
+        return new IDirect3DTexture8(std::move(texture), width, height, format, bpp, levels);
     }
 
 private:
-    explicit IDirect3DTexture8(D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp, D3D_U32 levels);
+    explicit IDirect3DTexture8(
+        wgpu::Texture texture, D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp, D3D_U32 levels);
 };
 
 struct IDirect3DResource8 : IDirect3DUnknown8
 {
+    wgpu::Buffer buffer;
+
     D3D_RESULT Lock(D3D_U32, D3D_U32, D3D_U8**, D3D_U32);
     D3D_RESULT Unlock();
 
 protected:
-    explicit IDirect3DResource8(D3D_U32 length) : data(length)
+    explicit IDirect3DResource8(wgpu::Buffer buffer)
+        : buffer(std::move(buffer))
     {
     }
 
-    std::vector<D3D_U8> data;
+private:
+    std::vector<D3D_U8> local_data;
+    // Must be aligned to 4 bytes
+    uint32_t lock_start = 0;
+    uint32_t lock_end = 0;
 };
 
 struct IDirect3DVertexBuffer8 : IDirect3DResource8
 {
-    static CComPtr<IDirect3DVertexBuffer8> Create(D3D_U32 length)
+    static CComPtr<IDirect3DVertexBuffer8> Create(wgpu::Buffer buffer)
     {
-        return new IDirect3DVertexBuffer8(length);
+        return new IDirect3DVertexBuffer8(std::move(buffer));
     }
 
-protected:
-    explicit IDirect3DVertexBuffer8(D3D_U32 length) : IDirect3DResource8(length)
+private:
+    explicit IDirect3DVertexBuffer8(wgpu::Buffer buffer)
+        : IDirect3DResource8(std::move(buffer))
     {
     }
 };
 
 struct IDirect3DIndexBuffer8 : IDirect3DResource8
 {
-    static CComPtr<IDirect3DIndexBuffer8> Create(D3D_U32 length)
+    WgpuIndexFormat format;
+
+    static CComPtr<IDirect3DIndexBuffer8> Create(wgpu::Buffer buffer, WgpuIndexFormat format)
     {
-        return new IDirect3DIndexBuffer8(length);
+        return new IDirect3DIndexBuffer8(std::move(buffer), format);
     }
 
-protected:
-    explicit IDirect3DIndexBuffer8(D3D_U32 length) : IDirect3DResource8(length)
+private:
+    explicit IDirect3DIndexBuffer8(wgpu::Buffer buffer, WgpuIndexFormat format)
+        : IDirect3DResource8(std::move(buffer)),
+          format(format)
     {
     }
 };

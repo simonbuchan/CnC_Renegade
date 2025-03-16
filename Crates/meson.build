@@ -11,8 +11,9 @@ render_crate_build = custom_target(
         '@OUTPUT@',
         '@DEPFILE@',
     ],
-    build_always_stale: true, # input files are not known, does it's own tracking anyway
+    # build_always_stale: true, # input files are not known, does it's own tracking anyway
     output: ['render_crate.lib', 'render_crate.h'],
+    # hope this works?
     depfile: 'render_crate.d',
 )
 
