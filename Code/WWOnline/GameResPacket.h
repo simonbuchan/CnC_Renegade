@@ -69,7 +69,7 @@ class GameResPacket {
 		void Add_Field(const char *field, unsigned short data) {Add_Field(new GameResField(field, data));};
 		void Add_Field(const char *field, long data) {Add_Field(new GameResField(field, data));};
 		void Add_Field(const char *field, unsigned long data) {Add_Field(new GameResField(field, data));};
-		void Add_Field(const char *field, char *data) {Add_Field(new GameResField(field, data));};
+		void Add_Field(const char *field, const char *data) {Add_Field(new GameResField(field, data));};
 		void Add_Field(const char *field, void *data, int length) {Add_Field(new GameResField(field, data, length));};
 
 		//

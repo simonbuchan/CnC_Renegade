@@ -514,7 +514,7 @@ WWINLINE void* FastAllocatorGeneral::Realloc(void* pAlloc, unsigned int n){
 
 
 
-
+#ifdef UNUSED
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -529,7 +529,7 @@ WWINLINE void* FastAllocatorGeneral::Realloc(void* pAlloc, unsigned int n){
 // system whereby it maintains buckets for integral sizes.
 //
 
-#ifdef _MSC_VER 
+#ifdef _MSC_VER
    //VC++ continues to be the one compiler that lacks the ability to compile
    //standard C++. So we define a version of the STL allocator specifically
    //for VC++, and let other compilers use a standard allocator template.
@@ -601,6 +601,7 @@ template<class T>
 WWINLINE bool operator!=(const FastSTLAllocator<T>&, const FastSTLAllocator<T>&) { return false; }
 ///////////////////////////////////////////////////////////////////////////////
 
+#endif
 
 
 

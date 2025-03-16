@@ -67,7 +67,7 @@ class GameResField {
 		GameResField(const char *id, unsigned short data);
 		GameResField(const char *id, long data);
 		GameResField(const char *id, unsigned long data);
-		GameResField(const char *id, char *data);
+		GameResField(const char *id, const char *data);
 		GameResField(const char *id, void *data, int length);
 
 		~GameResField();

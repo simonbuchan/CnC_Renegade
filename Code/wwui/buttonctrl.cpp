@@ -303,7 +303,7 @@ ButtonCtrlClass::Create_Bitmap_Button (void)
 //	Blit_Section
 //
 ////////////////////////////////////////////////////////////////
-void
+static void
 Blit_Section
 (	
 	Render2DClass &	  renderer,

@@ -152,7 +152,7 @@ protected:
 	bool														AnyDelayedPassesToRender;
 
 	void Generate_Texture_Categories(Vertex_Split_Table& split_table,unsigned vertex_offset);
-	void DX8FVFCategoryContainer::Insert_To_Texture_Category(
+	void Insert_To_Texture_Category(
 		Vertex_Split_Table& split_table,
 		TextureClass** textures,
 		VertexMaterialClass* mat,
@@ -315,6 +315,7 @@ struct MeshRegKeyStruct
 };
 
 
+template<>
 inline unsigned int HashTemplateKeyClass<MeshRegKeyStruct>::Get_Hash_Value(const MeshRegKeyStruct& key)
 {
 	unsigned int hval = (unsigned int)(key.Model) + (unsigned int)(key.UserLighting);

@@ -276,6 +276,8 @@ bool SubTitleParserClass::Parse_Sub_Title(wchar_t* string, SubTitleClass* subTit
 	// Parameter check
 	WWASSERT(string != NULL);
 	WWASSERT(subTitle != NULL);
+	// need a mutable L""
+	static wchar_t empty[1] = L"";
 
 	for (;;) {
 		// Find token separator
@@ -333,7 +335,7 @@ bool SubTitleParserClass::Parse_Sub_Title(wchar_t* string, SubTitleClass* subTit
 				string = separator;
 			}
 			else {
-				string = L"";
+				string = empty;
 			}
 		}
 

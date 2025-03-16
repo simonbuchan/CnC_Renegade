@@ -196,7 +196,7 @@ GameResField::GameResField(const char *id, unsigned long data)
 *
 ******************************************************************************/
 
-GameResField::GameResField(const char *id, char *data)
+GameResField::GameResField(const char *id, const char *data)
 	{
 	strncpy(mID, id, sizeof(mID));
 	mDataType = TYPE_STRING;

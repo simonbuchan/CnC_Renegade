@@ -1637,7 +1637,7 @@ Input::Load_Misc_Settings (INIClass *input_ini)
 	MouseInvert					= input_ini->Get_Bool (SECTION_MISC_SETTINGS, ENTRY_MOUSE_INVERT, true);
 	Mouse2DInvert				= input_ini->Get_Bool (SECTION_MISC_SETTINGS, ENTRY_MOUSE_2D_INVERT, false);
 
-	bool is_target_steering	= input_ini->Get_Bool (ENTRY_TARGET_STEERING, false);
+	bool is_target_steering	= input_ini->Get_Bool (SECTION_MISC_SETTINGS, ENTRY_TARGET_STEERING, false);
 	VehicleGameObj::Set_Target_Steering (is_target_steering);
 
 	//

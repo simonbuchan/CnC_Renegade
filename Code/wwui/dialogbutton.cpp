@@ -192,7 +192,7 @@ DialogButtonClass::Create_Bitmap_Button (void)
 	return ;
 }
 
-void
+static void
 Blit_Section
 (	
 	Render2DClass &	renderer,
