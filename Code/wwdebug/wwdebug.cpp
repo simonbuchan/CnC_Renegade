@@ -339,9 +339,25 @@ void WWDebug_Assert_Fail(const char * expr,const char * file, int line)
  *   12/11/2001 3:56PM ST : Created                                                            *
  *=============================================================================================*/
 #ifdef WWDEBUG
-void __cdecl _assert(void *expr, void *filename, unsigned lineno)
+extern "C" {
+
+void __cdecl _assert(const char *expr, const char *filename, unsigned lineno)
 {
-	WWDebug_Assert_Fail((const char*)expr, (const char*)filename, lineno);
+	WWDebug_Assert_Fail(expr, filename, lineno);
+}
+
+// newer CRT uses this
+void __cdecl _wassert(const wchar_t *wexpr, const wchar_t *wfilename, unsigned lineno)
+{
+	// pain in the butt. have to convert the wide string to a char string
+	char expr[1024];
+	char filename[128];
+	wcstombs(expr, wexpr, sizeof(expr));
+	wcstombs(filename, wfilename, sizeof(filename));
+
+	WWDebug_Assert_Fail(expr, filename, lineno);
+}
+
 }
 #endif //WWDEBUG
 
