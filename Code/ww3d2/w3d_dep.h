@@ -44,7 +44,6 @@
 
 #pragma warning (push, 3)
 #pragma warning (disable: 4018 4146 4284 4503)
-#include <strstream>
 #include <string>
 #pragma warning (pop)
 

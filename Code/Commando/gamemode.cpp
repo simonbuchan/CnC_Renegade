@@ -228,7 +228,7 @@ void	GameModeManager::Render( void )
 		DX8RendererDebugger::Update();
 
 		bool do_pscene = (COMBAT_SCENE != NULL) && !cNetwork::I_Am_Only_Server();
-		if (!GameInFocus) do_pscene=false;	// Don't render the game scene if the applicationisn't active
+		// if (!GameInFocus) do_pscene=false;	// Don't render the game scene if the applicationisn't active
 		if (do_pscene) {
 
 			//

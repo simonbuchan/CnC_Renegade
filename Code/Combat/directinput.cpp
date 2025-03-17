@@ -95,6 +95,7 @@ DirectInput8CreateType DirectInput8CreatePtr = NULL;
 */
 void DirectInput::Init( void )
 {
+	return;
 	WWDEBUG_SAY(("DirectInput: Init\n"));
 
 	HRESULT        hr;
@@ -367,11 +368,11 @@ void DirectInput::Unacquire(void)
 			DIKeyboardDevice->Unacquire();
 		}
 
-		POINT cursorPos;
-		cursorPos.x = (LONG)CursorPos.X;
-		cursorPos.y = (LONG)CursorPos.Y;
-		ClientToScreen(MainWindow, &cursorPos);
-		SetCursorPos(cursorPos.x, cursorPos.y);
+		// POINT cursorPos;
+		// cursorPos.x = (LONG)CursorPos.X;
+		// cursorPos.y = (LONG)CursorPos.Y;
+		// ClientToScreen(MainWindow, &cursorPos);
+		// SetCursorPos(cursorPos.x, cursorPos.y);
 
 		Captured = false;
 	}
