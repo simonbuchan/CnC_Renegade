@@ -35,6 +35,7 @@ namespace wgpu
     struct Instance;
     struct Device;
     struct Surface;
+    struct BindGroup;
     struct Buffer;
     struct Texture;
     struct ShaderModule;
@@ -68,12 +69,20 @@ namespace wgpu
 
     struct Device
     {
+        static Device create(Instance const& instance, uint32_t adapter)
+        {
+            return Device(wgpu_instance_device_create(instance.ptr.get(), adapter));
+        }
+
         std::unique_ptr<WgpuDevice, decltype(&wgpu_device_destroy)> ptr;
 
-        Device(WgpuInstance* instance, uint32_t adapter)
-            : ptr(wgpu_instance_device_create(instance, adapter), &wgpu_device_destroy)
+        explicit Device(WgpuDevice* ptr)
+            : ptr(ptr, &wgpu_device_destroy)
         {
         }
+
+        BindGroup create_static_bind_group(Buffer& buffer);
+        BindGroup create_texture_bind_group(Texture& buffer);
 
         Buffer create_buffer(uint64_t size, uint32_t usage);
         Texture create_texture(WgpuTextureFormat format, uint32_t width, uint32_t height, uint32_t mip_level_count,
@@ -87,10 +96,15 @@ namespace wgpu
 
     struct Surface
     {
+        static Surface create(Instance const& instance, HWND hwnd)
+        {
+            return Surface(wgpu_instance_surface_create(instance.ptr.get(), reinterpret_cast<intptr_t>(hwnd)));
+        }
+
         std::unique_ptr<WgpuSurface, decltype(&wgpu_surface_destroy)> ptr;
 
-        Surface(WgpuInstance* instance, HWND hwnd)
-            : ptr(wgpu_instance_surface_create(instance, reinterpret_cast<intptr_t>(hwnd)), &wgpu_surface_destroy)
+        explicit Surface(WgpuSurface* ptr)
+            : ptr(ptr, &wgpu_surface_destroy)
         {
         }
 
@@ -102,6 +116,19 @@ namespace wgpu
         void present()
         {
             wgpu_surface_present(ptr.get());
+        }
+    };
+
+    struct BindGroup
+    {
+        static BindGroup create_static(Device const& device, Buffer& buffer);
+        static BindGroup create_texture(Device const& device, Texture& texture);
+
+        std::unique_ptr<WgpuBindGroup, decltype(&wgpu_bind_group_destroy)> ptr;
+
+        explicit BindGroup(WgpuBindGroup* ptr)
+            : ptr(ptr, &wgpu_bind_group_destroy)
+        {
         }
     };
 
@@ -124,6 +151,13 @@ namespace wgpu
     {
         std::unique_ptr<WgpuTexture, decltype(&wgpu_texture_destroy)> ptr;
 
+        explicit Texture(Texture const& other)
+            : ptr(wgpu_texture_clone(other.ptr.get()), &wgpu_texture_destroy)
+        {
+        }
+
+        Texture(Texture&& other) = default;
+
         explicit Texture(
             WgpuDevice* device,
             WgpuTextureFormat format,
@@ -134,6 +168,19 @@ namespace wgpu
             : ptr(wgpu_device_create_texture(device, format, width, height, mip_level_count, usage),
                   &wgpu_texture_destroy)
         {
+        }
+
+        Texture& operator=(Texture const& other)
+        {
+            ptr.reset(wgpu_texture_clone(other.ptr.get()));
+            return *this;
+        }
+
+        Texture& operator=(Texture&& other) = default;
+
+        Texture clone() const
+        {
+            return Texture(*this);
         }
 
         void write(uint32_t level, uint8_t* data_ptr, uint32_t data_len)
@@ -187,6 +234,11 @@ namespace wgpu
             wgpu_commands_set_pipeline(ptr.get(), pipeline.ptr.get());
         }
 
+        void set_bind_group(uint32_t index, BindGroup& bind_group)
+        {
+            wgpu_commands_set_bind_group(ptr.get(), index, bind_group.ptr.get());
+        }
+
         void set_vertex_buffer(uint32_t slot, Buffer& buffer, uint64_t offset = 0, uint64_t size = WGPU_SIZE_ALL)
         {
             wgpu_commands_set_vertex_buffer(ptr.get(), slot, buffer.ptr.get(), offset, size);
@@ -196,11 +248,6 @@ namespace wgpu
                               uint64_t size = WGPU_SIZE_ALL)
         {
             wgpu_commands_set_index_buffer(ptr.get(), buffer.ptr.get(), format, offset, size);
-        }
-
-        void set_bind_group_to_texture(uint32_t index, Texture& texture)
-        {
-            wgpu_commands_set_bind_group_to_texture(ptr.get(), index, texture.ptr.get());
         }
 
         void draw_indexed(WgpuDrawIndexed const& args)
@@ -219,12 +266,22 @@ namespace wgpu
 
     inline Device Instance::create_device(uint32_t adapter)
     {
-        return Device(ptr.get(), adapter);
+        return Device::create(*this, adapter);
     }
 
     inline Surface Instance::create_surface(HWND hwnd)
     {
-        return Surface(ptr.get(), hwnd);
+        return Surface::create(*this, hwnd);
+    }
+
+    inline BindGroup Device::create_static_bind_group(Buffer& buffer)
+    {
+        return BindGroup::create_static(*this, buffer);
+    }
+
+    inline BindGroup Device::create_texture_bind_group(Texture& buffer)
+    {
+        return BindGroup::create_texture(*this, buffer);
     }
 
     inline Buffer Device::create_buffer(uint64_t size, uint32_t usage)
@@ -256,5 +313,15 @@ namespace wgpu
     inline void Device::submit(Commands& commands)
     {
         wgpu_device_submit(ptr.get(), commands.ptr.get());
+    }
+
+    inline BindGroup BindGroup::create_static(Device const& device, Buffer& buffer)
+    {
+        return BindGroup(wgpu_device_create_static_bind_group(device.ptr.get(), buffer.ptr.get()));
+    }
+
+    inline BindGroup BindGroup::create_texture(Device const& device, Texture& texture)
+    {
+        return BindGroup(wgpu_device_create_texture_bind_group(device.ptr.get(), texture.ptr.get()));
     }
 }

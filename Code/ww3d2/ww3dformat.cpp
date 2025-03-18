@@ -321,26 +321,31 @@ WW3DFormat Get_Valid_Texture_Format(WW3DFormat format, bool is_compression_allow
 	}
 
 	WW3D::Get_Device_Resolution(w,h,bits,windowed);
-	if (WW3D::Get_Texture_Bitdepth()==16) bits=16;
 
-	// if the device bitdepth is 16, don't allow 32 bit textures
-	if (bits<=16) {
-		switch (format) {
-		case WW3D_FORMAT_A8R8G8B8: return WW3D_FORMAT_A4R4G4B4;
-		case WW3D_FORMAT_X8R8G8B8:
-		case WW3D_FORMAT_R8G8B8: return WW3D_FORMAT_R5G6B5;
-		case WW3D_FORMAT_A4R4G4B4:
-		case WW3D_FORMAT_A1R5G5B5:
-		case WW3D_FORMAT_R5G6B5:
-		case WW3D_FORMAT_L8:
-		case WW3D_FORMAT_A8:
-		case WW3D_FORMAT_P8:
-		default:
-			// Basically, anything goes here (just make sure the most common 32 bit formats are converted to 16 bit
-			break;
-		}
+	// This always returned 16, so the 32-bit textures were always crushed down.
+	// Disable that as WGPU doesn't support 16-bit textures, so we would just be
+	// reconverting back to 32-bit pointlessly.
 
-	}
+	// if (WW3D::Get_Texture_Bitdepth()==16) bits=16;
+	//
+	// // if the device bitdepth is 16, don't allow 32 bit textures
+	// if (bits<=16) {
+	// 	switch (format) {
+	// 	case WW3D_FORMAT_A8R8G8B8: return WW3D_FORMAT_A4R4G4B4;
+	// 	case WW3D_FORMAT_X8R8G8B8:
+	// 	case WW3D_FORMAT_R8G8B8: return WW3D_FORMAT_R5G6B5;
+	// 	case WW3D_FORMAT_A4R4G4B4:
+	// 	case WW3D_FORMAT_A1R5G5B5:
+	// 	case WW3D_FORMAT_R5G6B5:
+	// 	case WW3D_FORMAT_L8:
+	// 	case WW3D_FORMAT_A8:
+	// 	case WW3D_FORMAT_P8:
+	// 	default:
+	// 		// Basically, anything goes here (just make sure the most common 32 bit formats are converted to 16 bit
+	// 		break;
+	// 	}
+	//
+	// }
 
 	// Fallback if the hardware doesn't support the texture format
 	if (!DX8Wrapper::Get_Current_Caps()->Support_Texture_Format(format)) {

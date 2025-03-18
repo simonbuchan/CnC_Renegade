@@ -24,7 +24,8 @@ struct D3DVECTOR
 enum
 {
     D3D_OK = 0,
-    D3DERR_INVALIDCALL,
+    // errors must have high bits set for SUCCEEDED() / FAILED() to work.
+    D3DERR_INVALIDCALL = 0x80000000,
     D3DERR_NOTAVAILABLE,
     D3DERR_OUTOFVIDEOMEMORY,
     D3DERR_DEVICELOST,
@@ -278,6 +279,7 @@ enum D3DTRANSFORMSTATETYPE
     D3DTS_VIEW,
     D3DTS_PROJECTION,
     D3DTS_TEXTURE0,
+    D3DTS_TEXTURE1,
 };
 
 enum D3DTEXTURESTAGESTATETYPE
@@ -337,12 +339,13 @@ enum D3DTADRESS
 // matched in case it's read from a file like D3DFMT from .dds files
 enum D3DFVF
 {
-    D3DFVF_XYZ = 0x002, // location: 3 floats
-    D3DFVF_XYZB4 = 0x006, // location: 3 floats, blend: 4 bytes
+    D3DFVF_XYZ = 0x002, // location: vec2f
+    D3DFVF_B4 = 0x004, // blend: vec4f / vec3f + u32
+    D3DFVF_XYZB4 = D3DFVF_XYZ | D3DFVF_B4,
 
-    D3DFVF_NORMAL = 0x010, // normal: 3 floats
-    D3DFVF_DIFFUSE = 0x040, // color: 4 bytes
-    D3DFVF_SPECULAR = 0x080, // color: 4 bytes
+    D3DFVF_NORMAL = 0x010, // normal: vec3f
+    D3DFVF_DIFFUSE = 0x040, // color: u32
+    D3DFVF_SPECULAR = 0x080, // color: u32
 
     D3DFVF_TEXCOUNT_MASK = 0xF00,
     D3DFVF_TEXCOUNT_SHIFT = 8,

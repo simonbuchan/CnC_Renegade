@@ -188,12 +188,20 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
     // D3DTS_VIEW,
     // D3DTS_PROJECTION,
     // D3DTS_TEXTURE0,
-    D3DMATRIX matrices[4] = {
-        D3DMATRIX::IDENTITY,
-        D3DMATRIX::IDENTITY,
-        D3DMATRIX::IDENTITY,
-        D3DMATRIX::IDENTITY,
+    // D3DTS_TEXTURE1,
+    struct State
+    {
+        D3DMATRIX ts_world = D3DMATRIX::IDENTITY;
+        D3DMATRIX ts_view = D3DMATRIX::IDENTITY;
+        D3DMATRIX ts_projection = D3DMATRIX::IDENTITY;
+        D3DMATRIX ts_tex0 = D3DMATRIX::IDENTITY;
+        D3DMATRIX ts_tex1 = D3DMATRIX::IDENTITY;
     };
+
+    State state;
+    wgpu::Buffer state_buffer;
+    wgpu::BindGroup static_bind_group;
+    bool state_dirty = true;
 
     struct FVFPipleline
     {
@@ -273,7 +281,19 @@ struct IDirect3DSwapChain8 : IDirect3DUnknown8
 
 struct IDirect3DSurface8 : IDirect3DUnknown8
 {
-    static CComPtr<IDirect3DSurface8> Create(D3D_U32 texture_level, IDirect3DBaseTexture8* texture, D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp);
+    static CComPtr<IDirect3DSurface8> Create(
+        wgpu::Texture texture,
+        D3D_U32 texture_level,
+        D3D_U32 width,
+        D3D_U32 height,
+        D3DFORMAT format,
+        D3D_U32 bpp)
+    {
+        return new IDirect3DSurface8(std::move(texture), texture_level, width, height, format, bpp);
+    }
+
+    wgpu::Texture texture;
+    D3D_U32 texture_level;
 
     D3D_RESULT GetDesc(D3DSURFACE_DESC*);
     D3D_RESULT LockRect(D3DLOCKED_RECT*, RECT*, D3D_U32);
@@ -281,28 +301,26 @@ struct IDirect3DSurface8 : IDirect3DUnknown8
 
 private:
     IDirect3DSurface8(
+        wgpu::Texture texture,
         D3D_U32 texture_level,
-        IDirect3DBaseTexture8* texture,
         D3D_U32 width,
         D3D_U32 height,
         D3DFORMAT format,
         D3D_U32 bpp)
-    : texture_level(texture_level),
-      texture(texture),
-      data(width * height * bpp / 8),
-      bpp(bpp),
-      desc({
-          data.size(),
-          width,
-          height,
-          format,
-      }),
-      pitch(width * bpp / 8)
+        : texture(std::move(texture)),
+          texture_level(texture_level),
+          data(width * height * bpp / 8),
+          bpp(bpp),
+          desc({
+              data.size(),
+              width,
+              height,
+              format,
+          }),
+          pitch(width * bpp / 8)
     {
     }
 
-    D3D_U32 texture_level;
-    IDirect3DBaseTexture8* texture;
     std::vector<D3D_U8> data;
     D3DSURFACE_DESC desc;
     D3D_U32 bpp;
@@ -312,6 +330,7 @@ private:
 struct IDirect3DBaseTexture8 : IDirect3DUnknown8
 {
     wgpu::Texture texture;
+    wgpu::BindGroup bind_group;
     std::vector<CComPtr<IDirect3DSurface8>> levels;
 
     D3D_RESULT LockRect(D3D_U32, D3DLOCKED_RECT*, RECT*, D3D_U32);
@@ -323,8 +342,11 @@ struct IDirect3DBaseTexture8 : IDirect3DUnknown8
     D3D_U32 SetPriority(D3D_U32);
 
 protected:
-    IDirect3DBaseTexture8(wgpu::Texture texture)
-        : texture(std::move(texture))
+    explicit IDirect3DBaseTexture8(
+        wgpu::Texture texture,
+        wgpu::BindGroup bind_group)
+        : texture(std::move(texture)),
+          bind_group(std::move(bind_group))
     {
     }
 };
@@ -333,18 +355,32 @@ struct IDirect3DTexture8 : IDirect3DBaseTexture8
 {
     static CComPtr<IDirect3DTexture8> Create(
         wgpu::Texture texture,
+        wgpu::BindGroup bind_group,
         D3D_U32 width,
         D3D_U32 height,
         D3DFORMAT format,
         D3D_U32 bpp,
         D3D_U32 levels)
     {
-        return new IDirect3DTexture8(std::move(texture), width, height, format, bpp, levels);
+        return new IDirect3DTexture8(
+            std::move(texture),
+            std::move(bind_group),
+            width,
+            height,
+            format,
+            bpp,
+            levels);
     }
 
 private:
     explicit IDirect3DTexture8(
-        wgpu::Texture texture, D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp, D3D_U32 levels);
+        wgpu::Texture texture,
+        wgpu::BindGroup bind_group,
+        D3D_U32 width,
+        D3D_U32 height,
+        D3DFORMAT format,
+        D3D_U32 bpp,
+        D3D_U32 levels);
 };
 
 struct IDirect3DResource8 : IDirect3DUnknown8

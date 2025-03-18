@@ -20,42 +20,44 @@
 #include "wwstring.h"
 #include <D3dx8core.h>
 
-static unsigned Get_FVF_Vertex_Size(unsigned FVF)
-{
-	return D3DXGetFVFVertexSize(FVF);
-}
-
 FVFInfoClass::FVFInfoClass(unsigned FVF_) 
 	:
 	FVF(FVF_),
-	fvf_size(Get_FVF_Vertex_Size(FVF))
+	fvf_size(0)
 {
-	location_offset=0;
-	blend_offset=location_offset;
-	
-	if ((FVF&D3DFVF_XYZ)==D3DFVF_XYZ) blend_offset+=3*sizeof(float);
-	normal_offset=blend_offset;
-
-	if ( ((FVF&D3DFVF_XYZB4)==D3DFVF_XYZB4) &&
-		  ((FVF&D3DFVF_LASTBETA_UBYTE4)==D3DFVF_LASTBETA_UBYTE4) ) normal_offset+=3*sizeof(float)+sizeof(DWORD);
-	diffuse_offset=normal_offset;
-
-	if ((FVF&D3DFVF_NORMAL)==D3DFVF_NORMAL) diffuse_offset+=3*sizeof(float);
-	specular_offset=diffuse_offset;
-
-	if ((FVF&D3DFVF_DIFFUSE)==D3DFVF_DIFFUSE) specular_offset+=sizeof(DWORD);
-	texcoord_offset[0]=specular_offset;
-
-	if ((FVF&D3DFVF_SPECULAR)==D3DFVF_SPECULAR) texcoord_offset[0]+=sizeof(DWORD);	
-
-	for (unsigned int i=1; i<D3DDP_MAXTEXCOORD; i++)
+	location_offset = fvf_size;
+    if (FVF & D3DFVF_XYZ) fvf_size += 12; // vec3f
+	blend_offset = fvf_size;
+    if (FVF & D3DFVF_B4) fvf_size += 16; // vec3f + u32
+	normal_offset = fvf_size;
+    if (FVF & D3DFVF_NORMAL) fvf_size += 12; // vec3f
+	specular_offset = fvf_size;
+    if (FVF & D3DFVF_SPECULAR) fvf_size += 4; // u32
+	diffuse_offset = fvf_size;
+    if (FVF & D3DFVF_DIFFUSE) fvf_size += 4; // u32
+	auto texcoord_count = (FVF&D3DFVF_TEXCOUNT_MASK)>>D3DFVF_TEXCOUNT_SHIFT;
+	for (auto i = 0; i < texcoord_count; i++)
 	{
-		texcoord_offset[i]=texcoord_offset[i-1];
+		texcoord_offset[i] = fvf_size;
 
-		if ((int(FVF)&D3DFVF_TEXCOORDSIZE1(i-1))==D3DFVF_TEXCOORDSIZE1(i-1)) texcoord_offset[i]+=sizeof(float);
-		else if ((int(FVF)&D3DFVF_TEXCOORDSIZE2(i-1))==D3DFVF_TEXCOORDSIZE2(i-1)) texcoord_offset[i]+=2*sizeof(float);
-		else if ((int(FVF)&D3DFVF_TEXCOORDSIZE3(i-1))==D3DFVF_TEXCOORDSIZE3(i-1)) texcoord_offset[i]+=3*sizeof(float);
-		else if ((int(FVF)&D3DFVF_TEXCOORDSIZE4(i-1))==D3DFVF_TEXCOORDSIZE4(i-1)) texcoord_offset[i]+=4*sizeof(float);
+		auto shift = i * 2 + 16;
+		auto n = (FVF >> shift) & 3;
+		// n != coord count:
+		// #define D3DFVF_TEXCOORDSIZE1(CoordIndex) (3 << (CoordIndex*2 + 16))
+		// #define D3DFVF_TEXCOORDSIZE2(CoordIndex) (0)
+		// #define D3DFVF_TEXCOORDSIZE3(CoordIndex) (1 << (CoordIndex*2 + 16))
+		// #define D3DFVF_TEXCOORDSIZE4(CoordIndex) (2 << (CoordIndex*2 + 16))
+		switch (n)
+		{
+			case 0: fvf_size += 8; break; // vec2f
+			case 1: fvf_size += 12; break; // vec3f
+			case 2: fvf_size += 16; break; // vec4f
+			case 3: fvf_size += 4; break; // f32
+		}
+	}
+	for (auto i = texcoord_count; i < D3DDP_MAXTEXCOORD; i++)
+	{
+		texcoord_offset[i] = fvf_size;
 	}
 }
 

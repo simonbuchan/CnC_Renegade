@@ -13,6 +13,7 @@ pub struct ImageRgbaData {
     pub data_len: usize,
 }
 
+// Currently unused, textures are loaded out of .mix files.
 #[unsafe(no_mangle)]
 pub extern "C" fn image_rgba_data_load(path: *const c_char) -> *mut ImageRgbaData {
     let path = unsafe { std::ffi::CStr::from_ptr(path) };
@@ -136,25 +137,51 @@ pub extern "C" fn wgpu_instance_device_create(
         }
         Ok((device, queue)) => {
             let adapter = adapter.clone();
-            let texture_bind_group_layout =
+
+            let static_bind_group_layout =
                 device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    label: None,
+                    label: Some("static"),
                     entries: &[wgpu::BindGroupLayoutEntry {
                         binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
+                        visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
                         },
                         count: None,
                     }],
                 });
+
+            let texture_bind_group_layout =
+                device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("texture"),
+                    entries: &[
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::FRAGMENT,
+                            ty: wgpu::BindingType::Texture {
+                                sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::FRAGMENT,
+                            ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                            count: None,
+                        },
+                    ],
+                });
+
             Box::into_raw(Box::new(WgpuDevice {
                 adapter,
                 device,
                 queue,
-                texture_bind_group_layout
+                static_bind_group_layout,
+                texture_bind_group_layout,
             }))
         }
     }
@@ -203,6 +230,7 @@ pub struct WgpuDevice {
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
+    static_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_group_layout: wgpu::BindGroupLayout,
 }
 
@@ -221,6 +249,57 @@ pub extern "C" fn wgpu_device_create_commands(device: *mut WgpuDevice) -> *mut W
         encoder,
         render_pass: None,
     }))
+}
+
+// hack: should be able to define bind group layouts
+#[unsafe(no_mangle)]
+pub extern "C" fn wgpu_device_create_static_bind_group(
+    device: *mut WgpuDevice,
+    buffer: *mut WgpuBuffer,
+) -> *mut WgpuBindGroup {
+    let device = unsafe { &mut *device };
+    let buffer = unsafe { &*buffer };
+    let bind_group = device.device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: None,
+        layout: &device.static_bind_group_layout,
+        entries: &[wgpu::BindGroupEntry {
+            binding: 0,
+            resource: buffer.buffer.as_entire_binding(),
+        }],
+    });
+    Box::into_raw(Box::new(WgpuBindGroup { bind_group }))
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn wgpu_device_create_texture_bind_group(
+    device: *mut WgpuDevice,
+    texture: *mut WgpuTexture,
+) -> *mut WgpuBindGroup {
+    let device = unsafe { &mut *device };
+    let texture = unsafe { &*texture };
+    let bind_group = device.device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: None,
+        layout: &device.texture_bind_group_layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(
+                    &texture
+                        .texture
+                        .create_view(&wgpu::TextureViewDescriptor::default()),
+                ),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::Sampler(
+                    &device
+                        .device
+                        .create_sampler(&wgpu::SamplerDescriptor::default()),
+                ),
+            },
+        ],
+    });
+    Box::into_raw(Box::new(WgpuBindGroup { bind_group }))
 }
 
 pub const WGPU_BUFFER_USAGE_UNIFORM: u32 = 1 << 0;
@@ -316,17 +395,10 @@ pub extern "C" fn wgpu_device_create_texture(
         view_formats: &[],
     });
     let queue = device.queue.clone();
-    let bind_group = device.device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: None,
-        layout: &device.texture_bind_group_layout,
-        entries: &[wgpu::BindGroupEntry {
-            binding: 0,
-            resource: wgpu::BindingResource::TextureView(
-                &texture.create_view(&wgpu::TextureViewDescriptor::default()),
-            ),
-        }],
-    });
-    Box::into_raw(Box::new(WgpuTexture { queue, texture, bind_group }))
+    Box::into_raw(Box::new(WgpuTexture {
+        queue,
+        texture,
+    }))
 }
 
 #[repr(C)]
@@ -402,6 +474,7 @@ pub extern "C" fn wgpu_device_create_pipeline(
     let layout_descs = unsafe { std::slice::from_raw_parts(desc.layout_ptr, desc.layout_len) };
     let mut attributes = vec![];
 
+    // vertex layout
     for layout in layout_descs {
         let format = match layout.format {
             WgpuVertexFormat::Uint8x4 => wgpu::VertexFormat::Uint8x4,
@@ -418,11 +491,22 @@ pub extern "C" fn wgpu_device_create_pipeline(
         });
     }
 
+    let pipeline_layout = device
+        .device
+        .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: None,
+            bind_group_layouts: &[
+                &device.static_bind_group_layout,
+                &device.texture_bind_group_layout,
+            ],
+            push_constant_ranges: &[],
+        });
+
     let pipeline = device
         .device
         .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
-            layout: None,
+            layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: unsafe { &(&*(&*desc.vertex_shader).module).module },
                 entry_point: Some(&*unsafe { (&*desc.vertex_shader).entry_point.as_str() }),
@@ -445,7 +529,7 @@ pub extern "C" fn wgpu_device_create_pipeline(
                 compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                    blend: Some(wgpu::BlendState::REPLACE),
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
@@ -468,6 +552,15 @@ pub extern "C" fn wgpu_device_submit(device: *mut WgpuDevice, commands: *mut Wgp
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default()),
     );
     device.queue.submit([commands.finish()]);
+}
+
+pub struct WgpuBindGroup {
+    bind_group: wgpu::BindGroup,
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn wgpu_bind_group_destroy(bind_group: *mut WgpuBindGroup) {
+    drop(unsafe { Box::from_raw(bind_group) });
 }
 
 pub struct WgpuBuffer {
@@ -495,8 +588,21 @@ pub extern "C" fn wgpu_buffer_write(
 pub struct WgpuTexture {
     queue: wgpu::Queue,
     texture: wgpu::Texture,
-    // hack: one element bind group. Should move to bindless / index a texture binding array.
-    bind_group: wgpu::BindGroup,
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn wgpu_texture_clone(texture: *mut WgpuTexture) -> *mut WgpuTexture {
+    // makes the C++ simpler
+    if texture.is_null() {
+        return std::ptr::null_mut();
+    }
+    let ptr_texture = unsafe { &*texture };
+    let queue = ptr_texture.queue.clone();
+    let texture = ptr_texture.texture.clone();
+    Box::into_raw(Box::new(WgpuTexture {
+        queue,
+        texture,
+    }))
 }
 
 #[unsafe(no_mangle)]
@@ -513,24 +619,24 @@ pub extern "C" fn wgpu_texture_write(
 ) {
     let texture = unsafe { &mut *texture };
     let data = unsafe { std::slice::from_raw_parts(data, len) };
-    let size = texture.texture.size();
+    let info = wgpu::TexelCopyTextureInfo {
+        mip_level,
+        ..texture.texture.as_image_copy()
+    };
+    let mip_size = texture
+        .texture
+        .size()
+        .mip_level_size(mip_level, texture.texture.dimension());
     texture.queue.write_texture(
-        wgpu::TexelCopyTextureInfo {
-            mip_level,
-            ..texture.texture.as_image_copy()
-        },
+        info,
         data,
         // assume packed RGBA8 for now (we do have BCn formats to consider later)
         wgpu::TexelCopyBufferLayout {
             offset: 0,
-            bytes_per_row: Some(
-                size.mip_level_size(mip_level, texture.texture.dimension())
-                    .width
-                    * 4,
-            ),
+            bytes_per_row: Some(mip_size.width * 4),
             rows_per_image: None,
         },
-        size,
+        mip_size,
     );
 }
 
@@ -667,6 +773,18 @@ pub extern "C" fn wgpu_commands_set_pipeline(
     render_pass.set_pipeline(&pipeline.pipeline);
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn wgpu_commands_set_bind_group(
+    commands: *mut WgpuCommands,
+    index: u32,
+    bind_group: *mut WgpuBindGroup,
+) {
+    let commands = unsafe { &mut *commands };
+    let bind_group = unsafe { &*bind_group };
+    let render_pass = commands.render_pass.as_mut().unwrap();
+    render_pass.set_bind_group(index, &bind_group.bind_group, &[]);
+}
+
 pub const WGPU_SIZE_ALL: u64 = !0;
 
 #[unsafe(no_mangle)]
@@ -718,18 +836,6 @@ pub extern "C" fn wgpu_commands_set_index_buffer(
             WgpuIndexFormat::Uint32 => wgpu::IndexFormat::Uint32,
         },
     );
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn wgpu_commands_set_bind_group_to_texture(
-    commands: *mut WgpuCommands,
-    index: u32,
-    texture: *mut WgpuTexture,
-) {
-    let commands = unsafe { &mut *commands };
-    let texture = unsafe { &*texture };
-    let render_pass = commands.render_pass.as_mut().unwrap();
-    render_pass.set_bind_group(index, &texture.bind_group, &[]);
 }
 
 #[repr(C)]

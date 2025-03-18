@@ -1,5 +1,8 @@
 #include "d3d8.h"
 
+#include <cassert>
+#include <fstream>
+
 inline D3DMATRIX D3DMATRIX::IDENTITY = {
     {
         {1, 0, 0, 0},
@@ -12,8 +15,8 @@ inline D3DMATRIX D3DMATRIX::IDENTITY = {
 
 // offer both a 32 and 16 bit format so it can find either.
 static const D3DDISPLAYMODE DummyModes[] = {
-    {.Width = 800, .Height = 600, .Format = D3DFMT_X8R8G8B8},
-    {.Width = 800, .Height = 600, .Format = D3DFMT_R5G6B5},
+    {.Width = 800, .Height = 600, .Format = D3DFMT_A8R8G8B8},
+    // {.Width = 800, .Height = 600, .Format = D3DFMT_R5G6B5},
 };
 
 static const D3DCAPS8 MockCaps = {
@@ -25,8 +28,9 @@ static const D3DCAPS8 MockCaps = {
     .DevCaps = D3DDEVCAPS_HWTRANSFORMANDLIGHT | D3DDEVCAPS_NPATCHES,
     .RasterCaps = D3DPRASTERCAPS_FOGRANGE | D3DPRASTERCAPS_ZBIAS,
     .TextureOpCaps =
-    D3DTEXOPCAPS_BUMPENVMAP |
-    D3DTEXOPCAPS_BUMPENVMAPLUMINANCE |
+    // for now disable bump maps
+    // D3DTEXOPCAPS_BUMPENVMAP |
+    // D3DTEXOPCAPS_BUMPENVMAPLUMINANCE |
     D3DTEXOPCAPS_ADD |
     D3DTEXOPCAPS_SUBTRACT |
     D3DTEXOPCAPS_MODULATE |
@@ -58,84 +62,16 @@ D3D_U32 IDirect3DUnknown8::Release()
 
 enum class WgslLocation : uint32_t
 {
+    // In FVF order. Must match the shader layout
     Position = 0,
-    Blend = 1,
-    Normal = 2,
-    Tex1 = 3,
-    Tex2 = 4,
-    Diffuse = 5,
-    Specular = 6,
+    BlendWeights = 1,
+    BlendIndices = 2,
+    Normal = 3,
+    Diffuse = 4,
+    Specular = 5,
+    Tex1 = 6,
+    Tex2 = 7,
 };
-
-const std::string_view WGSL = R"(
-// struct VertexInput {
-//     @location(0) position: vec4f, // FVF_XYZ
-//     @location(1) blend: f32,      // FVF_XYZB4 | FVF_LASTBETA_UBYTE4
-//     @location(2) normal: vec3f,   // FVF_NORMAL
-//     @location(3) tex1: vec2f,     // FVF_TEX1
-//     @location(4) tex2: vec2f,     // FVF_TEX2
-//     @location(5) diffuse: u32,  // FVF_DIFFUSE
-//     @location(6) specular: u32, // FVF_SPECULAR
-// }
-
-struct VertexOutput {
-    @builtin(position) position: vec4f,
-    @location(0) color: vec4f,
-}
-
-@vertex
-fn vs_xyz(
-    @builtin(vertex_index) index: u32,
-    @location(0) position: vec3f,
-) -> VertexOutput {
-    var output: VertexOutput;
-    output.position = vec4f(position, 1.0);
-    output.color = vec4f(1.0, 0.0, 1.0, 1.0);
-    return output;
-}
-
-@vertex
-fn vs_xyz_diffuse(
-    @builtin(vertex_index) index: u32,
-    @location(0) position: vec3f,
-    @location(5) diffuse: u32,
-) -> VertexOutput {
-    var output: VertexOutput;
-    output.position = vec4f(position, 1.0);
-    output.color = unpack4x8unorm(diffuse);
-    return output;
-}
-
-@vertex
-fn vs_xyz_uv(
-    @builtin(vertex_index) index: u32,
-    @location(0) position: vec3f,
-    @location(3) tex1: vec2f,
-) -> VertexOutput {
-    var output: VertexOutput;
-    output.position = vec4f(position, 1.0);
-    output.color = vec4f(tex1, 0.0, 1.0);
-    return output;
-}
-
-@vertex
-fn vs_xyz_diffuse_uv(
-    @builtin(vertex_index) index: u32,
-    @location(0) position: vec3f,
-    @location(3) tex1: vec2f,
-    @location(5) diffuse: u32,
-) -> VertexOutput {
-    var output: VertexOutput;
-    output.position = vec4f(position, 1.0);
-    output.color = vec4f(tex1, 0.0, 1.0) * unpack4x8unorm(diffuse);
-    return output;
-}
-
-@fragment
-fn fs_todo(input: VertexOutput) -> @location(0) vec4<f32> {
-    return input.color;
-}
-)";
 
 wgpu::Pipeline create_pipeline_for_fvf(
     wgpu::Device& device,
@@ -143,13 +79,14 @@ wgpu::Pipeline create_pipeline_for_fvf(
     std::uint32_t fvf)
 {
     // build a new pipeline to match FVF
-    WgpuShaderDesc vertex_shader;
+    WgpuShaderDesc vertex_shader, fragment_shader;
     if (fvf & D3DFVF_TEXCOUNT_MASK)
     {
         if (fvf & D3DFVF_DIFFUSE)
             vertex_shader = shader_module.desc("vs_xyz_diffuse_uv");
         else
             vertex_shader = shader_module.desc("vs_xyz_uv");
+        fragment_shader = shader_module.desc("fs_tex1");
     }
     else
     {
@@ -157,8 +94,8 @@ wgpu::Pipeline create_pipeline_for_fvf(
             vertex_shader = shader_module.desc("vs_xyz_diffuse");
         else
             vertex_shader = shader_module.desc("vs_xyz");
+        fragment_shader = shader_module.desc("fs_color");
     }
-    auto fragment_shader = shader_module.desc("fs_todo");
 
     auto size = 0U;
 
@@ -172,16 +109,32 @@ wgpu::Pipeline create_pipeline_for_fvf(
             .format = WgpuVertexFormat::Float32x3,
             .offset = size,
         });
-        size += 3 * sizeof(float);
+        size += 12;
     }
-    if (fvf & D3DFVF_XYZB4)
+    if (fvf & D3DFVF_B4)
     {
-        attrs.push_back({
-            .shader_location = (uint32_t)WgslLocation::Blend,
-            .format = WgpuVertexFormat::Float32x4,
-            .offset = size,
-        });
-        size += sizeof(float) * 4;
+        if (fvf & D3DFVF_LASTBETA_UBYTE4)
+        {
+            attrs.push_back({
+                .shader_location = (uint32_t)WgslLocation::BlendWeights,
+                .format = WgpuVertexFormat::Float32x3,
+                .offset = size,
+            });
+            attrs.push_back({
+                .shader_location = (uint32_t)WgslLocation::BlendIndices,
+                .format = WgpuVertexFormat::Uint32,
+                .offset = size + 12,
+            });
+        }
+        else
+        {
+            attrs.push_back({
+                .shader_location = (uint32_t)WgslLocation::BlendWeights,
+                .format = WgpuVertexFormat::Float32x4,
+                .offset = size,
+            });
+        }
+        size += 16;
     }
     if (fvf & D3DFVF_NORMAL)
     {
@@ -190,7 +143,7 @@ wgpu::Pipeline create_pipeline_for_fvf(
             .format = WgpuVertexFormat::Float32x3,
             .offset = size,
         });
-        size += 3 * sizeof(float);
+        size += 12;
     }
     if (fvf & D3DFVF_DIFFUSE)
     {
@@ -221,23 +174,23 @@ wgpu::Pipeline create_pipeline_for_fvf(
         // #define D3DFVF_TEXCOORDSIZE3(CoordIndex) (1 << (CoordIndex*2 + 16))
         // #define D3DFVF_TEXCOORDSIZE4(CoordIndex) (2 << (CoordIndex*2 + 16))
         // ensure only 2D coordinates
-        if ((fvf >> 16) & 3) __debugbreak();
+        assert(((fvf >> 16) & 3) == 0);
         attrs.push_back({
             .shader_location = (uint32_t)WgslLocation::Tex1,
             .format = WgpuVertexFormat::Float32x2,
             .offset = size,
         });
-        size += 2 * sizeof(float);
+        size += 8;
     }
     if (tex_count > 1)
     {
-        if ((fvf >> 18) & 3) __debugbreak();
+        assert(((fvf >> 18) & 3) == 0);
         attrs.push_back({
             .shader_location = (uint32_t)WgslLocation::Tex2,
             .format = WgpuVertexFormat::Float32x2,
             .offset = size,
         });
-        size += 2 * sizeof(float);
+        size += 8;
     }
 
     return device.create_pipeline({
@@ -249,12 +202,19 @@ wgpu::Pipeline create_pipeline_for_fvf(
     });
 }
 
+std::string read_shader()
+{
+    std::ifstream file("shader.wgsl");
+    return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+}
+
 IDirect3DDevice8::IDirect3DDevice8(wgpu::Device device_, wgpu::Surface surface)
     : device(std::move(device_)),
       surface(std::move(surface)),
       commands(device.create_commands()),
-      shader_module(device.create_shader_module(WGSL))
-
+      shader_module(device.create_shader_module(read_shader())),
+      state_buffer(device.create_buffer(sizeof(State), WGPU_BUFFER_USAGE_UNIFORM)),
+      static_bind_group(device.create_static_bind_group(state_buffer))
 {
 }
 
@@ -319,9 +279,13 @@ D3D_RESULT IDirect3D8::CheckDeviceFormat(
     D3DRESOURCETYPE,
     D3DFORMAT format)
 {
-    if (format != D3DFMT_A8R8G8B8)
-        return D3DERR_WRONGTEXTUREFORMAT;
-    return D3D_OK;
+    if (format == D3DFMT_A8R8G8B8)
+        return D3D_OK;
+    if (format == D3DFMT_D32)
+        return D3D_OK;
+    if (format == D3DFMT_D24S8)
+        return D3D_OK;
+    return D3DERR_WRONGTEXTUREFORMAT;
 }
 
 D3D_RESULT IDirect3D8::CheckDepthStencilMatch(D3D_U32, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT)
@@ -486,16 +450,27 @@ D3D_U32 FormatBitsPerPixel(D3DFORMAT format)
 D3D_RESULT IDirect3DDevice8::CreateImageSurface(D3D_U32 width, D3D_U32 height, D3DFORMAT format,
                                                 IDirect3DSurface8** result)
 {
+    // We have claimed we only support RGBA8 (which is actually accurate for WGPU's API!), so assert that
+    // here. Fonts etc. were hard-coded to use RGBA4, for example.
+    assert(format == D3DFMT_A8R8G8B8);
+    auto texture = device.create_texture(WgpuTextureFormat::Rgba8Unorm, width, height, 1,
+                                         WGPU_TEXTURE_USAGE_TEXTURE_BINDING | WGPU_TEXTURE_USAGE_COPY_DST);
     auto bpp = FormatBitsPerPixel(format);
     if (bpp == 0)
         return D3DERR_INVALIDCALL;
-    *result = IDirect3DSurface8::Create(0, nullptr, width, height, format, bpp).Detach();
+    *result = IDirect3DSurface8::Create(std::move(texture), 0, width, height, format, bpp).Detach();
     return D3D_OK;
 }
 
 D3D_RESULT IDirect3DDevice8::CreateTexture(D3D_U32 width, D3D_U32 height, D3D_U32 levels, D3D_U32 usage,
                                            D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** result)
 {
+    // We have claimed we only support RGBA8 (which is actually accurate for WGPU's API!), so assert that
+    // here. Fonts etc. were hard-coded to use RGBA4, for example.
+    // We can restore BCn support later, I guess? (But if they have uncompressed textures that are original
+    // quality I don't know why we would want to use them)
+    assert(format == D3DFMT_A8R8G8B8);
+
     WgpuTextureFormat wgpu_format;
     switch (format)
     {
@@ -525,10 +500,12 @@ D3D_RESULT IDirect3DDevice8::CreateTexture(D3D_U32 width, D3D_U32 height, D3D_U3
     }
     auto texture = device.create_texture(wgpu_format, width, height, levels,
                                          WGPU_TEXTURE_USAGE_TEXTURE_BINDING | WGPU_TEXTURE_USAGE_COPY_DST);
+    auto bind_group = device.create_texture_bind_group(texture);
     auto bpp = FormatBitsPerPixel(format);
     if (bpp == 0)
         return D3DERR_INVALIDCALL;
-    *result = IDirect3DTexture8::Create(std::move(texture), width, height, format, bpp, levels).Detach();
+    *result = IDirect3DTexture8::Create(std::move(texture), std::move(bind_group), width, height, format, bpp, levels).
+        Detach();
     return D3D_OK;
 }
 
@@ -624,7 +601,10 @@ D3D_RESULT IDirect3DDevice8::LightEnable(D3D_U32 index, D3D_BOOL)
 D3D_RESULT IDirect3DDevice8::SetTexture(D3D_U32 stage, IDirect3DBaseTexture8* texture)
 {
     // bind group 0 is reserved for global uniforms
-    commands.set_bind_group_to_texture(stage + 1, texture->texture);
+    if (texture)
+    {
+        commands.set_bind_group(stage + 1, texture->bind_group);
+    }
     return D3D_OK;
 }
 
@@ -640,19 +620,50 @@ D3D_RESULT IDirect3DDevice8::SetMaterial(const D3DMATERIAL8*)
 
 D3D_RESULT IDirect3DDevice8::GetTransform(D3DTRANSFORMSTATETYPE type, D3DMATRIX* result)
 {
-    *result = matrices[type];
+    switch (type)
+    {
+    case D3DTS_WORLD: *result = state.ts_world;
+        break;
+    case D3DTS_VIEW: *result = state.ts_view;
+        break;
+    case D3DTS_PROJECTION: *result = state.ts_projection;
+        break;
+    case D3DTS_TEXTURE0: *result = state.ts_tex0;
+        break;
+    case D3DTS_TEXTURE1: *result = state.ts_tex1;
+        break;
+    default: return D3DERR_INVALIDCALL;
+    }
     return D3D_OK;
 }
 
 D3D_RESULT IDirect3DDevice8::SetTransform(D3DTRANSFORMSTATETYPE type, const D3DMATRIX* value)
 {
-    matrices[type] = *value;
-    // todo: update uniforms
+    switch (type)
+    {
+    case D3DTS_WORLD: state.ts_world = *value;
+        break;
+    case D3DTS_VIEW: state.ts_view = *value;
+        break;
+    case D3DTS_PROJECTION: state.ts_projection = *value;
+        break;
+    case D3DTS_TEXTURE0: state.ts_tex0 = *value;
+        break;
+    case D3DTS_TEXTURE1: state.ts_tex1 = *value;
+        break;
+    default: return D3DERR_INVALIDCALL;
+    }
+    state_dirty = true;
     return D3D_OK;
 }
 
-D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE, D3D_U32)
+D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE type, D3D_U32 value)
 {
+    switch (type)
+    {
+    // case D3DRS_FILLMODE:  break;
+    // ...
+    }
     return D3D_OK;
 }
 
@@ -698,11 +709,18 @@ D3D_RESULT IDirect3DDevice8::Clear(
     D3D_U32 stencil)
 {
     commands.begin_render_pass(surface, nullptr);
+    commands.set_bind_group(0, static_bind_group);
     return D3D_OK;
 }
 
-D3D_RESULT IDirect3DDevice8::CopyRects(IDirect3DSurface8*, const RECT*, D3D_U32, IDirect3DSurface8*, const POINT*)
+D3D_RESULT IDirect3DDevice8::CopyRects(
+    IDirect3DSurface8* source_surface,
+    const RECT* source_rect_array,
+    D3D_U32 source_rect_len,
+    IDirect3DSurface8* dest_rect,
+    const POINT* dest_offset_array)
 {
+    // device.copy_texture()
     return D3D_OK;
 }
 
@@ -713,6 +731,11 @@ D3D_RESULT IDirect3DDevice8::DrawIndexedPrimitive(
     D3D_U32 index_first,
     D3D_U32 polygon_count)
 {
+    if (state_dirty)
+    {
+        state_dirty = false;
+        state_buffer.write(0, (uint8_t*)&state, sizeof(state));
+    }
     commands.draw_indexed(WgpuDrawIndexed{
         .index_first = index_first,
         .index_count = polygon_count * 3,
@@ -734,14 +757,6 @@ D3D_RESULT SwapChain::GetBackBuffer(D3D_U32, D3DBACKBUFFERTYPE, IDirect3DSurface
 }
 #endif
 
-CComPtr<IDirect3DSurface8> IDirect3DSurface8::Create(
-    D3D_U32 texture_level,
-    IDirect3DBaseTexture8* texture,
-    D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp)
-{
-    return new IDirect3DSurface8(texture_level, texture, width, height, format, bpp);
-}
-
 D3D_RESULT IDirect3DSurface8::GetDesc(D3DSURFACE_DESC* result)
 {
     *result = desc;
@@ -760,9 +775,7 @@ D3D_RESULT IDirect3DSurface8::LockRect(D3DLOCKED_RECT* lock, RECT* rect, D3D_U32
 
 D3D_RESULT IDirect3DSurface8::UnlockRect()
 {
-    // todo: crashes due to format size mismatch
-    // if (texture)
-    //     texture->texture.write(texture_level, data.data(), data.size());
+    texture.write(texture_level, data.data(), data.size());
     return D3D_OK;
 }
 
@@ -814,16 +827,17 @@ D3D_U32 IDirect3DBaseTexture8::SetPriority(D3D_U32)
 }
 
 IDirect3DTexture8::IDirect3DTexture8(
-    wgpu::Texture texture,
+    wgpu::Texture texture_,
+    wgpu::BindGroup bind_group,
     D3D_U32 width, D3D_U32 height, D3DFORMAT format, D3D_U32 bpp,
     D3D_U32 levels)
-    : IDirect3DBaseTexture8(std::move(texture))
+    : IDirect3DBaseTexture8(std::move(texture_), std::move(bind_group))
 {
-    for (D3D_U32 i = 0; i < levels; ++i)
+    for (D3D_U32 level = 0; level < levels; ++level)
     {
         if (!width) width = 1;
         if (!height) height = 1;
-        this->levels.push_back(IDirect3DSurface8::Create(i, this, width, height, format, bpp));
+        this->levels.push_back(IDirect3DSurface8::Create(texture.clone(), level, width, height, format, bpp));
         width >>= 1;
         height >>= 1;
     }

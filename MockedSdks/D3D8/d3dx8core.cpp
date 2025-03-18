@@ -59,15 +59,16 @@ D3D_RESULT D3DXFilterTexture(IDirect3DTexture8*, const PALETTEENTRY*, D3D_U32, D
     return D3D_OK;
 }
 
-D3D_U32 D3DXGetFVFVertexSize(D3D_U32 fvf)
-{
-    D3D_U32 result = 0;
-    if (fvf & D3DFVF_XYZ) result += 12;
-    if (fvf & D3DFVF_XYZB4) result += 16;
-    if (fvf & D3DFVF_SPECULAR) result += 4;
-    if (fvf & D3DFVF_DIFFUSE) result += 4;
-    if (fvf & D3DFVF_NORMAL) result += 12;
-    if (fvf & D3DFVF_TEX1) result += 8;
-    if (fvf & D3DFVF_TEX2) result += 16;
-    return result;
-}
+// D3D_U32 D3DXGetFVFVertexSize(D3D_U32 fvf)
+// {
+//     D3D_U32 result = 0;
+//     if (fvf & D3DFVF_XYZ) result += 12; // vec3f
+//     if (fvf & D3DFVF_B4) result += 16; // vec3f + u32
+//     if (fvf & D3DFVF_NORMAL) result += 12; // vec3f
+//     if (fvf & D3DFVF_SPECULAR) result += 4; // u32
+//     if (fvf & D3DFVF_DIFFUSE) result += 4; // u32
+//
+//     if (fvf & D3DFVF_TEX1) result += 8; // vec2f
+//     if (fvf & D3DFVF_TEX2) result += 8; // vec2f
+//     return result;
+// }

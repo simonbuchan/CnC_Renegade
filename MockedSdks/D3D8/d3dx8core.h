@@ -50,4 +50,4 @@ D3D_RESULT D3DXFilterTexture(
     const PALETTEENTRY*,
     D3D_U32,
     D3D_U32);
-D3D_U32 D3DXGetFVFVertexSize(D3D_U32);
+// D3D_U32 D3DXGetFVFVertexSize(D3D_U32);
