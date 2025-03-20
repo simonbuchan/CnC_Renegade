@@ -181,24 +181,39 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
     wgpu::Device device;
     wgpu::Surface surface; // wgpu Surface ~= IDirect3DSwapChain8
     wgpu::ShaderModule shader_module;
-    wgpu::Commands commands;
+    wgpu::Commands commands; // main commands, including rendering
+    wgpu::Commands commands_copy; // texture copy commands
     D3D_U32 base_vertex_index = 0;
 
-    // D3DTS_WORLD,
-    // D3DTS_VIEW,
-    // D3DTS_PROJECTION,
-    // D3DTS_TEXTURE0,
-    // D3DTS_TEXTURE1,
-    struct State
+    // state that requires a new pipeline
+    struct PipelineState
     {
-        D3DMATRIX ts_world = D3DMATRIX::IDENTITY;
-        D3DMATRIX ts_view = D3DMATRIX::IDENTITY;
-        D3DMATRIX ts_projection = D3DMATRIX::IDENTITY;
-        D3DMATRIX ts_tex0 = D3DMATRIX::IDENTITY;
-        D3DMATRIX ts_tex1 = D3DMATRIX::IDENTITY;
+        uint32_t fvf; // SetVertexShader()
+        bool alpha_blend_enable; // SetRenderState(D3DRS_ALPHABLENDENABLE)
+        WgpuBlendFactor src_blend; // SetRenderState(D3DRS_SRCBLEND)
+        WgpuBlendFactor dest_blend; // SetRenderState(D3DRS_DESTBLEND)
+        // uint32_t alpha_test_enable; // SetRenderState(D3DRS_ALPHATESTENABLE)
+        // uint32_t alpha_ref; // SetRenderState(D3DRS_ALPHAREF)
+        // uint32_t alpha_func; // SetRenderState(D3DRS_ALPHAFUNC)
     };
 
-    State state;
+    struct alignas(16) UniformTextureState
+    {
+        uint32_t op; // D3DTOP_*
+        uint32_t arg1; // D3DTA_*
+        uint32_t arg2; // D3DTA_*
+    };
+
+    // State copied to the uniform buffer
+    // Must match the layout in the shader, including alignment.
+    struct UniformState
+    {
+        D3DMATRIX ts[D3DTS_COUNT] = {};
+        UniformTextureState texture_state[2] = {};
+    };
+
+    PipelineState pipeline_state;
+    UniformState uniform_state;
     wgpu::Buffer state_buffer;
     wgpu::BindGroup static_bind_group;
     bool state_dirty = true;

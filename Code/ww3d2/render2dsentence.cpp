@@ -990,7 +990,7 @@ Render2DSentenceClass::Build_Sentence (const WCHAR *text)
 			//	Ensure the surface is locked
 			//
 			if (LockedPtr == NULL) {
-				LockedPtr = (uint16 *)CurSurface->Lock (&LockedStride);
+				LockedPtr = (uint32 *)CurSurface->Lock (&LockedStride);
 				WWASSERT (LockedPtr != NULL);
 			}
 
@@ -1138,7 +1138,7 @@ FontCharsClass::Get_Char_Spacing (WCHAR ch)
 //
 ////////////////////////////////////////////////////////////////////////////////////
 void
-FontCharsClass::Blit_Char (WCHAR ch, uint16 *dest_ptr, int dest_stride, int x, int y)
+FontCharsClass::Blit_Char (WCHAR ch, uint32 *dest_ptr, int dest_stride, int x, int y)
 {
 	const CharDataStruct	* data = Get_Char_Data( ch );
 	if ( data != NULL && data->Width != 0 ) {
@@ -1146,8 +1146,8 @@ FontCharsClass::Blit_Char (WCHAR ch, uint16 *dest_ptr, int dest_stride, int x, i
 		//
 		//	Setup the src and destination pointers
 		//
-		int dest_inc		= (dest_stride >> 1);
-		uint16 *src_ptr	= data->Buffer;
+		int dest_inc		= (dest_stride >> 2);
+		uint32 *src_ptr	= data->Buffer;
 		dest_ptr				+= (dest_inc * y) + x;
 
 		//
@@ -1202,7 +1202,7 @@ FontCharsClass::Store_GDI_Char (WCHAR ch)
 	//	Get a pointer to the surface that this character should use
 	//
 	Update_Current_Buffer( char_size.cx );
-	uint16 *curr_buffer = BufferList[BufferList.Count () - 1];
+	uint32 *curr_buffer = BufferList[BufferList.Count () - 1];
 	curr_buffer += CurrPixelOffset;
 
 	//
@@ -1227,17 +1227,13 @@ FontCharsClass::Store_GDI_Char (WCHAR ch)
 			uint8 pixel_value = GDIBitmapBits[index];
 			index += 3;
 
-			uint16 pixel_color = 0;
+			uint32 pixel_color = 0;
 			if (pixel_value != 0) {
-				pixel_color = 0x0FFF;
+				pixel_color = 0x00'FF'FF'FF;
 			}
 
-			//
-			//	Convert the pixel intensity from 8bit to 4bit and
-			// store it in our buffer
-			//
-			uint8 alpha_value	= ((pixel_value >> 4) & 0xF);
-			*curr_buffer ++	= pixel_color | (alpha_value << 12);
+			uint8 alpha_value	= pixel_value;
+			*curr_buffer ++	= pixel_color | (alpha_value << 24);
 		}
 	}
 
@@ -1296,7 +1292,7 @@ FontCharsClass::Update_Current_Buffer (int char_width)
 	//	Do we need to create a new surface?
 	//
 	if (needs_new_buffer) {
-		uint16 *new_buffer = new uint16[CHAR_BUFFER_LEN];
+		uint32 *new_buffer = new uint32[CHAR_BUFFER_LEN];
 		BufferList.Add( new_buffer );
 		CurrPixelOffset = 0;
 	}

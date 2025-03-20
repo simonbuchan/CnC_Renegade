@@ -10,15 +10,48 @@ const LOC_UV2 = 7;
 
 const WHITE = vec4f(1, 1, 1, 1);
 
+// Note that these "D3D" constants don't match the actual D3D values
+// they're from the mocked wrapper implementation that only defines
+// what's actually referenced.
+// They'll be replaced a more dynamic system in the future?
+
+const TS_WORLD = 0;
+const TS_VIEW = 1;
+const TS_PROJECTION = 2;
+const TS_TEXTURE0 = 3;
+const TS_TEXTURE1 = 4;
+const TS_COUNT = 5;
+
+const D3DTOP_DISABLE = 0;
+const D3DTOP_ADD = 1;
+const D3DTOP_SUBTRACT = 2;
+const D3DTOP_MODULATE = 3;
+const D3DTOP_DOTPRODUCT3 = 4;
+const D3DTOP_ADDSMOOTH = 5;
+const D3DTOP_SELECTARG1 = 6;
+const D3DTOP_SELECTARG2 = 7;
+const D3DTOP_BLENDENVMAP = 8;
+const D3DTOP_BLENDENVMAPLUMINANCE = 9;
+const D3DTOP_BLENDTEXTUREALPHA = 10;
+const D3DTOP_BLENDCURRENTALPHA = 11;
+
+struct TextureState {
+    @align(16)
+    // D3DTOP_*: texture operation
+    op: u32,
+    // D3DTA_*: texture arguments
+    arg1: u32,
+    arg2: u32,
+}
+
 struct State {
-    ts_world: mat4x4f,
-    ts_view: mat4x4f,
-    ts_proj: mat4x4f,
-    ts_tex1: mat4x4f,
-    ts_tex2: mat4x4f,
+    // D3DTS_*: transformation state
+    ts: array<mat4x4f, TS_COUNT>,
+    tex: array<TextureState, 2>,
 }
 
 @group(0) @binding(0) var<uniform> state: State;
+
 @group(1) @binding(0) var tex1: texture_2d<f32>;
 @group(1) @binding(1) var tex1_sampler: sampler;
 
@@ -28,11 +61,15 @@ struct ColorOutput {
 }
 
 fn transform(position: vec3f) -> vec4f {
-    return vec4f(position, 1) * state.ts_world * state.ts_view * state.ts_proj;
+    let world = state.ts[TS_WORLD];
+    let view = state.ts[TS_VIEW];
+    let proj = state.ts[TS_PROJECTION];
+    return vec4f(position, 1) * world * view * proj;
 }
 
 fn transform_uv1(position: vec2f) -> vec2f {
-    return (vec4f(position, 0, 1) * state.ts_tex1).xy;
+    let ts = state.ts[TS_TEXTURE1];
+    return (vec4f(position, 0, 1) * ts).xy;
 }
 
 @vertex

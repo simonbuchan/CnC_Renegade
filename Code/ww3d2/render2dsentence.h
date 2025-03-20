@@ -67,7 +67,7 @@ public:
 	int	Get_Char_Width( WCHAR ch );
 	int	Get_Char_Spacing( WCHAR ch );
 
-	void	Blit_Char( WCHAR ch, uint16 *dest_ptr, int dest_stride, int x, int y );
+	void	Blit_Char(WCHAR ch, uint32* dest_ptr, int dest_stride, int x, int y);
 
 private:
 
@@ -77,7 +77,7 @@ private:
 	struct CharDataStruct {
 		WCHAR				Value;
 		short				Width;
-		uint16 *			Buffer;
+		uint32 *			Buffer;
 	};
 
 	//
@@ -96,8 +96,8 @@ private:
 	//	Private member data
 	//
 	StringClass							Name;
-	DynamicVectorClass<uint16 *>	BufferList;
-	uint16*								PreAllocatedBufferList[16];	// We'll use this with BufferList first
+	DynamicVectorClass<uint32 *>	BufferList;
+	uint32*								PreAllocatedBufferList[16];	// We'll use this with BufferList first
 	int									CurrPixelOffset;
 	int									CharHeight;
 	int									PointSize;
@@ -243,7 +243,7 @@ private:
 	RectClass										DrawExtents;
 	bool												IsClippedEnabled;
 													
-	uint16 *											LockedPtr;
+	uint32 *											LockedPtr;
 	int												LockedStride;
 	TextureClass *									CurTexture;
 	ShaderClass										Shader;

@@ -4,12 +4,10 @@
 #include <fstream>
 
 inline D3DMATRIX D3DMATRIX::IDENTITY = {
-    {
-        {1, 0, 0, 0},
-        {0, 1, 0, 0},
-        {0, 0, 1, 0},
-        {0, 0, 0, 1},
-    },
+    {1, 0, 0, 0},
+    {0, 1, 0, 0},
+    {0, 0, 1, 0},
+    {0, 0, 0, 1},
 };
 
 
@@ -79,6 +77,8 @@ wgpu::Pipeline create_pipeline_for_fvf(
     std::uint32_t fvf)
 {
     // build a new pipeline to match FVF
+    // can simplify these a lot by setting uniforms, binding
+    // white textures etc...
     WgpuShaderDesc vertex_shader, fragment_shader;
     if (fvf & D3DFVF_TEXCOUNT_MASK)
     {
@@ -100,7 +100,6 @@ wgpu::Pipeline create_pipeline_for_fvf(
     auto size = 0U;
 
     // This must match just d3d8fvf.cpp's FVFInfoClass
-    // Should be able to port to that later
     std::vector<WgpuVertexBufferLayout> attrs;
     if (fvf & D3DFVF_XYZ)
     {
@@ -212,8 +211,9 @@ IDirect3DDevice8::IDirect3DDevice8(wgpu::Device device_, wgpu::Surface surface)
     : device(std::move(device_)),
       surface(std::move(surface)),
       commands(device.create_commands()),
+      commands_copy(device.create_commands()),
       shader_module(device.create_shader_module(read_shader())),
-      state_buffer(device.create_buffer(sizeof(State), WGPU_BUFFER_USAGE_UNIFORM)),
+      state_buffer(device.create_buffer(sizeof(UniformState), WGPU_BUFFER_USAGE_UNIFORM)),
       static_bind_group(device.create_static_bind_group(state_buffer))
 {
 }
@@ -279,6 +279,7 @@ D3D_RESULT IDirect3D8::CheckDeviceFormat(
     D3DRESOURCETYPE,
     D3DFORMAT format)
 {
+    // only support these formats for now (which are natively supported by wgpu)
     if (format == D3DFMT_A8R8G8B8)
         return D3D_OK;
     if (format == D3DFMT_D32)
@@ -454,7 +455,9 @@ D3D_RESULT IDirect3DDevice8::CreateImageSurface(D3D_U32 width, D3D_U32 height, D
     // here. Fonts etc. were hard-coded to use RGBA4, for example.
     assert(format == D3DFMT_A8R8G8B8);
     auto texture = device.create_texture(WgpuTextureFormat::Rgba8Unorm, width, height, 1,
-                                         WGPU_TEXTURE_USAGE_TEXTURE_BINDING | WGPU_TEXTURE_USAGE_COPY_DST);
+                                         WGPU_TEXTURE_USAGE_TEXTURE_BINDING |
+                                         WGPU_TEXTURE_USAGE_COPY_SRC |
+                                         WGPU_TEXTURE_USAGE_COPY_DST);
     auto bpp = FormatBitsPerPixel(format);
     if (bpp == 0)
         return D3DERR_INVALIDCALL;
@@ -499,7 +502,9 @@ D3D_RESULT IDirect3DDevice8::CreateTexture(D3D_U32 width, D3D_U32 height, D3D_U3
         levels = min(width_levels, height_levels);
     }
     auto texture = device.create_texture(wgpu_format, width, height, levels,
-                                         WGPU_TEXTURE_USAGE_TEXTURE_BINDING | WGPU_TEXTURE_USAGE_COPY_DST);
+                                         WGPU_TEXTURE_USAGE_TEXTURE_BINDING |
+                                         WGPU_TEXTURE_USAGE_COPY_SRC |
+                                         WGPU_TEXTURE_USAGE_COPY_DST);
     auto bind_group = device.create_texture_bind_group(texture);
     auto bpp = FormatBitsPerPixel(format);
     if (bpp == 0)
@@ -548,11 +553,16 @@ D3D_RESULT IDirect3DDevice8::GetDepthStencilSurface(IDirect3DSurface8** result)
 
 D3D_RESULT IDirect3DDevice8::BeginScene()
 {
+    device.submit(commands_copy);
+    commands.begin_render_pass(surface, nullptr);
+    commands.set_bind_group(0, static_bind_group);
     return D3D_OK;
 }
 
 D3D_RESULT IDirect3DDevice8::EndScene()
 {
+    device.submit(commands_copy);
+    device.submit(commands);
     return D3D_OK;
 }
 
@@ -578,7 +588,6 @@ D3D_RESULT IDirect3DDevice8::SetGammaRamp(D3D_U32, const D3DGAMMARAMP*)
 
 D3D_RESULT IDirect3DDevice8::Present(void*, void*, void*, void*)
 {
-    device.submit(commands);
     surface.present();
     return D3D_OK;
 }
@@ -620,50 +629,43 @@ D3D_RESULT IDirect3DDevice8::SetMaterial(const D3DMATERIAL8*)
 
 D3D_RESULT IDirect3DDevice8::GetTransform(D3DTRANSFORMSTATETYPE type, D3DMATRIX* result)
 {
-    switch (type)
-    {
-    case D3DTS_WORLD: *result = state.ts_world;
-        break;
-    case D3DTS_VIEW: *result = state.ts_view;
-        break;
-    case D3DTS_PROJECTION: *result = state.ts_projection;
-        break;
-    case D3DTS_TEXTURE0: *result = state.ts_tex0;
-        break;
-    case D3DTS_TEXTURE1: *result = state.ts_tex1;
-        break;
-    default: return D3DERR_INVALIDCALL;
-    }
+    if (type >= D3DTS_COUNT)
+        return D3DERR_INVALIDCALL;
+    *result = uniform_state.ts[type];
     return D3D_OK;
 }
 
 D3D_RESULT IDirect3DDevice8::SetTransform(D3DTRANSFORMSTATETYPE type, const D3DMATRIX* value)
 {
-    switch (type)
-    {
-    case D3DTS_WORLD: state.ts_world = *value;
-        break;
-    case D3DTS_VIEW: state.ts_view = *value;
-        break;
-    case D3DTS_PROJECTION: state.ts_projection = *value;
-        break;
-    case D3DTS_TEXTURE0: state.ts_tex0 = *value;
-        break;
-    case D3DTS_TEXTURE1: state.ts_tex1 = *value;
-        break;
-    default: return D3DERR_INVALIDCALL;
-    }
+    if (type >= D3DTS_COUNT)
+        return D3DERR_INVALIDCALL;
+    uniform_state.ts[type] = *value;
     state_dirty = true;
     return D3D_OK;
 }
 
 D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE type, D3D_U32 value)
 {
-    switch (type)
-    {
-    // case D3DRS_FILLMODE:  break;
-    // ...
-    }
+    if (type >= D3DRS_COUNT)
+        return D3DERR_INVALIDCALL;
+    // The interesting ones used are from shader.cpp, most of the others are debug modes
+    // we don't care about yet.
+    // That touches:
+    //   Pipeline state:
+    //     D3DRS_ALPHABLENDENABLE:
+    //      - D3DRS_SRCBLEND
+    //      - D3DRS_DESTBLEND
+    //     D3DRS_ALPHATESTENABLE:
+    //      - D3DRS_ALPHAREF
+    //      - D3DRS_ALPHAFUNC
+    //     D3DRS_ZFUNC
+    //     D3DRS_ZWRITEENABLE
+    //     D3DRS_CULLMODE
+    //  Uniforms:
+    //    D3DRS_FOGENABLE:
+    //      - D3DRS_FOGCOLOR
+    // Note SetTextureStateState() also contributes to the shader state
+
     return D3D_OK;
 }
 
@@ -708,8 +710,7 @@ D3D_RESULT IDirect3DDevice8::Clear(
     D3D_F32 z,
     D3D_U32 stencil)
 {
-    commands.begin_render_pass(surface, nullptr);
-    commands.set_bind_group(0, static_bind_group);
+    // I think clearing works differently in WGPU inside of a render pass...
     return D3D_OK;
 }
 
@@ -717,10 +718,31 @@ D3D_RESULT IDirect3DDevice8::CopyRects(
     IDirect3DSurface8* source_surface,
     const RECT* source_rect_array,
     D3D_U32 source_rect_len,
-    IDirect3DSurface8* dest_rect,
+    IDirect3DSurface8* dest_surface,
     const POINT* dest_offset_array)
 {
-    // device.copy_texture()
+    // Only used with null source_rect_array and dest_offset_array, or
+    // from SurfaceClass::Copy() with a single variable source and dest.
+    assert(source_rect_len <= 1);
+    WgpuTexelCopyOffset source_offset{
+        .level = source_surface->texture_level,
+    };
+    WgpuTexelCopyOffset dest_offset{
+        .level = dest_surface->texture_level,
+    };
+    WgpuSize size{};
+    if (source_rect_array)
+    {
+        size.width = source_rect_array->right - source_rect_array->left;
+        size.height = source_rect_array->bottom - source_rect_array->top;
+    }
+    // note: only valid outside of a render pass
+    commands_copy.copy_texture_to_texture(
+        dest_surface->texture,
+        dest_offset,
+        source_surface->texture,
+        source_offset,
+        source_rect_array ? &size : nullptr);
     return D3D_OK;
 }
 
@@ -734,7 +756,7 @@ D3D_RESULT IDirect3DDevice8::DrawIndexedPrimitive(
     if (state_dirty)
     {
         state_dirty = false;
-        state_buffer.write(0, (uint8_t*)&state, sizeof(state));
+        state_buffer.write(0, (uint8_t*)&uniform_state, sizeof(uniform_state));
     }
     commands.draw_indexed(WgpuDrawIndexed{
         .index_first = index_first,

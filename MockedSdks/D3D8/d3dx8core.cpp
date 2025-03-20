@@ -48,9 +48,17 @@ D3D_RESULT D3DXCreateTextureFromFileExA(
     return hr;
 }
 
-D3D_RESULT D3DXLoadSurfaceFromSurface(IDirect3DSurface8*, const PALETTEENTRY*, const RECT*, IDirect3DSurface8*,
-                                      const PALETTEENTRY*, const RECT*, D3D_U32, D3D_U32)
+D3D_RESULT D3DXLoadSurfaceFromSurface(
+    IDirect3DSurface8* dest_surface,
+    const PALETTEENTRY*,
+    const RECT* dest_rect,
+    IDirect3DSurface8* source_surrface,
+    const PALETTEENTRY*,
+    const RECT* source_rect,
+    D3D_U32 filter,
+    D3D_U32 flags)
 {
+    // todo - at least it's only used via SurfaceClass::Copy(), which won't resize.
     return D3D_OK;
 }
 

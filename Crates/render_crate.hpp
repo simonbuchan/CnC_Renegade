@@ -224,6 +224,22 @@ namespace wgpu
         {
         }
 
+        void copy_texture_to_texture(
+            Texture& dest_texture,
+            WgpuTexelCopyOffset dest_offset,
+            Texture& source_texture,
+            WgpuTexelCopyOffset source_offset,
+            WgpuSize* copy_size = nullptr)
+        {
+            wgpu_commands_copy_texture_to_texture(
+                ptr.get(),
+                dest_texture.ptr.get(),
+                dest_offset,
+                source_texture.ptr.get(),
+                source_offset,
+                copy_size);
+        }
+
         void begin_render_pass(Surface& surface, float (*clear_color)[4])
         {
             wgpu_commands_begin_render_pass(ptr.get(), surface.ptr.get(), clear_color);

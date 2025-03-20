@@ -176,10 +176,21 @@ pub extern "C" fn wgpu_instance_device_create(
                     ],
                 });
 
+            let pipeline_layout = device
+                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: None,
+                    bind_group_layouts: &[
+                        &static_bind_group_layout,
+                        &texture_bind_group_layout,
+                    ],
+                    push_constant_ranges: &[],
+                });
+
             Box::into_raw(Box::new(WgpuDevice {
                 adapter,
                 device,
                 queue,
+                pipeline_layout,
                 static_bind_group_layout,
                 texture_bind_group_layout,
             }))
@@ -230,6 +241,7 @@ pub struct WgpuDevice {
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
+    pipeline_layout: wgpu::PipelineLayout,
     static_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_group_layout: wgpu::BindGroupLayout,
 }
@@ -440,6 +452,20 @@ pub enum WgpuVertexFormat {
 }
 
 #[repr(C)]
+pub enum WgpuBlendFactor {
+    Zero,
+    One,
+    SrcColor,
+    OneMinusSrcColor,
+    SrcAlpha,
+    OneMinusSrcAlpha,
+    DstColor,
+    OneMinusDstColor,
+    DstAlpha,
+    OneMinusDstAlpha,
+}
+
+#[repr(C)]
 pub struct WgpuVertexBufferLayout {
     pub shader_location: u32,
     pub format: WgpuVertexFormat,
@@ -461,6 +487,9 @@ pub struct WgpuPipelineDesc {
     pub layout_len: usize,
     pub vertex_shader: *const WgpuShaderDesc,
     pub fragment_shader: *const WgpuShaderDesc,
+    pub alpha_blend_enable: bool,
+    pub src_blend: WgpuBlendFactor,
+    pub dst_blend: WgpuBlendFactor,
 }
 
 #[unsafe(no_mangle)]
@@ -491,22 +520,11 @@ pub extern "C" fn wgpu_device_create_pipeline(
         });
     }
 
-    let pipeline_layout = device
-        .device
-        .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: None,
-            bind_group_layouts: &[
-                &device.static_bind_group_layout,
-                &device.texture_bind_group_layout,
-            ],
-            push_constant_ranges: &[],
-        });
-
     let pipeline = device
         .device
         .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
-            layout: Some(&pipeline_layout),
+            layout: Some(&device.pipeline_layout),
             vertex: wgpu::VertexState {
                 module: unsafe { &(&*(&*desc.vertex_shader).module).module },
                 entry_point: Some(&*unsafe { (&*desc.vertex_shader).entry_point.as_str() }),
@@ -529,7 +547,7 @@ pub extern "C" fn wgpu_device_create_pipeline(
                 compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    blend: None,
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
@@ -719,6 +737,69 @@ pub struct WgpuCommands {
 #[unsafe(no_mangle)]
 pub extern "C" fn wgpu_commands_destroy(commands: *mut WgpuCommands) {
     drop(unsafe { Box::from_raw(commands) });
+}
+
+#[repr(C)]
+pub struct WgpuSize {
+    pub width: u32,
+    pub height: u32,
+}
+
+#[repr(C)]
+pub struct WgpuTexelCopyOffset {
+    pub x: u32,
+    pub y: u32,
+    pub level: u32,
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn wgpu_commands_copy_texture_to_texture(
+    commands: *mut WgpuCommands,
+    dest_texture: *mut WgpuTexture,
+    dest_offset: WgpuTexelCopyOffset,
+    src_texture: *mut WgpuTexture,
+    src_offset: WgpuTexelCopyOffset,
+    size: *mut WgpuSize,
+)
+{
+    let commands = unsafe { &mut *commands };
+    let dest_texture = unsafe { &*dest_texture };
+    let src_texture = unsafe { &*src_texture };
+    let size = std::ptr::NonNull::new(size);
+    let extent = match size {
+        Some(size) => {
+            let size = unsafe { &*size.as_ref() };
+            wgpu::Extent3d {
+                width: size.width,
+                height: size.height,
+                depth_or_array_layers: 1,
+            }
+        },
+        None => src_texture.texture.size(),
+    };
+    commands.encoder.copy_texture_to_texture(
+        wgpu::TexelCopyTextureInfo {
+            texture: &src_texture.texture,
+            mip_level: src_offset.level,
+            origin: wgpu::Origin3d {
+                x: src_offset.x,
+                y: src_offset.y,
+                z: 0,
+            },
+            aspect: wgpu::TextureAspect::All,
+        },
+        wgpu::TexelCopyTextureInfo {
+            texture: &dest_texture.texture,
+            mip_level: dest_offset.level,
+            origin: wgpu::Origin3d {
+                x: dest_offset.x,
+                y: dest_offset.y,
+                z: 0,
+            },
+            aspect: wgpu::TextureAspect::All,
+        },
+        extent,
+    );
 }
 
 #[unsafe(no_mangle)]
