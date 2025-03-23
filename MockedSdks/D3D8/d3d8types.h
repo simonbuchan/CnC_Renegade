@@ -96,18 +96,23 @@ enum D3DPOOL
 
 struct D3DCOLOR
 {
-    D3D_U8 r, g, b, a;
+    union
+    {
+        D3D_U32 value;
+        struct { D3D_U8 b, g, r, a; };
+    };
 
     D3DCOLOR(D3D_U32 value = 0)
-        : r(value >> 16), g(value >> 8), b(value), a(value >> 24)
+        : value(value)
+        // : r(value >> 16), g(value >> 8), b(value), a(value >> 24)
     {
     }
 
-    D3DCOLOR(D3D_U8 r, D3D_U8 g, D3D_U8 b, D3D_U8 a = 0xFF)
-        : r(r), g(g), b(b), a(a)
-    {
-    }
-
+    // D3DCOLOR(D3D_U8 r, D3D_U8 g, D3D_U8 b, D3D_U8 a = 0xFF)
+    //     : r(r), g(g), b(b), a(a)
+    // {
+    // }
+    //
     D3DCOLOR(D3D_F32 r, D3D_F32 g, D3D_F32 b, D3D_F32 a = 1.0)
         : r(D3D_U8(r * 255.0)),
           g(D3D_U8(g * 255.0)),
@@ -118,7 +123,8 @@ struct D3DCOLOR
 
     operator D3D_U32() const
     {
-        return (a << 24) | (r << 16) | (g << 8) | b;
+        return value;
+        // return (a << 24) | (r << 16) | (g << 8) | b;
     }
 };
 
@@ -276,9 +282,9 @@ enum D3DCMPFUNC
 
 enum D3DMATERIALSOURCE
 {
-    D3DMCS_MATERIAL,
-    D3DMCS_COLOR1,
-    D3DMCS_COLOR2,
+    D3DMCS_MATERIAL = 0,
+    D3DMCS_COLOR1 = 1, // diffuse vertex color
+    D3DMCS_COLOR2 = 2, // specular vertex color
 };
 
 enum D3DFILLMODE
@@ -307,34 +313,38 @@ enum D3DTRANSFORMSTATETYPE
 
 enum D3DTEXTURESTAGESTATETYPE
 {
-    D3DTSS_MINFILTER,
-    D3DTSS_MAGFILTER,
-    D3DTSS_MIPFILTER,
-    D3DTSS_ADDRESSU,
-    D3DTSS_ADDRESSV,
-    D3DTSS_MAXANISOTROPY,
-    D3DTSS_COLOROP,
-    D3DTSS_COLORARG1,
-    D3DTSS_COLORARG2,
-    D3DTSS_ALPHAOP,
-    D3DTSS_ALPHAARG1,
-    D3DTSS_ALPHAARG2,
-    D3DTSS_TEXCOORDINDEX,
-    D3DTSS_TEXTURETRANSFORMFLAGS,
-    D3DTSS_BUMPENVLSCALE,
-    D3DTSS_BUMPENVLOFFSET,
-    D3DTSS_BUMPENVMAT00,
-    D3DTSS_BUMPENVMAT01,
-    D3DTSS_BUMPENVMAT10,
-    D3DTSS_BUMPENVMAT11,
+    D3DTSS_COLOROP = 1, // D3DTEXTUREOP
+    D3DTSS_COLORARG1 = 2, // D3DTA_*
+    D3DTSS_COLORARG2 = 3, // D3DTA_*
+    D3DTSS_ALPHAOP = 4,
+    D3DTSS_ALPHAARG1 = 5,
+    D3DTSS_ALPHAARG2 = 6,
+    D3DTSS_BUMPENVMAT00 = 7,
+    D3DTSS_BUMPENVMAT01 = 8,
+    D3DTSS_BUMPENVMAT10 = 9,
+    D3DTSS_BUMPENVMAT11 = 10,
+    D3DTSS_TEXCOORDINDEX = 11, // D3DTSS_TCI_*
+    D3DTSS_ADDRESSU = 13,
+    D3DTSS_ADDRESSV = 14,
+    D3DTSS_MAGFILTER = 16,
+    D3DTSS_MINFILTER = 17,
+    D3DTSS_MIPFILTER = 18,
+    D3DTSS_MAXANISOTROPY = 21,
+    D3DTSS_BUMPENVLSCALE = 22,
+    D3DTSS_BUMPENVLOFFSET = 23,
+    D3DTSS_TEXTURETRANSFORMFLAGS = 24, // D3DTTFF__
 };
 
 enum D3DTEXCOORDINDEX
 {
-    D3DTSS_TCI_CAMERASPACEPOSITION,
-    D3DTSS_TCI_CAMERASPACENORMAL,
-    D3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR,
-    D3DTSS_TCI_PASSTHRU,
+    // uv = in.uv
+    D3DTSS_TCI_PASSTHRU = 0,
+    // uv = in.normal * camera
+    D3DTSS_TCI_CAMERASPACENORMAL = 0x0001'0000,
+    // uv = in.position * camera
+    D3DTSS_TCI_CAMERASPACEPOSITION = 0x0002'0000,
+    // uv = reflect(-in.position * camera, in.normal * camera)
+    D3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR = 0x0003'0000,
 };
 
 enum D3DTEXTUREFILTERTYPE
@@ -347,10 +357,10 @@ enum D3DTEXTUREFILTERTYPE
 
 enum D3DTEXTURETRANSFORMFLAGS
 {
-    D3DTTFF_DISABLE = 1 << 0,
-    D3DTTFF_PROJECTED = 1 << 1,
-    D3DTTFF_COUNT2 = 1 << 2,
-    D3DTTFF_COUNT3 = 1 << 3,
+    D3DTTFF_DISABLE = 0,
+    D3DTTFF_COUNT2 = 2,
+    D3DTTFF_COUNT3 = 3,
+    D3DTTFF_PROJECTED = 256,
 };
 
 enum D3DTADRESS
@@ -401,28 +411,38 @@ enum D3DPRIMITIVETYPE
 
 enum D3DTEXTUREOP
 {
-    // ops
-    D3DTOP_DISABLE = 0,
-    D3DTOP_ADD = 1,
-    D3DTOP_SUBTRACT = 2,
-    D3DTOP_MODULATE = 3,
-    D3DTOP_DOTPRODUCT3 = 4,
-    D3DTOP_ADDSMOOTH = 5,
+    // Control
+    D3DTOP_DISABLE = 1,
+    D3DTOP_SELECTARG1 = 2,
+    D3DTOP_SELECTARG2 = 3,
 
-    // input
-    D3DTOP_SELECTARG1 = 6,
-    D3DTOP_SELECTARG2 = 7,
-    D3DTOP_BUMPENVMAP = 8,
-    D3DTOP_BUMPENVMAPLUMINANCE = 9,
-    D3DTOP_BLENDTEXTUREALPHA = 10,
-    D3DTOP_BLENDCURRENTALPHA = 11,
+    // Modulate
+    D3DTOP_MODULATE = 4, // arg1 * arg2
+
+    // Add
+    D3DTOP_ADD = 7, // arg1 + arg2
+    D3DTOP_SUBTRACT = 10, // arg1 - arg2
+    D3DTOP_ADDSMOOTH = 11, // arg1 + (1 - arg1) * arg2
+
+    // Linear alpha blend: mix(arg1, arg2, alpha)
+    D3DTOP_BLENDTEXTUREALPHA = 12,
+    // Linear alpha blend with pre-multiplied arg1:
+    // arg1 + arg2 * (1 - arg1.a)
+    D3DTOP_BLENDCURRENTALPHA = 16,
+
+    // bump
+    D3DTOP_BUMPENVMAP = 22,
+    D3DTOP_BUMPENVMAPLUMINANCE = 23,
+
+    // vec4(dot(arg1, arg2))
+    D3DTOP_DOTPRODUCT3 = 24,
 };
 
 enum D3DTEXTUREARG
 {
-    D3DTA_TEXTURE,
-    D3DTA_DIFFUSE,
-    D3DTA_CURRENT,
+    D3DTA_DIFFUSE = 0,
+    D3DTA_CURRENT = 1,
+    D3DTA_TEXTURE = 2,
 };
 
 struct D3DVIEWPORT8
@@ -437,19 +457,19 @@ struct D3DVIEWPORT8
 
 enum D3DLIGHTTYPE
 {
-    D3DLIGHT_POINT,
-    D3DLIGHT_DIRECTIONAL,
-    D3DLIGHT_SPOT,
+    D3DLIGHT_POINT  = 1,
+    D3DLIGHT_SPOT = 2,
+    D3DLIGHT_DIRECTIONAL = 3,
 };
 
 struct D3DLIGHT8
 {
     D3DLIGHTTYPE Type;
-    D3DVECTOR Position;
-    D3DVECTOR Direction;
     D3DCOLOR Diffuse;
     D3DCOLOR Specular;
     D3DCOLOR Ambient;
+    D3DVECTOR Position;
+    D3DVECTOR Direction;
     D3D_F32 Range;
     D3D_F32 Falloff;
     D3D_F32 Attenuation0;
@@ -461,8 +481,8 @@ struct D3DLIGHT8
 
 struct D3DMATERIAL8
 {
-    D3DCOLOR Ambient;
     D3DCOLOR Diffuse;
+    D3DCOLOR Ambient;
     D3DCOLOR Specular;
     D3DCOLOR Emissive;
     D3D_F32 Power;

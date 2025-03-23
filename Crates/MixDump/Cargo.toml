@@ -1,0 +1,9 @@
+[package]
+name = "mix_dump"
+version = "1.0.0"
+publish = false
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.97"
+nom = "8.0.0"

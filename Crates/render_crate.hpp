@@ -183,7 +183,7 @@ namespace wgpu
             return Texture(*this);
         }
 
-        void write(uint32_t level, uint8_t* data_ptr, uint32_t data_len)
+        void write(uint32_t level, uint8_t const* data_ptr, uint32_t data_len)
         {
             wgpu_texture_write(ptr.get(), level, data_ptr, data_len);
         }

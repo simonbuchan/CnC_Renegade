@@ -1,5 +1,6 @@
 #include "d3d8.h"
 
+#include <array>
 #include <cassert>
 #include <fstream>
 
@@ -71,96 +72,146 @@ enum class WgslLocation : uint32_t
     Tex2 = 7,
 };
 
+struct ConstVertexBufferData
+{
+    float vec4f_zero[4] = {0, 0, 0, 0};
+    uint8_t black[4] = {0, 0, 0, 0};
+    uint8_t white[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+};
+
+wgpu::Buffer create_const_vertex_buffer(wgpu::Device& device)
+{
+    ConstVertexBufferData data;
+    auto result = device.create_buffer(sizeof(data), WGPU_BUFFER_USAGE_VERTEX);
+    result.write(0, (uint8_t const*)&data, sizeof(data));
+    return result;
+}
+
 wgpu::Pipeline create_pipeline_for_fvf(
     wgpu::Device& device,
     wgpu::ShaderModule& shader_module,
     std::uint32_t fvf)
 {
     // build a new pipeline to match FVF
-    // can simplify these a lot by setting uniforms, binding
-    // white textures etc...
-    WgpuShaderDesc vertex_shader, fragment_shader;
-    if (fvf & D3DFVF_TEXCOUNT_MASK)
-    {
-        if (fvf & D3DFVF_DIFFUSE)
-            vertex_shader = shader_module.desc("vs_xyz_diffuse_uv");
-        else
-            vertex_shader = shader_module.desc("vs_xyz_uv");
-        fragment_shader = shader_module.desc("fs_tex1");
-    }
-    else
-    {
-        if (fvf & D3DFVF_DIFFUSE)
-            vertex_shader = shader_module.desc("vs_xyz_diffuse");
-        else
-            vertex_shader = shader_module.desc("vs_xyz");
-        fragment_shader = shader_module.desc("fs_color");
-    }
+    auto vertex_shader = shader_module.desc("vs_main");
+    auto fragment_shader = shader_module.desc("fs_main");
 
-    auto size = 0U;
+    // buffer 0 is the vertex buffer from ww3d2,
+    constexpr auto input_buffer_index = 0;
+    // buffer 1 is dummy values to match the shader layout, with stride 0 so all vertices get the same value
+    constexpr auto const_buffer_index = 1;
+    constexpr auto const_vec4f_zero_offset = offsetof(ConstVertexBufferData, vec4f_zero);
+    constexpr auto const_black_offset = offsetof(ConstVertexBufferData, black);
+    constexpr auto const_white_offset = offsetof(ConstVertexBufferData, white);
 
-    // This must match just d3d8fvf.cpp's FVFInfoClass
-    std::vector<WgpuVertexBufferLayout> attrs;
+    std::array<WgpuVertexBufferDesc, 2> buffers = {};
+
+    // buffer 0 stride
+    auto buffer_stride = 0U;
+    std::vector<WgpuVertexAttributeDesc> attrs;
     if (fvf & D3DFVF_XYZ)
     {
         attrs.push_back({
+            .buffer_index = input_buffer_index,
             .shader_location = (uint32_t)WgslLocation::Position,
             .format = WgpuVertexFormat::Float32x3,
-            .offset = size,
+            .offset = buffer_stride,
         });
-        size += 12;
+        buffer_stride += 12;
     }
     if (fvf & D3DFVF_B4)
     {
         if (fvf & D3DFVF_LASTBETA_UBYTE4)
         {
             attrs.push_back({
+                .buffer_index = input_buffer_index,
                 .shader_location = (uint32_t)WgslLocation::BlendWeights,
                 .format = WgpuVertexFormat::Float32x3,
-                .offset = size,
+                .offset = buffer_stride,
             });
             attrs.push_back({
+                .buffer_index = input_buffer_index,
                 .shader_location = (uint32_t)WgslLocation::BlendIndices,
                 .format = WgpuVertexFormat::Uint32,
-                .offset = size + 12,
+                .offset = buffer_stride + 12,
             });
         }
         else
         {
             attrs.push_back({
+                .buffer_index = input_buffer_index,
                 .shader_location = (uint32_t)WgslLocation::BlendWeights,
                 .format = WgpuVertexFormat::Float32x4,
-                .offset = size,
+                .offset = buffer_stride,
             });
         }
-        size += 16;
+        buffer_stride += 16;
+    }
+    else
+    {
+        attrs.push_back({
+            .buffer_index = const_buffer_index,
+            .shader_location = (uint32_t)WgslLocation::BlendWeights,
+            .format = WgpuVertexFormat::Float32x4,
+            .offset = const_vec4f_zero_offset,
+        });
     }
     if (fvf & D3DFVF_NORMAL)
     {
         attrs.push_back({
+            .buffer_index = input_buffer_index,
             .shader_location = (uint32_t)WgslLocation::Normal,
             .format = WgpuVertexFormat::Float32x3,
-            .offset = size,
+            .offset = buffer_stride,
         });
-        size += 12;
+        buffer_stride += 12;
+    }
+    else
+    {
+        attrs.push_back({
+            .buffer_index = const_buffer_index,
+            .shader_location = (uint32_t)WgslLocation::Normal,
+            .format = WgpuVertexFormat::Float32x3,
+            .offset = const_vec4f_zero_offset,
+        });
     }
     if (fvf & D3DFVF_DIFFUSE)
     {
         attrs.push_back({
+            .buffer_index = input_buffer_index,
             .shader_location = (uint32_t)WgslLocation::Diffuse,
             .format = WgpuVertexFormat::Uint8x4,
-            .offset = size,
+            .offset = buffer_stride,
         });
-        size += 4;
+        buffer_stride += 4;
+    }
+    else
+    {
+        attrs.push_back({
+            .buffer_index = const_buffer_index,
+            .shader_location = (uint32_t)WgslLocation::Diffuse,
+            .format = WgpuVertexFormat::Uint8x4,
+            .offset = const_white_offset,
+        });
     }
     if (fvf & D3DFVF_SPECULAR)
     {
         attrs.push_back({
+            .buffer_index = input_buffer_index,
             .shader_location = (uint32_t)WgslLocation::Specular,
             .format = WgpuVertexFormat::Uint8x4,
-            .offset = size,
+            .offset = buffer_stride,
         });
-        size += 4;
+        buffer_stride += 4;
+    }
+    else
+    {
+        attrs.push_back({
+            .buffer_index = const_buffer_index,
+            .shader_location = (uint32_t)WgslLocation::Specular,
+            .format = WgpuVertexFormat::Uint8x4,
+            .offset = const_black_offset,
+        });
     }
     // FVFInfoClass texture coord logic is dumb, an
     // only works because the layout is last and only uses 2d
@@ -175,11 +226,21 @@ wgpu::Pipeline create_pipeline_for_fvf(
         // ensure only 2D coordinates
         assert(((fvf >> 16) & 3) == 0);
         attrs.push_back({
+            .buffer_index = input_buffer_index,
             .shader_location = (uint32_t)WgslLocation::Tex1,
             .format = WgpuVertexFormat::Float32x2,
-            .offset = size,
+            .offset = buffer_stride,
         });
-        size += 8;
+        buffer_stride += 8;
+    }
+    else
+    {
+        attrs.push_back({
+            .buffer_index = const_buffer_index,
+            .shader_location = (uint32_t)WgslLocation::Tex1,
+            .format = WgpuVertexFormat::Float32x2,
+            .offset = const_vec4f_zero_offset,
+        });
     }
     if (tex_count > 1)
     {
@@ -187,15 +248,27 @@ wgpu::Pipeline create_pipeline_for_fvf(
         attrs.push_back({
             .shader_location = (uint32_t)WgslLocation::Tex2,
             .format = WgpuVertexFormat::Float32x2,
-            .offset = size,
+            .offset = buffer_stride,
         });
-        size += 8;
+        buffer_stride += 8;
     }
+    else
+    {
+        attrs.push_back({
+            .buffer_index = const_buffer_index,
+            .shader_location = (uint32_t)WgslLocation::Tex2,
+            .format = WgpuVertexFormat::Float32x2,
+            .offset = const_vec4f_zero_offset,
+        });
+    }
+    buffers[0].stride = buffer_stride;
+    buffers[1].stride = 0; // all vertices get the same value
 
     return device.create_pipeline({
-        .stride = size,
-        .layout_ptr = attrs.data(),
-        .layout_len = attrs.size(),
+        .buffers_ptr = buffers.data(),
+        .buffers_len = buffers.size(),
+        .attributes_ptr = attrs.data(),
+        .attributes_len = attrs.size(),
         .vertex_shader = &vertex_shader,
         .fragment_shader = &fragment_shader,
     });
@@ -207,6 +280,19 @@ std::string read_shader()
     return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 }
 
+wgpu::BindGroup create_white_texture_bind_group(wgpu::Device& device)
+{
+    auto white_texture = device.create_texture(
+        WgpuTextureFormat::Rgba8Unorm,
+        1,
+        1,
+        1,
+        WGPU_TEXTURE_USAGE_TEXTURE_BINDING | WGPU_TEXTURE_USAGE_COPY_DST);
+    uint8_t white[] = {0xff, 0xff, 0xff, 0xff};
+    white_texture.write(0, white, sizeof(white));
+    return device.create_texture_bind_group(white_texture);
+}
+
 IDirect3DDevice8::IDirect3DDevice8(wgpu::Device device_, wgpu::Surface surface)
     : device(std::move(device_)),
       surface(std::move(surface)),
@@ -214,7 +300,9 @@ IDirect3DDevice8::IDirect3DDevice8(wgpu::Device device_, wgpu::Surface surface)
       commands_copy(device.create_commands()),
       shader_module(device.create_shader_module(read_shader())),
       state_buffer(device.create_buffer(sizeof(UniformState), WGPU_BUFFER_USAGE_UNIFORM)),
-      static_bind_group(device.create_static_bind_group(state_buffer))
+      static_bind_group(device.create_static_bind_group(state_buffer)),
+      const_vertex_buffer(create_const_vertex_buffer(device)),
+      white_texture_bind_group(create_white_texture_bind_group(device))
 {
 }
 
@@ -556,6 +644,9 @@ D3D_RESULT IDirect3DDevice8::BeginScene()
     device.submit(commands_copy);
     commands.begin_render_pass(surface, nullptr);
     commands.set_bind_group(0, static_bind_group);
+    commands.set_bind_group(1, white_texture_bind_group);
+    commands.set_bind_group(2, white_texture_bind_group);
+    commands.set_vertex_buffer(1, const_vertex_buffer);
     return D3D_OK;
 }
 
@@ -597,13 +688,22 @@ D3D_RESULT IDirect3DDevice8::SetViewport(const D3DVIEWPORT8*)
     return D3D_OK;
 }
 
-D3D_RESULT IDirect3DDevice8::SetLight(D3D_U32 index, const D3DLIGHT8*)
+D3D_RESULT IDirect3DDevice8::SetLight(D3D_U32 index, const D3DLIGHT8* value)
 {
+    if (index >= 4)
+        return D3DERR_INVALIDCALL;
+    uniform_state.lights[index] = *value;
+    state_dirty = true;
     return D3D_OK;
 }
 
-D3D_RESULT IDirect3DDevice8::LightEnable(D3D_U32 index, D3D_BOOL)
+D3D_RESULT IDirect3DDevice8::LightEnable(D3D_U32 index, D3D_BOOL value)
 {
+    if (value)
+        uniform_state.light_enable_bits |= 1 << index;
+    else
+        uniform_state.light_enable_bits &= ~(1 << index);
+    state_dirty = true;
     return D3D_OK;
 }
 
@@ -614,16 +714,41 @@ D3D_RESULT IDirect3DDevice8::SetTexture(D3D_U32 stage, IDirect3DBaseTexture8* te
     {
         commands.set_bind_group(stage + 1, texture->bind_group);
     }
+    else
+    {
+        commands.set_bind_group(stage + 1, white_texture_bind_group);
+    }
     return D3D_OK;
 }
 
 D3D_RESULT IDirect3DDevice8::SetTextureStageState(D3D_U32 stage, D3DTEXTURESTAGESTATETYPE state, D3D_U32 value)
 {
+    auto& tss = uniform_state.texture_state[stage];
+    switch (state)
+    {
+    case D3DTSS_COLOROP: tss.color_op = value;
+        break;
+    case D3DTSS_COLORARG1: tss.color_arg1 = value;
+        break;
+    case D3DTSS_COLORARG2: tss.color_arg2 = value;
+        break;
+    case D3DTSS_ALPHAOP: tss.alpha_op = value;
+        break;
+    case D3DTSS_ALPHAARG1: tss.alpha_arg1 = value;
+        break;
+    case D3DTSS_ALPHAARG2: tss.alpha_arg2 = value;
+        break;
+    case D3DTSS_TEXCOORDINDEX: tss.texcoordindex = value;
+        break;
+    default: return D3D_OK;
+    }
+    state_dirty = true;
     return D3D_OK;
 }
 
-D3D_RESULT IDirect3DDevice8::SetMaterial(const D3DMATERIAL8*)
+D3D_RESULT IDirect3DDevice8::SetMaterial(const D3DMATERIAL8* value)
 {
+    uniform_state.material = *value;
     return D3D_OK;
 }
 
@@ -648,24 +773,38 @@ D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE type, D3D_U32 val
 {
     if (type >= D3DRS_COUNT)
         return D3DERR_INVALIDCALL;
-    // The interesting ones used are from shader.cpp, most of the others are debug modes
-    // we don't care about yet.
-    // That touches:
-    //   Pipeline state:
-    //     D3DRS_ALPHABLENDENABLE:
-    //      - D3DRS_SRCBLEND
-    //      - D3DRS_DESTBLEND
-    //     D3DRS_ALPHATESTENABLE:
-    //      - D3DRS_ALPHAREF
-    //      - D3DRS_ALPHAFUNC
-    //     D3DRS_ZFUNC
-    //     D3DRS_ZWRITEENABLE
-    //     D3DRS_CULLMODE
-    //  Uniforms:
-    //    D3DRS_FOGENABLE:
-    //      - D3DRS_FOGCOLOR
-    // Note SetTextureStateState() also contributes to the shader state
-
+    // Try to set as much as possible in uniform state to avoid having to track
+    // pipeline state input. We can clean it up later.
+    switch (type)
+    {
+    case D3DRS_ALPHABLENDENABLE:
+        uniform_state.rs.alpha_blend_enable = value;
+        break;
+    case D3DRS_LIGHTING:
+        uniform_state.rs.lighting_enable = value;
+        break;
+    case D3DRS_AMBIENT:
+        uniform_state.rs.ambient_color = value;
+        break;
+    case D3DRS_SPECULARENABLE:
+        uniform_state.rs.specular_enable = value;
+        break;
+    case D3DRS_AMBIENTMATERIALSOURCE:
+        uniform_state.rs.ambient_source = value;
+        break;
+    case D3DRS_DIFFUSEMATERIALSOURCE:
+        uniform_state.rs.diffuse_source = value;
+        break;
+    case D3DRS_SPECULARMATERIALSOURCE:
+        uniform_state.rs.specular_source = value;
+        break;
+    case D3DRS_EMISSIVEMATERIALSOURCE:
+        uniform_state.rs.emissive_source = value;
+        break;
+    default:
+        return D3D_OK; // ignore
+    }
+    state_dirty = true;
     return D3D_OK;
 }
 

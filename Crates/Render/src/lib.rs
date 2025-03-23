@@ -176,15 +176,15 @@ pub extern "C" fn wgpu_instance_device_create(
                     ],
                 });
 
-            let pipeline_layout = device
-                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: None,
-                    bind_group_layouts: &[
-                        &static_bind_group_layout,
-                        &texture_bind_group_layout,
-                    ],
-                    push_constant_ranges: &[],
-                });
+            let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: None,
+                bind_group_layouts: &[
+                    &static_bind_group_layout, // uniforms
+                    &texture_bind_group_layout, // texture stage 0
+                    &texture_bind_group_layout, // texture stage 1
+                ],
+                push_constant_ranges: &[],
+            });
 
             Box::into_raw(Box::new(WgpuDevice {
                 adapter,
@@ -407,10 +407,7 @@ pub extern "C" fn wgpu_device_create_texture(
         view_formats: &[],
     });
     let queue = device.queue.clone();
-    Box::into_raw(Box::new(WgpuTexture {
-        queue,
-        texture,
-    }))
+    Box::into_raw(Box::new(WgpuTexture { queue, texture }))
 }
 
 #[repr(C)]
@@ -466,7 +463,14 @@ pub enum WgpuBlendFactor {
 }
 
 #[repr(C)]
-pub struct WgpuVertexBufferLayout {
+pub struct WgpuVertexBufferDesc {
+    // should be u64, but C++ refuses to align correctly
+    stride: u32,
+}
+
+#[repr(C)]
+pub struct WgpuVertexAttributeDesc {
+    pub buffer_index: usize,
     pub shader_location: u32,
     pub format: WgpuVertexFormat,
     // should be u64, but C++ refuses to align correctly
@@ -482,9 +486,10 @@ pub struct WgpuShaderDesc {
 
 #[repr(C)]
 pub struct WgpuPipelineDesc {
-    pub stride: u32,
-    pub layout_ptr: *const WgpuVertexBufferLayout,
-    pub layout_len: usize,
+    pub buffers_ptr: *const WgpuVertexBufferDesc,
+    pub buffers_len: usize,
+    pub attributes_ptr: *const WgpuVertexAttributeDesc,
+    pub attributes_len: usize,
     pub vertex_shader: *const WgpuShaderDesc,
     pub fragment_shader: *const WgpuShaderDesc,
     pub alpha_blend_enable: bool,
@@ -500,11 +505,14 @@ pub extern "C" fn wgpu_device_create_pipeline(
     let device = unsafe { &mut *device };
     let desc = unsafe { &*desc };
 
-    let layout_descs = unsafe { std::slice::from_raw_parts(desc.layout_ptr, desc.layout_len) };
-    let mut attributes = vec![];
+    let buffer_descs =
+        unsafe { std::slice::from_raw_parts(desc.buffers_ptr, desc.buffers_len) };
+    let attribute_descs =
+        unsafe { std::slice::from_raw_parts(desc.attributes_ptr, desc.attributes_len) };
+    let mut buffer_attributes = vec![vec![]; desc.buffers_len];
 
     // vertex layout
-    for layout in layout_descs {
+    for layout in attribute_descs {
         let format = match layout.format {
             WgpuVertexFormat::Uint8x4 => wgpu::VertexFormat::Uint8x4,
             WgpuVertexFormat::Uint32 => wgpu::VertexFormat::Uint32,
@@ -513,10 +521,19 @@ pub extern "C" fn wgpu_device_create_pipeline(
             WgpuVertexFormat::Float32x3 => wgpu::VertexFormat::Float32x3,
             WgpuVertexFormat::Float32x4 => wgpu::VertexFormat::Float32x4,
         };
-        attributes.push(wgpu::VertexAttribute {
+        buffer_attributes[layout.buffer_index].push(wgpu::VertexAttribute {
             format,
             offset: layout.offset.into(),
             shader_location: layout.shader_location,
+        });
+    }
+
+    let mut buffers = vec![];
+    for index in 0..desc.buffers_len as usize {
+        buffers.push(wgpu::VertexBufferLayout {
+            array_stride: buffer_descs[index].stride.into(),
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &buffer_attributes[index],
         });
     }
 
@@ -528,11 +545,7 @@ pub extern "C" fn wgpu_device_create_pipeline(
             vertex: wgpu::VertexState {
                 module: unsafe { &(&*(&*desc.vertex_shader).module).module },
                 entry_point: Some(&*unsafe { (&*desc.vertex_shader).entry_point.as_str() }),
-                buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: desc.stride.into(),
-                    step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &attributes,
-                }],
+                buffers: &buffers,
                 compilation_options: Default::default(),
             },
             primitive: wgpu::PrimitiveState {
@@ -547,7 +560,8 @@ pub extern "C" fn wgpu_device_create_pipeline(
                 compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                    blend: None,
+                    // disabled blending emulated in the shader by forcing alpha to 1
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
@@ -617,10 +631,7 @@ pub extern "C" fn wgpu_texture_clone(texture: *mut WgpuTexture) -> *mut WgpuText
     let ptr_texture = unsafe { &*texture };
     let queue = ptr_texture.queue.clone();
     let texture = ptr_texture.texture.clone();
-    Box::into_raw(Box::new(WgpuTexture {
-        queue,
-        texture,
-    }))
+    Box::into_raw(Box::new(WgpuTexture { queue, texture }))
 }
 
 #[unsafe(no_mangle)]
@@ -760,8 +771,7 @@ pub extern "C" fn wgpu_commands_copy_texture_to_texture(
     src_texture: *mut WgpuTexture,
     src_offset: WgpuTexelCopyOffset,
     size: *mut WgpuSize,
-)
-{
+) {
     let commands = unsafe { &mut *commands };
     let dest_texture = unsafe { &*dest_texture };
     let src_texture = unsafe { &*src_texture };
@@ -774,7 +784,7 @@ pub extern "C" fn wgpu_commands_copy_texture_to_texture(
                 height: size.height,
                 depth_or_array_layers: 1,
             }
-        },
+        }
         None => src_texture.texture.size(),
     };
     commands.encoder.copy_texture_to_texture(

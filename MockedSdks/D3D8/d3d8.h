@@ -185,7 +185,8 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
     wgpu::Commands commands_copy; // texture copy commands
     D3D_U32 base_vertex_index = 0;
 
-    // state that requires a new pipeline
+    // State that requires a new pipeline.
+    // Not implemented yet, using uniform state to emulate disabling blending for now.
     struct PipelineState
     {
         uint32_t fvf; // SetVertexShader()
@@ -199,9 +200,26 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
 
     struct alignas(16) UniformTextureState
     {
-        uint32_t op; // D3DTOP_*
-        uint32_t arg1; // D3DTA_*
-        uint32_t arg2; // D3DTA_*
+        // D3DTSS_*
+        uint32_t color_op; // D3DTOP_*
+        uint32_t color_arg1; // D3DTA_*
+        uint32_t color_arg2; // D3DTA_*
+        uint32_t alpha_op; // D3DTOP_*
+        uint32_t alpha_arg1; // D3DTA_*
+        uint32_t alpha_arg2; // D3DTA_*
+        uint32_t texcoordindex; // D3DTSS_TCI_* | index
+    };
+
+    struct alignas(16) RnederState
+    {
+        uint32_t alpha_blend_enable = 0;
+        uint32_t lighting_enable = 1;
+        uint32_t ambient_color = 0;
+        uint32_t specular_enable = 0;
+        uint32_t ambient_source = D3DMCS_MATERIAL;
+        uint32_t diffuse_source = D3DMCS_COLOR1;
+        uint32_t specular_source = D3DMCS_COLOR2;
+        uint32_t emissive_source = D3DMCS_MATERIAL;
     };
 
     // State copied to the uniform buffer
@@ -210,12 +228,20 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
     {
         D3DMATRIX ts[D3DTS_COUNT] = {};
         UniformTextureState texture_state[2] = {};
+        RnederState rs = {};
+        D3DLIGHT8 lights[8] = {};
+        D3DMATERIAL8 material = {
+            0xFF'FF'FF'FF,
+        };
+        uint32_t light_enable_bits = 0;
     };
 
     PipelineState pipeline_state;
     UniformState uniform_state;
     wgpu::Buffer state_buffer;
     wgpu::BindGroup static_bind_group;
+    wgpu::Buffer const_vertex_buffer;
+    wgpu::BindGroup white_texture_bind_group;
     bool state_dirty = true;
 
     struct FVFPipleline
