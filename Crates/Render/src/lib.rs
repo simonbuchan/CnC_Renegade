@@ -146,7 +146,7 @@ pub extern "C" fn wgpu_instance_device_create(
                         visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
+                            has_dynamic_offset: true,
                             min_binding_size: None,
                         },
                         count: None,
@@ -179,7 +179,7 @@ pub extern "C" fn wgpu_instance_device_create(
             let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: None,
                 bind_group_layouts: &[
-                    &static_bind_group_layout, // uniforms
+                    &static_bind_group_layout,  // uniforms
                     &texture_bind_group_layout, // texture stage 0
                     &texture_bind_group_layout, // texture stage 1
                 ],
@@ -268,6 +268,8 @@ pub extern "C" fn wgpu_device_create_commands(device: *mut WgpuDevice) -> *mut W
 pub extern "C" fn wgpu_device_create_static_bind_group(
     device: *mut WgpuDevice,
     buffer: *mut WgpuBuffer,
+    offset: u64,
+    size: u64,
 ) -> *mut WgpuBindGroup {
     let device = unsafe { &mut *device };
     let buffer = unsafe { &*buffer };
@@ -276,7 +278,11 @@ pub extern "C" fn wgpu_device_create_static_bind_group(
         layout: &device.static_bind_group_layout,
         entries: &[wgpu::BindGroupEntry {
             binding: 0,
-            resource: buffer.buffer.as_entire_binding(),
+            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                buffer: &buffer.buffer,
+                offset,
+                size: std::num::NonZeroU64::new(size),
+            }),
         }],
     });
     Box::into_raw(Box::new(WgpuBindGroup { bind_group }))
@@ -505,8 +511,7 @@ pub extern "C" fn wgpu_device_create_pipeline(
     let device = unsafe { &mut *device };
     let desc = unsafe { &*desc };
 
-    let buffer_descs =
-        unsafe { std::slice::from_raw_parts(desc.buffers_ptr, desc.buffers_len) };
+    let buffer_descs = unsafe { std::slice::from_raw_parts(desc.buffers_ptr, desc.buffers_len) };
     let attribute_descs =
         unsafe { std::slice::from_raw_parts(desc.attributes_ptr, desc.attributes_len) };
     let mut buffer_attributes = vec![vec![]; desc.buffers_len];
@@ -869,11 +874,19 @@ pub extern "C" fn wgpu_commands_set_bind_group(
     commands: *mut WgpuCommands,
     index: u32,
     bind_group: *mut WgpuBindGroup,
+    offsets_ptr: *const u32,
+    offsets_len: usize,
 ) {
     let commands = unsafe { &mut *commands };
     let bind_group = unsafe { &*bind_group };
+    let offsets = if offsets_ptr.is_null() {
+        &[]
+    } else {
+        unsafe { std::slice::from_raw_parts(offsets_ptr, offsets_len) }
+    };
+
     let render_pass = commands.render_pass.as_mut().unwrap();
-    render_pass.set_bind_group(index, &bind_group.bind_group, &[]);
+    render_pass.set_bind_group(index, &bind_group.bind_group, offsets);
 }
 
 pub const WGPU_SIZE_ALL: u64 = !0;

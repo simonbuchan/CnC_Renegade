@@ -293,14 +293,18 @@ wgpu::BindGroup create_white_texture_bind_group(wgpu::Device& device)
     return device.create_texture_bind_group(white_texture);
 }
 
+constexpr uint32_t max_states_before_flush = 1000;
+constexpr uint32_t uniform_state_size_aligned = (sizeof(IDirect3DDevice8::UniformState) + 255) & ~255;
+
 IDirect3DDevice8::IDirect3DDevice8(wgpu::Device device_, wgpu::Surface surface)
     : device(std::move(device_)),
       surface(std::move(surface)),
       commands(device.create_commands()),
       commands_copy(device.create_commands()),
       shader_module(device.create_shader_module(read_shader())),
-      state_buffer(device.create_buffer(sizeof(UniformState), WGPU_BUFFER_USAGE_UNIFORM)),
-      static_bind_group(device.create_static_bind_group(state_buffer)),
+      state_buffer(device.create_buffer(uniform_state_size_aligned * max_states_before_flush, WGPU_BUFFER_USAGE_UNIFORM)),
+      state_writes(0),
+      static_bind_group(device.create_static_bind_group(state_buffer, 0, sizeof(UniformState))),
       const_vertex_buffer(create_const_vertex_buffer(device)),
       white_texture_bind_group(create_white_texture_bind_group(device))
 {
@@ -643,7 +647,7 @@ D3D_RESULT IDirect3DDevice8::BeginScene()
 {
     device.submit(commands_copy);
     commands.begin_render_pass(surface, nullptr);
-    commands.set_bind_group(0, static_bind_group);
+    // commands.set_bind_group(0, static_bind_group, 0); // offset must be provided
     commands.set_bind_group(1, white_texture_bind_group);
     commands.set_bind_group(2, white_texture_bind_group);
     commands.set_vertex_buffer(1, const_vertex_buffer);
@@ -654,6 +658,8 @@ D3D_RESULT IDirect3DDevice8::EndScene()
 {
     device.submit(commands_copy);
     device.submit(commands);
+    state_writes = 0;
+    state_dirty = true;
     return D3D_OK;
 }
 
@@ -709,6 +715,7 @@ D3D_RESULT IDirect3DDevice8::LightEnable(D3D_U32 index, D3D_BOOL value)
 
 D3D_RESULT IDirect3DDevice8::SetTexture(D3D_U32 stage, IDirect3DBaseTexture8* texture)
 {
+    textures[stage] = texture;
     // bind group 0 is reserved for global uniforms
     if (texture)
     {
@@ -738,6 +745,8 @@ D3D_RESULT IDirect3DDevice8::SetTextureStageState(D3D_U32 stage, D3DTEXTURESTAGE
         break;
     case D3DTSS_ALPHAARG2: tss.alpha_arg2 = value;
         break;
+    case D3DTSS_TEXTURETRANSFORMFLAGS: tss.ttff = value;
+        break;
     case D3DTSS_TEXCOORDINDEX: tss.texcoordindex = value;
         break;
     default: return D3D_OK;
@@ -749,6 +758,7 @@ D3D_RESULT IDirect3DDevice8::SetTextureStageState(D3D_U32 stage, D3DTEXTURESTAGE
 D3D_RESULT IDirect3DDevice8::SetMaterial(const D3DMATERIAL8* value)
 {
     uniform_state.material = *value;
+    state_dirty = true;
     return D3D_OK;
 }
 
@@ -810,6 +820,7 @@ D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE type, D3D_U32 val
 
 D3D_RESULT IDirect3DDevice8::SetStreamSource(D3D_U32 index, IDirect3DVertexBuffer8* vertex_buffer, D3D_U32)
 {
+    this->vertex_buffer = vertex_buffer;
     commands.set_vertex_buffer(index, vertex_buffer->buffer);
     return D3D_OK;
 }
@@ -817,22 +828,26 @@ D3D_RESULT IDirect3DDevice8::SetStreamSource(D3D_U32 index, IDirect3DVertexBuffe
 D3D_RESULT IDirect3DDevice8::SetIndices(IDirect3DIndexBuffer8* index_buffer, D3D_U32 base_vertex_index)
 {
     this->base_vertex_index = base_vertex_index;
+    this->index_buffer = index_buffer;
     commands.set_index_buffer(index_buffer->buffer, index_buffer->format, 0);
     return D3D_OK;
 }
 
 D3D_RESULT IDirect3DDevice8::SetVertexShader(D3D_U32 fvf)
 {
-    for (auto& pipeline : pipelines)
+    for (int i = 0; i < pipelines.size(); i++)
     {
+        auto& pipeline = pipelines[i];
         if (pipeline.fvf == fvf)
         {
+            pipeline_index = i;
             commands.set_pipeline(pipeline.pipeline);
             return D3D_OK;
         }
     }
     auto pipeline = create_pipeline_for_fvf(device, shader_module, fvf);
     commands.set_pipeline(pipeline);
+    pipeline_index = pipelines.size();
     pipelines.push_back({
         .fvf = fvf,
         .pipeline = std::move(pipeline),
@@ -849,6 +864,7 @@ D3D_RESULT IDirect3DDevice8::Clear(
     D3D_F32 z,
     D3D_U32 stencil)
 {
+    // todo
     // I think clearing works differently in WGPU inside of a render pass...
     return D3D_OK;
 }
@@ -875,7 +891,10 @@ D3D_RESULT IDirect3DDevice8::CopyRects(
         size.width = source_rect_array->right - source_rect_array->left;
         size.height = source_rect_array->bottom - source_rect_array->top;
     }
-    // note: only valid outside of a render pass
+    // note: only valid outside of a render pass, so we need to submit the commands
+    // on a separate command encoder. This just means we don't get to share the same
+    // texture object between multiple draws with different data, which is a terrible
+    // idea anyway.
     commands_copy.copy_texture_to_texture(
         dest_surface->texture,
         dest_offset,
@@ -894,8 +913,29 @@ D3D_RESULT IDirect3DDevice8::DrawIndexedPrimitive(
 {
     if (state_dirty)
     {
+        if (state_writes == max_states_before_flush)
+        {
+            // Uniform state buffer is full, need to flush pending draws that are
+            // offset into it.
+            device.submit(commands_copy);
+            device.submit(commands);
+            state_writes = 0;
+            // now need to restore all the state in the render pass, see BeginScene,
+            // various Set*() methods
+            commands.begin_render_pass(surface, nullptr);
+            commands.set_bind_group(1, textures[0] ? textures[0]->bind_group : white_texture_bind_group);
+            commands.set_bind_group(2, textures[1] ? textures[1]->bind_group : white_texture_bind_group);
+            commands.set_pipeline(pipelines[pipeline_index].pipeline);
+            if (vertex_buffer) commands.set_vertex_buffer(0, vertex_buffer->buffer);
+            commands.set_vertex_buffer(1, const_vertex_buffer);
+            if (index_buffer) commands.set_index_buffer(index_buffer->buffer, index_buffer->format);
+        }
+
+        auto offset = state_writes * uniform_state_size_aligned;
+        state_writes += 1;
         state_dirty = false;
-        state_buffer.write(0, (uint8_t*)&uniform_state, sizeof(uniform_state));
+        state_buffer.write(offset, (uint8_t*)&uniform_state, sizeof(uniform_state));
+        commands.set_bind_group(0, static_bind_group, offset);
     }
     commands.draw_indexed(WgpuDrawIndexed{
         .index_first = index_first,

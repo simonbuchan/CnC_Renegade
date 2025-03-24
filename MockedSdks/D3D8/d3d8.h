@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <vector>
 
@@ -183,7 +184,6 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
     wgpu::ShaderModule shader_module;
     wgpu::Commands commands; // main commands, including rendering
     wgpu::Commands commands_copy; // texture copy commands
-    D3D_U32 base_vertex_index = 0;
 
     // State that requires a new pipeline.
     // Not implemented yet, using uniform state to emulate disabling blending for now.
@@ -207,10 +207,11 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
         uint32_t alpha_op; // D3DTOP_*
         uint32_t alpha_arg1; // D3DTA_*
         uint32_t alpha_arg2; // D3DTA_*
+        uint32_t ttff; // D3DTTFF_*
         uint32_t texcoordindex; // D3DTSS_TCI_* | index
     };
 
-    struct alignas(16) RnederState
+    struct alignas(16) RenderState
     {
         uint32_t alpha_blend_enable = 0;
         uint32_t lighting_enable = 1;
@@ -228,7 +229,7 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
     {
         D3DMATRIX ts[D3DTS_COUNT] = {};
         UniformTextureState texture_state[2] = {};
-        RnederState rs = {};
+        RenderState rs = {};
         D3DLIGHT8 lights[8] = {};
         D3DMATERIAL8 material = {
             0xFF'FF'FF'FF,
@@ -239,9 +240,18 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
     PipelineState pipeline_state;
     UniformState uniform_state;
     wgpu::Buffer state_buffer;
+
     wgpu::BindGroup static_bind_group;
     wgpu::Buffer const_vertex_buffer;
     wgpu::BindGroup white_texture_bind_group;
+
+    // state to restore when flushing
+    D3D_U32 base_vertex_index = 0;
+    CComPtr<IDirect3DVertexBuffer8> vertex_buffer;
+    CComPtr<IDirect3DIndexBuffer8> index_buffer;
+    std::array<CComPtr<IDirect3DBaseTexture8>, 2> textures;
+    uint32_t state_writes;
+    uint32_t pipeline_index;
     bool state_dirty = true;
 
     struct FVFPipleline

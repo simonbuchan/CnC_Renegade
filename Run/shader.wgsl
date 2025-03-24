@@ -20,7 +20,10 @@ const TS_VIEW = 1u;
 const TS_PROJECTION = 2u;
 const TS_TEXTURE0 = 3u;
 const TS_TEXTURE1 = 4u;
+
 const TS_COUNT = 5u;
+const TSS_COUNT = 2u;
+const LIGHT_COUNT = 4u;
 
 const TOP_DISABLE = 1u;
 const TOP_SELECTARG1 = 2u;
@@ -44,6 +47,11 @@ const TA_TEXTURE = 0u;
 const TA_DIFFUSE = 1u;
 const TA_CURRENT = 2u;
 
+const TTFF_DISABLE = 0x00000000u;
+const TTFF_COUNT2 = 0x00000002u;
+const TTFF_COUNT3 = 0x00000003u;
+const TTFF_PROJECTED = 0x000000100u;
+
 const TCI_PASSTHRU = 0x00000000u;
 const TCI_CAMERASPACENORMAL = 0x00010000u;
 const TCI_CAMERASPACEPOSITION = 0x00020000u;
@@ -65,6 +73,8 @@ struct TextureState {
     // D3DTA_*: texture arguments
     alpha_arg1: u32,
     alpha_arg2: u32,
+    // D3DTTFF_*: texture flags
+    ttff: u32,
     // texture coordinate index bit-or'ed with D3DTSS_TCI_*:
     texcoordindex: u32,
 }
@@ -81,7 +91,7 @@ struct TextureState {
 // must have 16-byte alignment. Silly!
 alias COLOR = u32;
 fn read_color(value: u32) -> vec4f {
-    return unpack4x8unorm(value).bgra;
+    return unpack4x8unorm(value).abgr;
 }
 
 const LIGHT_POINT = 1u;
@@ -134,9 +144,9 @@ struct State {
     // D3DTS_*: transformation state
     ts: array<mat4x4f, TS_COUNT>,
     // D3DTSS_*: texture stage state
-    tex: array<TextureState, 2>,
+    tss: array<TextureState, TSS_COUNT>,
     rs: RenderState,
-    lights: array<LightState, 4>,
+    lights: array<LightState, LIGHT_COUNT>,
     material: MaterialState,
     light_enable_bits: u32, // LightEnable(index, value)
 }
@@ -203,8 +213,54 @@ fn light(index: u32, in: LightInput) -> Lighting {
     var result: Lighting;
     result.ambient = read_color(light.ambient).rgb * atten * spot;
     result.diffuse = n_dot_l * read_color(light.diffuse).rgb * atten * spot;
+    // todo: specular
 
     return result;
+}
+
+fn stage_uv(stage: u32, in: MainInput, uvs: array<vec2f, TSS_COUNT>) -> vec2f {
+    let world = state.ts[TS_WORLD];
+    let view = state.ts[TS_VIEW];
+    let proj = state.ts[TS_PROJECTION];
+
+    let tss = state.tss[stage];
+    let tci = tss.texcoordindex;
+    let index = tci & 0xffff;
+    let tf = tci & 0xffff0000;
+
+    // https://learn.microsoft.com/en-us/windows/win32/direct3d9/automatically-generated-texture-coordinates
+    var uv: vec2f;
+    switch (tf) {
+    case TCI_PASSTHRU, default: { uv = uvs[index]; }
+    // Camera space defined: https://learn.microsoft.com/en-us/windows/win32/direct3d9/camera-space-transformations
+    // TLDR is world * view, not including projection
+    case TCI_CAMERASPACEPOSITION: {
+        uv = (proj * view * world * vec4f(in.position, 1)).xy;
+    }
+    case TCI_CAMERASPACENORMAL: {
+        // todo
+        uv = (proj * view * world * vec4f(in.normal, 0)).xy;
+    }
+    }
+
+    if (tss.ttff == TTFF_DISABLE) {
+        return uv;
+    }
+    let uv4 = vec4f(uv, 0, 1) * state.ts[TS_TEXTURE0 + index];
+    if (tss.ttff == (TTFF_COUNT3 | TTFF_PROJECTED)) {
+        return uv4.xy / uv4.w;
+    } else {
+        return uv4.xy;
+    }
+}
+
+struct MainInput {
+    @location(LOC_POSITION) position: vec3f,
+    @location(LOC_NORMAL) normal: vec3f,
+    @location(LOC_DIFFUSE) diffuse: vec4u, // aka color1. vec4u as it's declared as uint8x4
+    @location(LOC_SPECULAR) specular: vec4u, // aka color2
+    @location(LOC_UV1) uv1: vec2f,
+    @location(LOC_UV2) uv2: vec2f,
 }
 
 struct MainOutput {
@@ -212,42 +268,34 @@ struct MainOutput {
     @location(0) normal: vec3f,
     @location(1) diffuse: vec4f,
     @location(2) specular: vec4f,
-    @location(3) uv0: vec2f,
-    @location(4) uv1: vec2f,
+    @location(3) uv1: vec2f,
+    @location(4) uv2: vec2f,
 }
 
 @vertex
-fn vs_main(
-    @location(LOC_POSITION) position: vec3f,
-    @location(LOC_NORMAL) normal: vec3f,
-    @location(LOC_UV1) uv1: vec2f,
-    @location(LOC_DIFFUSE) diffuse: vec4u, // aka color1. vec4u as it's declared as uint8x4
-//    @location(LOC_SPECULA) specular: vec4u, // aka color2
-) -> MainOutput {
+fn vs_main(in: MainInput) -> MainOutput {
     let world = state.ts[TS_WORLD];
     let view = state.ts[TS_VIEW];
     let proj = state.ts[TS_PROJECTION];
 
     var output: MainOutput;
-    output.position = vec4f(position, 1) * world * view * proj;
-    output.normal = (vec4f(normal, 0) * world).xyz; // sure, why not
-    output.diffuse = vec4f(diffuse).bgra / 255.0;
-    output.specular = vec4f(0, 0, 0, 0); // todo
-    output.uv0 = (vec4f(uv1, 0, 1) * state.ts[TS_TEXTURE1]).xy;
-    output.uv1 = vec2f(0, 0); // todo
+    output.position = proj * view * world * vec4f(in.position, 1);
+    output.normal = (world * vec4f(in.normal, 0)).xyz; // sure, why not
+    output.diffuse = vec4f(in.diffuse).bgra / 255.0;
+    output.specular = vec4f(in.specular).bgra / 255.0;
+    let uvs = array(in.uv1, in.uv2);
+    output.uv1 = stage_uv(0, in, uvs);
+    output.uv2 = stage_uv(1, in, uvs);
     return output;
 }
 
 struct TexArgIn {
     stage: u32,
-    uv: array<vec2f, 2>,
     position: vec4f,
     normal: vec3f,
     current: vec4f,
-    // ambient: vec4f,
     diffuse: vec4f,
     specular: vec4f,
-    // emissive: vec4f,
     texture: vec4f,
 }
 
@@ -256,12 +304,12 @@ fn tex_color_arg(in: TexArgIn, arg: u32) -> vec3f {
     case TA_TEXTURE: { return in.texture.rgb; }
     case TA_DIFFUSE: { return in.diffuse.rgb; }
     case TA_CURRENT: { return in.current.rgb; }
-    default: { return vec3f(0, 0, 0); }
+    default: { discard; }
     }
 }
 
 fn tex_color_stage(in: TexArgIn) -> vec3f {
-    let tss = state.tex[in.stage];
+    let tss = state.tss[in.stage];
     let arg1 = tex_color_arg(in, tss.color_arg1);
     let arg2 = tex_color_arg(in, tss.color_arg2);
     switch (tss.color_op) {
@@ -281,8 +329,6 @@ fn tex_color_stage(in: TexArgIn) -> vec3f {
     case TOP_BLENDCURRENTALPHA: {
         return mix(arg1, arg2, in.current.a);
     }
-
-    case TOP_DOTPRODUCT3: { return vec3f(dot(arg1, arg2)); }
     }
 }
 
@@ -296,7 +342,7 @@ fn tex_alpha_arg(in: TexArgIn, arg: u32) -> f32 {
 }
 
 fn tex_alpha_stage(in: TexArgIn) -> f32 {
-    let tss = state.tex[in.stage];
+    let tss = state.tss[in.stage];
     let arg1 = tex_alpha_arg(in, tss.alpha_arg1);
     let arg2 = tex_alpha_arg(in, tss.alpha_arg2);
     switch (tss.alpha_op) {
@@ -316,104 +362,115 @@ fn tex_alpha_stage(in: TexArgIn) -> f32 {
     case TOP_BLENDCURRENTALPHA: {
         return mix(arg1, arg2, in.current.a);
     }
-
-    case TOP_DOTPRODUCT3: { return 0.0; }
     }
 }
 
 fn tex_stage(in: TexArgIn) -> vec4f {
+    // special case for DOTPRODUCT3 that it sets all components and alpha_op is ignored
+    if state.tss[in.stage].color_op == TOP_DOTPRODUCT3 {
+        let tss = state.tss[in.stage];
+        let arg1 = tex_color_arg(in, tss.color_arg1);
+        let arg2 = tex_color_arg(in, tss.color_arg2);
+        return vec4f(dot(arg1, arg2));
+    }
     let color = tex_color_stage(in);
     let alpha = tex_alpha_stage(in);
     return vec4f(color, alpha);
 }
 
-fn stage_uv(stage: u32, in: TexArgIn) -> vec2f {
-    let tci = state.tex[stage].texcoordindex;
-    let index = tci & 0xffff;
-    let tf = tci & 0xffff0000;
-    var uv: vec2f;
-    switch (tf) {
-    case TCI_PASSTHRU: { return in.uv[index]; }
-    // Camera space defined: https://learn.microsoft.com/en-us/windows/win32/direct3d9/camera-space-transformations
-    // TLDR is world * view, not including projection
-    case TCI_CAMERASPACEPOSITION: { return in.position.xy; }
-    case TCI_CAMERASPACENORMAL: { return in.normal.xy; }
-    default: { return in.position.xy; }
+struct MaterialValues {
+    ambient: vec4f,
+    diffuse: vec4f,
+    specular: vec4f,
+    emissive: vec4f,
+}
+
+fn material_values(in: MainOutput) -> MaterialValues {
+    var values: MaterialValues;
+
+    // https://learn.microsoft.com/en-us/windows/win32/direct3d9/ambient-lighting
+    // TODO: fallback to material color if no vertex color
+    switch (state.rs.ambient_source) {
+    default: { discard; }
+    case MCS_MATERIAL: { values.ambient = read_color(state.material.ambient); }
+    case MCS_COLOR1: { values.ambient = in.diffuse; }
+    case MCS_COLOR2: { values.ambient = in.specular; }
     }
+
+    switch (state.rs.diffuse_source) {
+    default: { discard; }
+    case MCS_MATERIAL: { values.diffuse = read_color(state.material.diffuse); }
+    case MCS_COLOR1: { values.diffuse = in.diffuse; }
+    case MCS_COLOR2: { values.diffuse = in.specular; }
+    }
+
+    switch (state.rs.specular_source) {
+    default: { discard; }
+    case MCS_MATERIAL: { values.specular = read_color(state.material.specular); }
+    case MCS_COLOR1: { values.specular = in.diffuse; }
+    case MCS_COLOR2: { values.specular = in.specular; }
+    }
+
+    switch (state.rs.emissive_source) {
+    default: { discard; }
+    case MCS_MATERIAL: { values.emissive = read_color(state.material.emissive); }
+    case MCS_COLOR1: { values.emissive = in.diffuse.bgra; }
+    case MCS_COLOR2: { values.emissive = in.specular.bgra; }
+    }
+
+    return values;
+}
+
+fn lighting(in: MainOutput) -> Lighting {
+    let light_in = LightInput(in.position.xyz, in.normal);
+
+    var total: Lighting;
+    total.ambient = read_color(state.rs.ambient_color).rgb;
+
+    for (var i = 0u; i < LIGHT_COUNT; i += 1) {
+        if ((state.light_enable_bits & (1u << i)) != 0) {
+            let contribution = light(i, light_in);
+            total.ambient += contribution.ambient;
+            total.diffuse += contribution.diffuse;
+            total.specular += contribution.specular;
+        }
+    }
+
+    return total;
 }
 
 @fragment
 fn fs_main(in: MainOutput) -> @location(0) vec4f {
-
-    // https://learn.microsoft.com/en-us/windows/win32/direct3d9/ambient-lighting
-    // TODO: fallback to material color if no vertex color
-    var ambient: vec4f;
-    switch (state.rs.ambient_source) {
-    case MCS_MATERIAL, default: { ambient = read_color(state.material.ambient); }
-    case MCS_COLOR1: { ambient = in.diffuse; }
-    case MCS_COLOR2: { ambient = in.specular; }
-    }
-
-    var diffuse: vec4f;
-    switch (state.rs.diffuse_source) {
-    case MCS_MATERIAL, default: { diffuse = read_color(state.material.diffuse); }
-    case MCS_COLOR1: { diffuse = in.diffuse; }
-    case MCS_COLOR2: { diffuse = in.specular; }
-    }
-
-    var specular: vec4f;
-    switch (state.rs.specular_source) {
-    case MCS_MATERIAL, default: { specular = read_color(state.material.specular); }
-    case MCS_COLOR1: { specular = in.diffuse; }
-    case MCS_COLOR2: { specular = in.specular; }
-    }
-
-    var emissive: vec4f;
-    switch (state.rs.emissive_source) {
-    case MCS_MATERIAL, default: { emissive = read_color(state.material.emissive); }
-    case MCS_COLOR1: { emissive = in.diffuse.bgra; }
-    case MCS_COLOR2: { emissive = in.specular.bgra; }
-    }
-
+    var values = material_values(in);
     if (state.rs.lighting_enable != 0) {
-        let light_in = LightInput(in.position.xyz, in.normal);
-        var total_lighting: Lighting;
-        total_lighting.ambient = read_color(state.rs.ambient_color).rgb;
-
-        for (var i = 0u; i < 4; i = i + 1) {
-            if ((state.light_enable_bits & (1u << i)) != 0) {
-                let contribution = light(i, light_in);
-                total_lighting.ambient += contribution.ambient;
-                total_lighting.diffuse += contribution.diffuse;
-                total_lighting.specular += contribution.specular;
-            }
-        }
-        ambient *= vec4f(total_lighting.ambient, 1.0);
-        diffuse *= vec4f(total_lighting.diffuse, 1.0);
-        specular *= vec4f(total_lighting.specular, 1.0);
+        let total = lighting(in);
+        values.ambient *= vec4f(total.ambient, 1.0);
+        values.diffuse *= vec4f(total.diffuse, 1.0);
+        values.specular *= vec4f(total.specular, 1.0);
     }
 
     var arg_in: TexArgIn;
-    arg_in.uv = array(in.uv0, in.uv1);
     arg_in.position = in.position;
-    arg_in.diffuse = diffuse;
-    arg_in.specular = specular;
-    arg_in.current = ambient + diffuse + specular + emissive;
 
-    if (state.tex[0].color_op != TOP_DISABLE) {
-        arg_in.stage = 0;
-        arg_in.texture = textureSample(tex1, tex1_sampler, stage_uv(0, arg_in)).bgra;
-        arg_in.current = tex_stage(arg_in);
-        if (state.tex[1].color_op != TOP_DISABLE) {
-            arg_in.stage = 1;
-            arg_in.texture = textureSample(tex2, tex2_sampler, stage_uv(1, arg_in)).bgra;
-            arg_in.current = tex_stage(arg_in);
+    arg_in.current = values.ambient + values.diffuse + values.specular + values.emissive;
+
+    for (var i = 0u; i < TSS_COUNT; i += 1) {
+        if (state.tss[i].color_op == TOP_DISABLE) {
+            break;
         }
+        arg_in.stage = i;
+        // todo: use texture binding_array?
+        switch (i) {
+        default: { discard; }
+        case 0u: { arg_in.texture = textureSample(tex1, tex1_sampler, in.uv1).bgra; }
+        case 1u: { arg_in.texture = textureSample(tex2, tex2_sampler, in.uv2).bgra; }
+        }
+        arg_in.current = tex_stage(arg_in);
     }
 
     var result = arg_in.current;
-//    if state.rs.alpha_blend_enable == 0 {
+    if state.rs.alpha_blend_enable == 0 {
         result.a = 1.0;
-//    }
+    }
     return result;
 }

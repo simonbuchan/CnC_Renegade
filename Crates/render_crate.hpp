@@ -81,7 +81,7 @@ namespace wgpu
         {
         }
 
-        BindGroup create_static_bind_group(Buffer& buffer);
+        BindGroup create_static_bind_group(Buffer& buffer, uint64_t offset, uint64_t size);
         BindGroup create_texture_bind_group(Texture& buffer);
 
         Buffer create_buffer(uint64_t size, uint32_t usage);
@@ -121,7 +121,7 @@ namespace wgpu
 
     struct BindGroup
     {
-        static BindGroup create_static(Device const& device, Buffer& buffer);
+        static BindGroup create_static(Device const& device, Buffer& buffer, uint64_t offset, uint64_t size);
         static BindGroup create_texture(Device const& device, Texture& texture);
 
         std::unique_ptr<WgpuBindGroup, decltype(&wgpu_bind_group_destroy)> ptr;
@@ -252,7 +252,12 @@ namespace wgpu
 
         void set_bind_group(uint32_t index, BindGroup& bind_group)
         {
-            wgpu_commands_set_bind_group(ptr.get(), index, bind_group.ptr.get());
+            wgpu_commands_set_bind_group(ptr.get(), index, bind_group.ptr.get(), nullptr, 0);
+        }
+
+        void set_bind_group(uint32_t index, BindGroup& bind_group, uint32_t offset)
+        {
+            wgpu_commands_set_bind_group(ptr.get(), index, bind_group.ptr.get(), &offset, 1);
         }
 
         void set_vertex_buffer(uint32_t slot, Buffer& buffer, uint64_t offset = 0, uint64_t size = WGPU_SIZE_ALL)
@@ -290,9 +295,9 @@ namespace wgpu
         return Surface::create(*this, hwnd);
     }
 
-    inline BindGroup Device::create_static_bind_group(Buffer& buffer)
+    inline BindGroup Device::create_static_bind_group(Buffer& buffer, uint64_t offset, uint64_t size)
     {
-        return BindGroup::create_static(*this, buffer);
+        return BindGroup::create_static(*this, buffer, offset, size);
     }
 
     inline BindGroup Device::create_texture_bind_group(Texture& buffer)
@@ -331,9 +336,9 @@ namespace wgpu
         wgpu_device_submit(ptr.get(), commands.ptr.get());
     }
 
-    inline BindGroup BindGroup::create_static(Device const& device, Buffer& buffer)
+    inline BindGroup BindGroup::create_static(Device const& device, Buffer& buffer, uint64_t offset, uint64_t size)
     {
-        return BindGroup(wgpu_device_create_static_bind_group(device.ptr.get(), buffer.ptr.get()));
+        return BindGroup(wgpu_device_create_static_bind_group(device.ptr.get(), buffer.ptr.get(), offset, size));
     }
 
     inline BindGroup BindGroup::create_texture(Device const& device, Texture& texture)
