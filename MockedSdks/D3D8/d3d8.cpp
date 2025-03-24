@@ -888,8 +888,15 @@ D3D_RESULT IDirect3DDevice8::CopyRects(
     WgpuSize size{};
     if (source_rect_array)
     {
+        source_offset.x = source_rect_array->left;
+        source_offset.y = source_rect_array->top;
         size.width = source_rect_array->right - source_rect_array->left;
         size.height = source_rect_array->bottom - source_rect_array->top;
+    }
+    if (dest_offset_array)
+    {
+        dest_offset.x = dest_offset_array->x;
+        dest_offset.y = dest_offset_array->y;
     }
     // note: only valid outside of a render pass, so we need to submit the commands
     // on a separate command encoder. This just means we don't get to share the same
