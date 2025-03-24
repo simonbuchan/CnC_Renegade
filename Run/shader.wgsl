@@ -218,6 +218,16 @@ fn light(index: u32, in: LightInput) -> Lighting {
     return result;
 }
 
+// Adjust a transform expecting the pixel center at the D3D position at (0, 0)
+// to the WebGPU position at (0.5, 0.5).
+// TODO: adjust for the actual render target size. Probably should ajust in the host.
+const HALF_PIXEL_OFFSET = mat4x4f(
+    vec4f(1.0, 0.0, 0.0, 0.0),
+    vec4f(0.0, 1.0, 0.0, 0.0),
+    vec4f(0.0, 0.0, 1.0, 0.0),
+    vec4f(0.5 / 800, 0.5 / 600, 0.0, 1.0),
+);
+
 fn stage_uv(stage: u32, in: MainInput, uvs: array<vec2f, TSS_COUNT>) -> vec2f {
     let world = state.ts[TS_WORLD];
     let view = state.ts[TS_VIEW];
@@ -235,7 +245,7 @@ fn stage_uv(stage: u32, in: MainInput, uvs: array<vec2f, TSS_COUNT>) -> vec2f {
     // Camera space defined: https://learn.microsoft.com/en-us/windows/win32/direct3d9/camera-space-transformations
     // TLDR is world * view, not including projection
     case TCI_CAMERASPACEPOSITION: {
-        uv = (proj * view * world * vec4f(in.position, 1)).xy;
+        uv = (HALF_PIXEL_OFFSET * proj * view * world * vec4f(in.position, 1)).xy;
     }
     case TCI_CAMERASPACENORMAL: {
         // todo
@@ -279,7 +289,7 @@ fn vs_main(in: MainInput) -> MainOutput {
     let proj = state.ts[TS_PROJECTION];
 
     var output: MainOutput;
-    output.position = proj * view * world * vec4f(in.position, 1);
+    output.position = HALF_PIXEL_OFFSET * proj * view * world * vec4f(in.position, 1);
     output.normal = (world * vec4f(in.normal, 0)).xyz; // sure, why not
     output.diffuse = vec4f(in.diffuse).bgra / 255.0;
     output.specular = vec4f(in.specular).bgra / 255.0;
