@@ -5,6 +5,7 @@ project(
     'rust',
     meson_version : '1.7.0',
     default_options : [
+        'cpp_std=c++20',
         'rust_std=2024',
         # don't conflict with the library pulled in by rust
         'b_vscrt=none',
@@ -16,6 +17,9 @@ add_project_arguments('-C', 'target-feature=+crt-static', language : 'rust', nat
 
 # pointer-truncation warnings!!!
 add_project_arguments('-wd4302', '-wd4311', '-wd4312', language : 'cpp')
+
+# mul/div between enum and float
+add_project_arguments('-wd5055', language : 'cpp')
 
 # defines
 add_project_arguments('-DWINDOWS', language : 'cpp')
