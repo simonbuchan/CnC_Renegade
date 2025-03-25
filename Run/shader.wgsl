@@ -43,9 +43,9 @@ const TOP_BLENDENVMAPLUMINANCE = 23u;
 
 const TOP_DOTPRODUCT3 = 24u;
 
-const TA_TEXTURE = 0u;
-const TA_DIFFUSE = 1u;
-const TA_CURRENT = 2u;
+const TA_DIFFUSE = 0u;
+const TA_CURRENT = 1u;
+const TA_TEXTURE = 2u;
 
 const TTFF_DISABLE = 0x00000000u;
 const TTFF_COUNT2 = 0x00000002u;
@@ -60,6 +60,9 @@ const TCI_CAMERASPACEREFLECTIONVECTOR = 0x00030000u;
 const MCS_MATERIAL = 0u;
 const MCS_COLOR1 = 1u;
 const MCS_COLOR2 = 2u;
+
+const CMP_LESSEQUAL = 4u;
+const CMP_GREATEREQUAL = 7u;
 
 struct TextureState {
     @align(16)
@@ -79,21 +82,6 @@ struct TextureState {
     texcoordindex: u32,
 }
 
-// Color in BGRA format (0xAARRGGBB as u32) for uniforms
-// Can't declare as a vec as WGSL doesn't have u8.
-//struct COLOR {
-//    bgra_value: u32,
-//}
-//fn read_color(color: COLOR) -> vec4f {
-//    let value = color.bgra_value;
-//}
-// Above doesn't work as structs in uniform
-// must have 16-byte alignment. Silly!
-alias COLOR = u32;
-fn read_color(value: u32) -> vec4f {
-    return unpack4x8unorm(value).abgr;
-}
-
 const LIGHT_POINT = 1u;
 const LIGHT_SPOT = 2u;
 const LIGHT_DIRECTIONAL = 3u;
@@ -102,11 +90,6 @@ const LIGHT_DIRECTIONAL = 3u;
 struct LightState {
     @align(16)
     light_type: u32,
-    diffuse: COLOR,
-    specular: COLOR,
-    ambient: COLOR,
-    position: vec3f,
-    direction: vec3f,
     range: f32,
     falloff: f32,
     attenuation0: f32,
@@ -114,24 +97,33 @@ struct LightState {
     attenuation2: f32,
     theta: f32,
     phi: f32,
+    // hack: place last to avoid alignment issues
+    diffuse: vec3f,
+    specular: vec3f,
+    ambient: vec3f,
+    position: vec3f,
+    direction: vec3f,
 }
 
 // D3DMATERIAL8
 struct MaterialState {
     @align(16)
-    diffuse: COLOR,
-    ambient: COLOR,
-    specular: COLOR,
-    emissive: COLOR,
+    diffuse: vec4f,
+    ambient: vec4f,
+    specular: vec4f,
+    emissive: vec4f,
     power: f32,
 }
 
 // D3DRS_*: other render states
 struct RenderState {
     @align(16)
-    alpha_blend_enable: u32, // ALPHABLENDENABLE
+    // todo: squish these enable bits together
+    alpha_test_enable: u32,
+    alpha_test_ref: f32,
+    alpha_test_func: u32,
     lighting_enable: u32, // LIGHTING
-    ambient_color: COLOR, // AMBIENT
+    ambient_color: vec4f, // AMBIENT
     specular_enable: u32, // SPECULARENABLE
     // D3DRS_*MATERIALSOURCE: MSC_* values
     ambient_source: u32,
@@ -184,21 +176,21 @@ fn light(index: u32, in: LightInput) -> Lighting {
     case LIGHT_POINT: {
         let light_vector = light.position - in.world_position;
         light_dir = normalize(light_vector);
-        let distance = length(light_vector);
-        atten = 1.0 / (
-            light.attenuation0 +
-            light.attenuation1 * distance +
-            light.attenuation2 * distance * distance);
+        let d = length(light_vector);
+        if (d > light.range) {
+            return Lighting();
+        }
+        atten = 1.0 / (light.attenuation0 + light.attenuation1 * d + light.attenuation2 * d * d);
         spot = 1.0;
     }
     case LIGHT_SPOT: {
         let light_vector = light.position - in.world_position;
         light_dir = normalize(light_vector);
-        let distance = length(light_vector);
-        atten = 1.0 / (
-            light.attenuation0 +
-            light.attenuation1 * distance +
-            light.attenuation2 * distance * distance);
+        let d = length(light_vector);
+        if (d > light.range) {
+            return Lighting();
+        }
+        atten = 1.0 / (light.attenuation0 + light.attenuation1 * d + light.attenuation2 * d * d);
         // todo
         spot = 1.0;
     }
@@ -208,12 +200,14 @@ fn light(index: u32, in: LightInput) -> Lighting {
         spot = 1.0;
     }
     }
+
     let n_dot_l = max(0.0, dot(in.world_normal, light_dir));
+    let n_dot_h = max(0.0, dot(in.world_normal, normalize(light_dir + vec3f(0, 0, 1))));
 
     var result: Lighting;
-    result.ambient = read_color(light.ambient).rgb * atten * spot;
-    result.diffuse = n_dot_l * read_color(light.diffuse).rgb * atten * spot;
-    // todo: specular
+    result.ambient = light.ambient.bgr * atten * spot;
+    result.diffuse = n_dot_l * light.diffuse.bgr * atten * spot;
+    result.specular = pow(n_dot_h, state.material.power) * light.specular.bgr * atten * spot;
 
     return result;
 }
@@ -221,12 +215,7 @@ fn light(index: u32, in: LightInput) -> Lighting {
 // Adjust a transform expecting the pixel center at the D3D position at (0, 0)
 // to the WebGPU position at (0.5, 0.5).
 // TODO: adjust for the actual render target size. Probably should ajust in the host.
-const HALF_PIXEL_OFFSET = mat4x4f(
-    vec4f(1.0, 0.0, 0.0, 0.0),
-    vec4f(0.0, 1.0, 0.0, 0.0),
-    vec4f(0.0, 0.0, 1.0, 0.0),
-    vec4f(0.5 / 800, 0.5 / 600, 0.0, 1.0),
-);
+const HALF_PIXEL_OFFSET = vec2(0.5 / 800, 0.5 / 600 );
 
 fn stage_uv(stage: u32, in: MainInput, uvs: array<vec2f, TSS_COUNT>) -> vec2f {
     let world = state.ts[TS_WORLD];
@@ -245,13 +234,15 @@ fn stage_uv(stage: u32, in: MainInput, uvs: array<vec2f, TSS_COUNT>) -> vec2f {
     // Camera space defined: https://learn.microsoft.com/en-us/windows/win32/direct3d9/camera-space-transformations
     // TLDR is world * view, not including projection
     case TCI_CAMERASPACEPOSITION: {
-        uv = (HALF_PIXEL_OFFSET * proj * view * world * vec4f(in.position, 1)).xy;
+        uv = (proj * view * world * vec4f(in.position, 1)).xy;
     }
     case TCI_CAMERASPACENORMAL: {
         // todo
         uv = (proj * view * world * vec4f(in.normal, 0)).xy;
     }
     }
+
+    uv += HALF_PIXEL_OFFSET;
 
     if (tss.ttff == TTFF_DISABLE) {
         return uv;
@@ -280,6 +271,10 @@ struct MainOutput {
     @location(2) specular: vec4f,
     @location(3) uv1: vec2f,
     @location(4) uv2: vec2f,
+
+    // lighting
+    @location(5) world_position: vec3f,
+    @location(6) world_normal: vec3f,
 }
 
 @vertex
@@ -289,13 +284,18 @@ fn vs_main(in: MainInput) -> MainOutput {
     let proj = state.ts[TS_PROJECTION];
 
     var output: MainOutput;
-    output.position = HALF_PIXEL_OFFSET * proj * view * world * vec4f(in.position, 1);
+    output.position = proj * view * world * vec4f(in.position, 1);
+    output.position.x += HALF_PIXEL_OFFSET.x;
+    output.position.y += HALF_PIXEL_OFFSET.y;
     output.normal = (world * vec4f(in.normal, 0)).xyz; // sure, why not
     output.diffuse = vec4f(in.diffuse).bgra / 255.0;
     output.specular = vec4f(in.specular).bgra / 255.0;
     let uvs = array(in.uv1, in.uv2);
     output.uv1 = stage_uv(0, in, uvs);
     output.uv2 = stage_uv(1, in, uvs);
+
+    output.world_position = (world * vec4f(in.position, 1)).xyz;
+    output.world_normal = (world * vec4f(in.normal, 0)).xyz;
     return output;
 }
 
@@ -402,40 +402,40 @@ fn material_values(in: MainOutput) -> MaterialValues {
     // TODO: fallback to material color if no vertex color
     switch (state.rs.ambient_source) {
     default: { discard; }
-    case MCS_MATERIAL: { values.ambient = read_color(state.material.ambient); }
+    case MCS_MATERIAL: { values.ambient = state.material.ambient; }
     case MCS_COLOR1: { values.ambient = in.diffuse; }
     case MCS_COLOR2: { values.ambient = in.specular; }
     }
 
     switch (state.rs.diffuse_source) {
     default: { discard; }
-    case MCS_MATERIAL: { values.diffuse = read_color(state.material.diffuse); }
+    case MCS_MATERIAL: { values.diffuse = state.material.diffuse; }
     case MCS_COLOR1: { values.diffuse = in.diffuse; }
     case MCS_COLOR2: { values.diffuse = in.specular; }
     }
 
     switch (state.rs.specular_source) {
     default: { discard; }
-    case MCS_MATERIAL: { values.specular = read_color(state.material.specular); }
+    case MCS_MATERIAL: { values.specular = state.material.specular; }
     case MCS_COLOR1: { values.specular = in.diffuse; }
     case MCS_COLOR2: { values.specular = in.specular; }
     }
 
     switch (state.rs.emissive_source) {
     default: { discard; }
-    case MCS_MATERIAL: { values.emissive = read_color(state.material.emissive); }
-    case MCS_COLOR1: { values.emissive = in.diffuse.bgra; }
-    case MCS_COLOR2: { values.emissive = in.specular.bgra; }
+    case MCS_MATERIAL: { values.emissive = state.material.emissive; }
+    case MCS_COLOR1: { values.emissive = in.diffuse; }
+    case MCS_COLOR2: { values.emissive = in.specular; }
     }
 
     return values;
 }
 
 fn lighting(in: MainOutput) -> Lighting {
-    let light_in = LightInput(in.position.xyz, in.normal);
+    let light_in = LightInput(in.world_position, in.world_normal);
 
     var total: Lighting;
-    total.ambient = read_color(state.rs.ambient_color).rgb;
+    total.ambient = state.rs.ambient_color.bgr;
 
     for (var i = 0u; i < LIGHT_COUNT; i += 1) {
         if ((state.light_enable_bits & (1u << i)) != 0) {
@@ -452,7 +452,7 @@ fn lighting(in: MainOutput) -> Lighting {
 @fragment
 fn fs_main(in: MainOutput) -> @location(0) vec4f {
     var values = material_values(in);
-    if (state.rs.lighting_enable != 0) {
+    if state.rs.lighting_enable != 0 {
         let total = lighting(in);
         values.ambient *= vec4f(total.ambient, 1.0);
         values.diffuse *= vec4f(total.diffuse, 1.0);
@@ -461,8 +461,8 @@ fn fs_main(in: MainOutput) -> @location(0) vec4f {
 
     var arg_in: TexArgIn;
     arg_in.position = in.position;
-
-    arg_in.current = values.ambient + values.diffuse + values.specular + values.emissive;
+    arg_in.diffuse = values.diffuse;
+    arg_in.current = values.diffuse;
 
     for (var i = 0u; i < TSS_COUNT; i += 1) {
         if (state.tss[i].color_op == TOP_DISABLE) {
@@ -479,8 +479,20 @@ fn fs_main(in: MainOutput) -> @location(0) vec4f {
     }
 
     var result = arg_in.current;
-    if state.rs.alpha_blend_enable == 0 {
-        result.a = 1.0;
+    if state.rs.alpha_test_enable != 0 {
+        switch state.rs.alpha_test_func {
+        default: { discard; }
+        case CMP_LESSEQUAL: {
+            if result.a > state.rs.alpha_test_ref {
+                discard;
+            }
+        }
+        case CMP_GREATEREQUAL: {
+            if result.a < state.rs.alpha_test_ref {
+                discard;
+            }
+        }
+        }
     }
     return result;
 }

@@ -18,7 +18,7 @@ typedef RECT D3DRECT;
 
 struct alignas(16) D3DVECTOR
 {
-    D3D_F32 x, y, z;
+    D3D_F32 x, y, z, _;
 };
 
 struct alignas(16) D3DVECTOR4
@@ -93,39 +93,11 @@ enum D3DPOOL
 };
 
 #define D3DCOLOR_DEFINED
+typedef DWORD D3DCOLOR;
 
-struct D3DCOLOR
+struct alignas(16) D3DCOLORVALUE
 {
-    union
-    {
-        D3D_U32 value;
-        struct { D3D_U8 b, g, r, a; };
-    };
-
-    D3DCOLOR(D3D_U32 value = 0)
-        : value(value)
-        // : r(value >> 16), g(value >> 8), b(value), a(value >> 24)
-    {
-    }
-
-    // D3DCOLOR(D3D_U8 r, D3D_U8 g, D3D_U8 b, D3D_U8 a = 0xFF)
-    //     : r(r), g(g), b(b), a(a)
-    // {
-    // }
-    //
-    D3DCOLOR(D3D_F32 r, D3D_F32 g, D3D_F32 b, D3D_F32 a = 1.0)
-        : r(D3D_U8(r * 255.0)),
-          g(D3D_U8(g * 255.0)),
-          b(D3D_U8(b * 255.0)),
-          a(D3D_U8(a * 255.0))
-    {
-    }
-
-    operator D3D_U32() const
-    {
-        return value;
-        // return (a << 24) | (r << 16) | (g << 8) | b;
-    }
+    D3D_F32 r, g, b, a;
 };
 
 enum D3DFORMAT
@@ -276,8 +248,8 @@ enum D3DRENDERSTATETYPE
 
 enum D3DCMPFUNC
 {
-    D3DCMP_LESSEQUAL,
-    D3DCMP_GREATEREQUAL,
+    D3DCMP_LESSEQUAL = 4,
+    D3DCMP_GREATEREQUAL = 7,
 };
 
 enum D3DMATERIALSOURCE
@@ -462,30 +434,31 @@ enum D3DLIGHTTYPE
     D3DLIGHT_DIRECTIONAL = 3,
 };
 
-struct D3DLIGHT8
+struct alignas(16) D3DLIGHT8
 {
-    D3DLIGHTTYPE Type;
-    D3DCOLOR Diffuse;
-    D3DCOLOR Specular;
-    D3DCOLOR Ambient;
-    D3DVECTOR Position;
-    D3DVECTOR Direction;
-    D3D_F32 Range;
-    D3D_F32 Falloff;
-    D3D_F32 Attenuation0;
-    D3D_F32 Attenuation1;
-    D3D_F32 Attenuation2;
-    D3D_F32 Theta;
-    D3D_F32 Phi;
+    D3D_U32 Type = 0;
+    D3D_F32 Range = 0.0f;
+    D3D_F32 Falloff = 0.0f;
+    D3D_F32 Attenuation0 = 0.0f;
+    D3D_F32 Attenuation1 = 0.0f;
+    D3D_F32 Attenuation2 = 0.0f;
+    D3D_F32 Theta = 0.0f;
+    D3D_F32 Phi = 0.0f;
+    // hack: place last to avoid alignment issues
+    D3DCOLORVALUE Diffuse = {};
+    D3DCOLORVALUE Specular = {};
+    D3DCOLORVALUE Ambient = {};
+    D3DVECTOR Position = {};
+    D3DVECTOR Direction = {};
 };
 
-struct D3DMATERIAL8
+struct alignas(16) D3DMATERIAL8
 {
-    D3DCOLOR Diffuse;
-    D3DCOLOR Ambient;
-    D3DCOLOR Specular;
-    D3DCOLOR Emissive;
-    D3D_F32 Power;
+    D3DCOLORVALUE Diffuse = { 0, 0, 0, 0 };
+    D3DCOLORVALUE Ambient = { 0, 0, 0, 0 };
+    D3DCOLORVALUE Specular = { 0, 0, 0, 0 };
+    D3DCOLORVALUE Emissive = { 0, 0, 0, 0 };
+    D3D_F32 Power = 0;
 };
 
 struct D3DLOCKED_RECT

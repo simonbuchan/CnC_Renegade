@@ -312,7 +312,11 @@ pub extern "C" fn wgpu_device_create_texture_bind_group(
                 resource: wgpu::BindingResource::Sampler(
                     &device
                         .device
-                        .create_sampler(&wgpu::SamplerDescriptor::default()),
+                        .create_sampler(&wgpu::SamplerDescriptor {
+                            address_mode_u: wgpu::AddressMode::Repeat,
+                            address_mode_v: wgpu::AddressMode::Repeat,
+                            ..Default::default()
+                        }),
                 ),
             },
         ],
@@ -455,6 +459,7 @@ pub enum WgpuVertexFormat {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub enum WgpuBlendFactor {
     Zero,
     One,
@@ -466,6 +471,23 @@ pub enum WgpuBlendFactor {
     OneMinusDstColor,
     DstAlpha,
     OneMinusDstAlpha,
+}
+
+impl From<WgpuBlendFactor> for wgpu::BlendFactor {
+    fn from(value: WgpuBlendFactor) -> Self {
+        match value {
+            WgpuBlendFactor::Zero => wgpu::BlendFactor::Zero,
+            WgpuBlendFactor::One => wgpu::BlendFactor::One,
+            WgpuBlendFactor::SrcColor => wgpu::BlendFactor::Src,
+            WgpuBlendFactor::OneMinusSrcColor => wgpu::BlendFactor::OneMinusSrc,
+            WgpuBlendFactor::SrcAlpha => wgpu::BlendFactor::SrcAlpha,
+            WgpuBlendFactor::OneMinusSrcAlpha => wgpu::BlendFactor::OneMinusSrcAlpha,
+            WgpuBlendFactor::DstColor => wgpu::BlendFactor::Dst,
+            WgpuBlendFactor::OneMinusDstColor => wgpu::BlendFactor::OneMinusDst,
+            WgpuBlendFactor::DstAlpha => wgpu::BlendFactor::DstAlpha,
+            WgpuBlendFactor::OneMinusDstAlpha => wgpu::BlendFactor::OneMinusDstAlpha,
+        }
+    }
 }
 
 #[repr(C)]
@@ -565,8 +587,24 @@ pub extern "C" fn wgpu_device_create_pipeline(
                 compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                    // disabled blending emulated in the shader by forcing alpha to 1
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    blend: desc.alpha_blend_enable.then(|| {
+                        let operation = wgpu::BlendOperation::Add;
+                        let src_factor = desc.src_blend.into();
+                        let dst_factor = desc.dst_blend.into();
+
+                        wgpu::BlendState {
+                            color: wgpu::BlendComponent {
+                                operation,
+                                src_factor,
+                                dst_factor,
+                            },
+                            alpha: wgpu::BlendComponent {
+                                operation,
+                                src_factor,
+                                dst_factor,
+                            },
+                        }
+                    }),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),

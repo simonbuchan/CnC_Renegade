@@ -193,29 +193,30 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
         bool alpha_blend_enable; // SetRenderState(D3DRS_ALPHABLENDENABLE)
         WgpuBlendFactor src_blend; // SetRenderState(D3DRS_SRCBLEND)
         WgpuBlendFactor dest_blend; // SetRenderState(D3DRS_DESTBLEND)
-        // uint32_t alpha_test_enable; // SetRenderState(D3DRS_ALPHATESTENABLE)
-        // uint32_t alpha_ref; // SetRenderState(D3DRS_ALPHAREF)
-        // uint32_t alpha_func; // SetRenderState(D3DRS_ALPHAFUNC)
+
+        bool operator==(const PipelineState&) const = default;
     };
 
     struct alignas(16) UniformTextureState
     {
         // D3DTSS_*
-        uint32_t color_op; // D3DTOP_*
-        uint32_t color_arg1; // D3DTA_*
-        uint32_t color_arg2; // D3DTA_*
-        uint32_t alpha_op; // D3DTOP_*
-        uint32_t alpha_arg1; // D3DTA_*
-        uint32_t alpha_arg2; // D3DTA_*
-        uint32_t ttff; // D3DTTFF_*
-        uint32_t texcoordindex; // D3DTSS_TCI_* | index
+        uint32_t color_op = D3DTOP_DISABLE; // D3DTOP_*
+        uint32_t color_arg1 = D3DTA_TEXTURE; // D3DTA_*
+        uint32_t color_arg2 = D3DTA_CURRENT; // D3DTA_*
+        uint32_t alpha_op = D3DTOP_DISABLE; // D3DTOP_*
+        uint32_t alpha_arg1 = D3DTA_TEXTURE; // D3DTA_*
+        uint32_t alpha_arg2 = D3DTA_CURRENT; // D3DTA_*
+        uint32_t ttff = D3DTTFF_DISABLE; // D3DTTFF_*
+        uint32_t texcoordindex = 0; // D3DTSS_TCI_* | index
     };
 
     struct alignas(16) RenderState
     {
-        uint32_t alpha_blend_enable = 0;
+        uint32_t alpha_test_enable = 0;
+        float alpha_test_ref = 0.0;
+        uint32_t alpha_test_func = 0;
         uint32_t lighting_enable = 1;
-        uint32_t ambient_color = 0;
+        D3DCOLORVALUE ambient_color = {};
         uint32_t specular_enable = 0;
         uint32_t ambient_source = D3DMCS_MATERIAL;
         uint32_t diffuse_source = D3DMCS_COLOR1;
@@ -228,11 +229,23 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
     struct UniformState
     {
         D3DMATRIX ts[D3DTS_COUNT] = {};
-        UniformTextureState texture_state[2] = {};
+        UniformTextureState texture_state[2] = {
+            {
+                .color_op = D3DTOP_MODULATE,
+                .alpha_op = D3DTOP_SELECTARG1,
+            },
+            {
+                .texcoordindex = 1,
+            }
+        };
         RenderState rs = {};
-        D3DLIGHT8 lights[8] = {};
+        D3DLIGHT8 lights[4] = {};
         D3DMATERIAL8 material = {
-            0xFF'FF'FF'FF,
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            {0.0f, 0.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 0.0f, 0.0f},
+            0.0f,
         };
         uint32_t light_enable_bits = 0;
     };
@@ -250,17 +263,23 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
     CComPtr<IDirect3DVertexBuffer8> vertex_buffer;
     CComPtr<IDirect3DIndexBuffer8> index_buffer;
     std::array<CComPtr<IDirect3DBaseTexture8>, 2> textures;
-    uint32_t state_writes;
-    uint32_t pipeline_index;
-    bool state_dirty = true;
+    uint32_t state_writes = 0;
+    uint32_t pipeline_cache_index = 0;
 
-    struct FVFPipleline
+    // need to re-create or lookup the pipeline from pipeline_state on next draw
+    bool pipeline_state_dirty = true;
+
+    // need to write the uniform state to the buffer on next draw
+    bool uniform_state_dirty = true;
+
+    struct PipelineCacheEntry
     {
-        D3D_U32 fvf;
+        PipelineState state; // key
         wgpu::Pipeline pipeline;
     };
 
-    std::vector<FVFPipleline> pipelines;
+    // todo: hash pipeline state
+    std::vector<PipelineCacheEntry> pipeline_cache;
 
 private:
     IDirect3DDevice8(wgpu::Device device, wgpu::Surface surface);

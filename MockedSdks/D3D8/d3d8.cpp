@@ -87,11 +87,13 @@ wgpu::Buffer create_const_vertex_buffer(wgpu::Device& device)
     return result;
 }
 
-wgpu::Pipeline create_pipeline_for_fvf(
+wgpu::Pipeline create_pipeline_for_state(
     wgpu::Device& device,
     wgpu::ShaderModule& shader_module,
-    std::uint32_t fvf)
+    IDirect3DDevice8::PipelineState const& state)
 {
+    auto fvf = state.fvf;
+
     // build a new pipeline to match FVF
     auto vertex_shader = shader_module.desc("vs_main");
     auto fragment_shader = shader_module.desc("fs_main");
@@ -271,6 +273,9 @@ wgpu::Pipeline create_pipeline_for_fvf(
         .attributes_len = attrs.size(),
         .vertex_shader = &vertex_shader,
         .fragment_shader = &fragment_shader,
+        .alpha_blend_enable = state.alpha_blend_enable,
+        .src_blend = state.src_blend,
+        .dst_blend = state.dest_blend,
     });
 }
 
@@ -302,7 +307,8 @@ IDirect3DDevice8::IDirect3DDevice8(wgpu::Device device_, wgpu::Surface surface)
       commands(device.create_commands()),
       commands_copy(device.create_commands()),
       shader_module(device.create_shader_module(read_shader())),
-      state_buffer(device.create_buffer(uniform_state_size_aligned * max_states_before_flush, WGPU_BUFFER_USAGE_UNIFORM)),
+      state_buffer(
+          device.create_buffer(uniform_state_size_aligned * max_states_before_flush, WGPU_BUFFER_USAGE_UNIFORM)),
       state_writes(0),
       static_bind_group(device.create_static_bind_group(state_buffer, 0, sizeof(UniformState))),
       const_vertex_buffer(create_const_vertex_buffer(device)),
@@ -372,7 +378,7 @@ D3D_RESULT IDirect3D8::CheckDeviceFormat(
     D3DFORMAT format)
 {
     // only support these formats for now (which are natively supported by wgpu)
-    if (format == D3DFMT_A8R8G8B8)
+    if (format == D3DFMT_A8R8G8B8) // actually WgpuTextureFormat::Bgra8Unorm
         return D3D_OK;
     if (format == D3DFMT_D32)
         return D3D_OK;
@@ -659,7 +665,7 @@ D3D_RESULT IDirect3DDevice8::EndScene()
     device.submit(commands_copy);
     device.submit(commands);
     state_writes = 0;
-    state_dirty = true;
+    uniform_state_dirty = true;
     return D3D_OK;
 }
 
@@ -699,7 +705,7 @@ D3D_RESULT IDirect3DDevice8::SetLight(D3D_U32 index, const D3DLIGHT8* value)
     if (index >= 4)
         return D3DERR_INVALIDCALL;
     uniform_state.lights[index] = *value;
-    state_dirty = true;
+    uniform_state_dirty = true;
     return D3D_OK;
 }
 
@@ -709,7 +715,7 @@ D3D_RESULT IDirect3DDevice8::LightEnable(D3D_U32 index, D3D_BOOL value)
         uniform_state.light_enable_bits |= 1 << index;
     else
         uniform_state.light_enable_bits &= ~(1 << index);
-    state_dirty = true;
+    uniform_state_dirty = true;
     return D3D_OK;
 }
 
@@ -751,14 +757,14 @@ D3D_RESULT IDirect3DDevice8::SetTextureStageState(D3D_U32 stage, D3DTEXTURESTAGE
         break;
     default: return D3D_OK;
     }
-    state_dirty = true;
+    uniform_state_dirty = true;
     return D3D_OK;
 }
 
 D3D_RESULT IDirect3DDevice8::SetMaterial(const D3DMATERIAL8* value)
 {
     uniform_state.material = *value;
-    state_dirty = true;
+    uniform_state_dirty = true;
     return D3D_OK;
 }
 
@@ -775,8 +781,31 @@ D3D_RESULT IDirect3DDevice8::SetTransform(D3DTRANSFORMSTATETYPE type, const D3DM
     if (type >= D3DTS_COUNT)
         return D3DERR_INVALIDCALL;
     uniform_state.ts[type] = *value;
-    state_dirty = true;
+    uniform_state_dirty = true;
     return D3D_OK;
+}
+
+WgpuBlendFactor d3d_to_wgpu_blend_factor(D3D_U32 f)
+{
+    switch (f)
+    {
+    default:
+        assert(0 && "invalid blend factor");
+        return WgpuBlendFactor::Zero;
+    case D3DBLEND_ZERO:
+        return WgpuBlendFactor::Zero;
+    case D3DBLEND_ONE:
+        return WgpuBlendFactor::One;
+    case D3DBLEND_SRCCOLOR:
+        return WgpuBlendFactor::SrcColor;
+    case D3DBLEND_INVSRCCOLOR:
+        return WgpuBlendFactor::OneMinusSrcColor;
+    case D3DBLEND_SRCALPHA:
+        return WgpuBlendFactor::SrcAlpha;
+    case D3DBLEND_INVSRCALPHA:
+        return WgpuBlendFactor::OneMinusSrcAlpha;
+
+    }
 }
 
 D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE type, D3D_U32 value)
@@ -788,14 +817,38 @@ D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE type, D3D_U32 val
     switch (type)
     {
     case D3DRS_ALPHABLENDENABLE:
-        uniform_state.rs.alpha_blend_enable = value;
+        pipeline_state.alpha_blend_enable = value;
+        pipeline_state_dirty = true;
+        return D3D_OK;
+    case D3DRS_SRCBLEND:
+        pipeline_state.src_blend = d3d_to_wgpu_blend_factor(value);
+        pipeline_state_dirty = true;
+        return D3D_OK;
+    case D3DRS_DESTBLEND:
+        pipeline_state.dest_blend = d3d_to_wgpu_blend_factor(value);
+        pipeline_state_dirty = true;
+        return D3D_OK;
+    case D3DRS_ALPHATESTENABLE:
+        uniform_state.rs.alpha_test_enable = value;
+        break;
+    case D3DRS_ALPHAREF:
+        uniform_state.rs.alpha_test_ref = value / 255.0f;
+        break;
+    case D3DRS_ALPHAFUNC:
+        uniform_state.rs.alpha_test_func = value;
         break;
     case D3DRS_LIGHTING:
         uniform_state.rs.lighting_enable = value;
         break;
     case D3DRS_AMBIENT:
-        uniform_state.rs.ambient_color = value;
-        break;
+        {
+            // value is D3DCOLOR in ARGB format
+            uniform_state.rs.ambient_color.r = (value >> 16) / 255.0f;
+            uniform_state.rs.ambient_color.g = ((value >> 8) & 0xff) / 255.0f;
+            uniform_state.rs.ambient_color.b = (value & 0xff) / 255.0f;
+            uniform_state.rs.ambient_color.a = ((value >> 24) & 0xff) / 255.0f;
+            break;
+        }
     case D3DRS_SPECULARENABLE:
         uniform_state.rs.specular_enable = value;
         break;
@@ -814,7 +867,7 @@ D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE type, D3D_U32 val
     default:
         return D3D_OK; // ignore
     }
-    state_dirty = true;
+    uniform_state_dirty = true;
     return D3D_OK;
 }
 
@@ -835,24 +888,8 @@ D3D_RESULT IDirect3DDevice8::SetIndices(IDirect3DIndexBuffer8* index_buffer, D3D
 
 D3D_RESULT IDirect3DDevice8::SetVertexShader(D3D_U32 fvf)
 {
-    for (int i = 0; i < pipelines.size(); i++)
-    {
-        auto& pipeline = pipelines[i];
-        if (pipeline.fvf == fvf)
-        {
-            pipeline_index = i;
-            commands.set_pipeline(pipeline.pipeline);
-            return D3D_OK;
-        }
-    }
-    auto pipeline = create_pipeline_for_fvf(device, shader_module, fvf);
-    commands.set_pipeline(pipeline);
-    pipeline_index = pipelines.size();
-    pipelines.push_back({
-        .fvf = fvf,
-        .pipeline = std::move(pipeline),
-    });
-
+    pipeline_state.fvf = fvf;
+    pipeline_state_dirty = true;
     return D3D_OK;
 }
 
@@ -918,7 +955,7 @@ D3D_RESULT IDirect3DDevice8::DrawIndexedPrimitive(
     D3D_U32 index_first,
     D3D_U32 polygon_count)
 {
-    if (state_dirty)
+    if (uniform_state_dirty)
     {
         if (state_writes == max_states_before_flush)
         {
@@ -932,7 +969,7 @@ D3D_RESULT IDirect3DDevice8::DrawIndexedPrimitive(
             commands.begin_render_pass(surface, nullptr);
             commands.set_bind_group(1, textures[0] ? textures[0]->bind_group : white_texture_bind_group);
             commands.set_bind_group(2, textures[1] ? textures[1]->bind_group : white_texture_bind_group);
-            commands.set_pipeline(pipelines[pipeline_index].pipeline);
+            pipeline_state_dirty = true;
             if (vertex_buffer) commands.set_vertex_buffer(0, vertex_buffer->buffer);
             commands.set_vertex_buffer(1, const_vertex_buffer);
             if (index_buffer) commands.set_index_buffer(index_buffer->buffer, index_buffer->format);
@@ -940,10 +977,33 @@ D3D_RESULT IDirect3DDevice8::DrawIndexedPrimitive(
 
         auto offset = state_writes * uniform_state_size_aligned;
         state_writes += 1;
-        state_dirty = false;
+        uniform_state_dirty = false;
         state_buffer.write(offset, (uint8_t*)&uniform_state, sizeof(uniform_state));
         commands.set_bind_group(0, static_bind_group, offset);
     }
+    if (pipeline_state_dirty)
+    {
+        for (pipeline_cache_index = 0;
+            pipeline_cache_index < pipeline_cache.size();
+            pipeline_cache_index++)
+        {
+            auto& entry = pipeline_cache[pipeline_cache_index];
+            if (entry.state == pipeline_state)
+            {
+                break;
+            }
+        }
+        if (pipeline_cache_index == pipeline_cache.size())
+        {
+            pipeline_cache.push_back({
+                .state = pipeline_state,
+                .pipeline = create_pipeline_for_state(device, shader_module, pipeline_state),
+            });
+        }
+        commands.set_pipeline(pipeline_cache[pipeline_cache_index].pipeline);
+        pipeline_state_dirty = false;
+    }
+
     commands.draw_indexed(WgpuDrawIndexed{
         .index_first = index_first,
         .index_count = polygon_count * 3,
