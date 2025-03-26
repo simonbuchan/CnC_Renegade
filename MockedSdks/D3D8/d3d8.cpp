@@ -82,7 +82,7 @@ struct ConstVertexBufferData
 wgpu::Buffer create_const_vertex_buffer(wgpu::Device& device)
 {
     ConstVertexBufferData data;
-    auto result = device.create_buffer(sizeof(data), WGPU_BUFFER_USAGE_VERTEX);
+    auto result = wgpu::Buffer::create(device, sizeof(data), WGPU_BUFFER_USAGE_VERTEX);
     result.write(0, (uint8_t const*)&data, sizeof(data));
     return result;
 }
@@ -266,17 +266,17 @@ wgpu::Pipeline create_pipeline_for_state(
     buffers[0].stride = buffer_stride;
     buffers[1].stride = 0; // all vertices get the same value
 
-    return device.create_pipeline({
-        .buffers_ptr = buffers.data(),
-        .buffers_len = buffers.size(),
-        .attributes_ptr = attrs.data(),
-        .attributes_len = attrs.size(),
-        .vertex_shader = &vertex_shader,
-        .fragment_shader = &fragment_shader,
-        .alpha_blend_enable = state.alpha_blend_enable,
-        .src_blend = state.src_blend,
-        .dst_blend = state.dest_blend,
-    });
+    return wgpu::Pipeline::create(device, {
+                                      .buffers_ptr = buffers.data(),
+                                      .buffers_len = buffers.size(),
+                                      .attributes_ptr = attrs.data(),
+                                      .attributes_len = attrs.size(),
+                                      .vertex_shader = &vertex_shader,
+                                      .fragment_shader = &fragment_shader,
+                                      .alpha_blend_enable = state.alpha_blend_enable,
+                                      .src_blend = state.src_blend,
+                                      .dst_blend = state.dest_blend,
+                                  });
 }
 
 std::string read_shader()
@@ -287,15 +287,15 @@ std::string read_shader()
 
 wgpu::BindGroup create_white_texture_bind_group(wgpu::Device& device)
 {
-    auto white_texture = device.create_texture(
-        WgpuTextureFormat::Rgba8Unorm,
-        1,
-        1,
-        1,
-        WGPU_TEXTURE_USAGE_TEXTURE_BINDING | WGPU_TEXTURE_USAGE_COPY_DST);
+    auto white_texture = wgpu::Texture::create(device,
+                                               WgpuTextureFormat::Rgba8Unorm,
+                                               1,
+                                               1,
+                                               1,
+                                               WGPU_TEXTURE_USAGE_TEXTURE_BINDING | WGPU_TEXTURE_USAGE_COPY_DST);
     uint8_t white[] = {0xff, 0xff, 0xff, 0xff};
     white_texture.write(0, white, sizeof(white));
-    return device.create_texture_bind_group(white_texture);
+    return wgpu::BindGroup::create_texture(device, white_texture);
 }
 
 constexpr uint32_t max_states_before_flush = 1000;
@@ -304,13 +304,12 @@ constexpr uint32_t uniform_state_size_aligned = (sizeof(IDirect3DDevice8::Unifor
 IDirect3DDevice8::IDirect3DDevice8(wgpu::Device device_, wgpu::Surface surface)
     : device(std::move(device_)),
       surface(std::move(surface)),
-      commands(device.create_commands()),
-      commands_copy(device.create_commands()),
-      shader_module(device.create_shader_module(read_shader())),
-      state_buffer(
-          device.create_buffer(uniform_state_size_aligned * max_states_before_flush, WGPU_BUFFER_USAGE_UNIFORM)),
-      state_writes(0),
-      static_bind_group(device.create_static_bind_group(state_buffer, 0, sizeof(UniformState))),
+      commands(wgpu::Commands::create(device)),
+      commands_copy(wgpu::Commands::create(device)),
+      shader_module(wgpu::ShaderModule::create_from_wsgl(device, read_shader())),
+      state_buffer(wgpu::Buffer::create(device, uniform_state_size_aligned * max_states_before_flush,
+                                        WGPU_BUFFER_USAGE_UNIFORM)),
+      static_bind_group(wgpu::BindGroup::create_static(device, state_buffer, 0, sizeof(UniformState))),
       const_vertex_buffer(create_const_vertex_buffer(device)),
       white_texture_bind_group(create_white_texture_bind_group(device))
 {
@@ -400,8 +399,8 @@ D3D_RESULT IDirect3D8::CreateDevice(
     D3DPRESENT_PARAMETERS* present_params,
     IDirect3DDevice8** result)
 {
-    auto wgpu_device = wgpu.create_device(index);
-    auto wgpu_surface = wgpu.create_surface(hwnd);
+    auto wgpu_device = wgpu::Device::create(wgpu, index);
+    auto wgpu_surface = wgpu::Surface::create(wgpu, hwnd);
 
     D3D_U32 width = present_params->BackBufferWidth;
     D3D_U32 height = present_params->BackBufferHeight;
@@ -453,7 +452,7 @@ D3D_U32 IDirect3DDevice8::GetAvailableTextureMem()
 D3D_RESULT IDirect3DDevice8::CreateVertexBuffer(D3D_U32 length, D3D_U32 usage, D3D_U32 fvf, D3D_U32 pool,
                                                 IDirect3DVertexBuffer8** result)
 {
-    auto vertex_buffer = device.create_buffer(length, WGPU_BUFFER_USAGE_VERTEX);
+    auto vertex_buffer = wgpu::Buffer::create(device, length, WGPU_BUFFER_USAGE_VERTEX);
     *result = IDirect3DVertexBuffer8::Create(std::move(vertex_buffer)).Detach();
     return D3D_OK;
 }
@@ -474,7 +473,7 @@ D3D_RESULT IDirect3DDevice8::CreateIndexBuffer(D3D_U32 length, D3D_U32 usage, D3
         return D3DERR_INVALIDCALL;
     }
 
-    auto index_buffer = device.create_buffer(length, WGPU_BUFFER_USAGE_INDEX);
+    auto index_buffer = wgpu::Buffer::create(device, length, WGPU_BUFFER_USAGE_INDEX);
     *result = IDirect3DIndexBuffer8::Create(std::move(index_buffer), wgpu_format).Detach();
     return D3D_OK;
 }
@@ -552,7 +551,7 @@ D3D_RESULT IDirect3DDevice8::CreateImageSurface(D3D_U32 width, D3D_U32 height, D
     // We have claimed we only support RGBA8 (which is actually accurate for WGPU's API!), so assert that
     // here. Fonts etc. were hard-coded to use RGBA4, for example.
     assert(format == D3DFMT_A8R8G8B8);
-    auto texture = device.create_texture(WgpuTextureFormat::Rgba8Unorm, width, height, 1,
+    auto texture = wgpu::Texture::create(device, WgpuTextureFormat::Rgba8Unorm, width, height, 1,
                                          WGPU_TEXTURE_USAGE_TEXTURE_BINDING |
                                          WGPU_TEXTURE_USAGE_COPY_SRC |
                                          WGPU_TEXTURE_USAGE_COPY_DST);
@@ -599,11 +598,11 @@ D3D_RESULT IDirect3DDevice8::CreateTexture(D3D_U32 width, D3D_U32 height, D3D_U3
         auto height_levels = 32 - std::countl_zero(height);
         levels = min(width_levels, height_levels);
     }
-    auto texture = device.create_texture(wgpu_format, width, height, levels,
+    auto texture = wgpu::Texture::create(device, wgpu_format, width, height, levels,
                                          WGPU_TEXTURE_USAGE_TEXTURE_BINDING |
                                          WGPU_TEXTURE_USAGE_COPY_SRC |
                                          WGPU_TEXTURE_USAGE_COPY_DST);
-    auto bind_group = device.create_texture_bind_group(texture);
+    auto bind_group = wgpu::BindGroup::create_texture(device, texture);
     auto bpp = FormatBitsPerPixel(format);
     if (bpp == 0)
         return D3DERR_INVALIDCALL;
@@ -804,7 +803,6 @@ WgpuBlendFactor d3d_to_wgpu_blend_factor(D3D_U32 f)
         return WgpuBlendFactor::SrcAlpha;
     case D3DBLEND_INVSRCALPHA:
         return WgpuBlendFactor::OneMinusSrcAlpha;
-
     }
 }
 
@@ -984,8 +982,8 @@ D3D_RESULT IDirect3DDevice8::DrawIndexedPrimitive(
     if (pipeline_state_dirty)
     {
         for (pipeline_cache_index = 0;
-            pipeline_cache_index < pipeline_cache.size();
-            pipeline_cache_index++)
+             pipeline_cache_index < pipeline_cache.size();
+             pipeline_cache_index++)
         {
             auto& entry = pipeline_cache[pipeline_cache_index];
             if (entry.state == pipeline_state)

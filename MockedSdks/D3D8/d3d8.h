@@ -153,7 +153,7 @@ protected:
 
 struct IDirect3D8 : IDirect3DUnknown8
 {
-    wgpu::Instance wgpu;
+    wgpu::Instance wgpu = wgpu::Instance::create();
 
     D3D_U32 GetAdapterCount();
     D3D_U32 GetAdapterModeCount(D3D_U32);

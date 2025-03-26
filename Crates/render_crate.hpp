@@ -44,10 +44,15 @@ namespace wgpu
 
     struct Instance
     {
+        static Instance create()
+        {
+            return Instance(wgpu_instance_create());
+        }
+
         std::unique_ptr<WgpuInstance, decltype(&wgpu_instance_destroy)> ptr;
 
-        explicit Instance()
-            : ptr(wgpu_instance_create(), &wgpu_instance_destroy)
+        explicit Instance(WgpuInstance* ptr)
+            : ptr(ptr, &wgpu_instance_destroy)
         {
         }
 
@@ -56,22 +61,19 @@ namespace wgpu
             return wgpu_instance_adapter_count(ptr.get());
         }
 
-        bool adapter_supports_surface(uint32_t index, Surface& surface) const;
+        bool adapter_supports_surface(uint32_t index, Surface const& surface) const;
 
         WgpuAdapterInfo adapter_id(uint32_t index) const
         {
             return wgpu_instance_adapter_id(ptr.get(), index);
         }
-
-        Device create_device(uint32_t adapter);
-        Surface create_surface(HWND hwnd);
     };
 
     struct Device
     {
         static Device create(Instance const& instance, uint32_t adapter)
         {
-            return Device(wgpu_instance_device_create(instance.ptr.get(), adapter));
+            return Device(wgpu_device_create(instance.ptr.get(), adapter));
         }
 
         std::unique_ptr<WgpuDevice, decltype(&wgpu_device_destroy)> ptr;
@@ -81,16 +83,6 @@ namespace wgpu
         {
         }
 
-        BindGroup create_static_bind_group(Buffer& buffer, uint64_t offset, uint64_t size);
-        BindGroup create_texture_bind_group(Texture& buffer);
-
-        Buffer create_buffer(uint64_t size, uint32_t usage);
-        Texture create_texture(WgpuTextureFormat format, uint32_t width, uint32_t height, uint32_t mip_level_count,
-                               uint32_t usage);
-        Commands create_commands();
-        ShaderModule create_shader_module(std::string_view wgsl_source);
-        Pipeline create_pipeline(WgpuPipelineDesc const& desc);
-
         void submit(Commands&);
     };
 
@@ -98,7 +90,7 @@ namespace wgpu
     {
         static Surface create(Instance const& instance, HWND hwnd)
         {
-            return Surface(wgpu_instance_surface_create(instance.ptr.get(), reinterpret_cast<intptr_t>(hwnd)));
+            return Surface(wgpu_surface_create(instance.ptr.get(), reinterpret_cast<intptr_t>(hwnd)));
         }
 
         std::unique_ptr<WgpuSurface, decltype(&wgpu_surface_destroy)> ptr;
@@ -119,25 +111,17 @@ namespace wgpu
         }
     };
 
-    struct BindGroup
-    {
-        static BindGroup create_static(Device const& device, Buffer& buffer, uint64_t offset, uint64_t size);
-        static BindGroup create_texture(Device const& device, Texture& texture);
-
-        std::unique_ptr<WgpuBindGroup, decltype(&wgpu_bind_group_destroy)> ptr;
-
-        explicit BindGroup(WgpuBindGroup* ptr)
-            : ptr(ptr, &wgpu_bind_group_destroy)
-        {
-        }
-    };
-
     struct Buffer
     {
+        static Buffer create(Device const& device, uint64_t size, uint32_t usage)
+        {
+            return Buffer(wgpu_buffer_create(device.ptr.get(), size, usage));
+        }
+
         std::unique_ptr<WgpuBuffer, decltype(&wgpu_buffer_destroy)> ptr;
 
-        explicit Buffer(WgpuDevice* device, uint64_t size, uint32_t usage)
-            : ptr(wgpu_device_create_buffer(device, size, usage), &wgpu_buffer_destroy)
+        explicit Buffer(WgpuBuffer* ptr)
+            : ptr(ptr, &wgpu_buffer_destroy)
         {
         }
 
@@ -149,38 +133,33 @@ namespace wgpu
 
     struct Texture
     {
-        std::unique_ptr<WgpuTexture, decltype(&wgpu_texture_destroy)> ptr;
-
-        explicit Texture(Texture const& other)
-            : ptr(wgpu_texture_clone(other.ptr.get()), &wgpu_texture_destroy)
-        {
-        }
-
-        Texture(Texture&& other) = default;
-
-        explicit Texture(
-            WgpuDevice* device,
+        static Texture create(
+            Device const& device,
             WgpuTextureFormat format,
             uint32_t width,
             uint32_t height,
             uint32_t mip_level_count,
             uint32_t usage)
-            : ptr(wgpu_device_create_texture(device, format, width, height, mip_level_count, usage),
-                  &wgpu_texture_destroy)
         {
+            return Texture(wgpu_device_create_texture(device.ptr.get(), format, width, height, mip_level_count, usage));
         }
 
-        Texture& operator=(Texture const& other)
-        {
-            ptr.reset(wgpu_texture_clone(other.ptr.get()));
-            return *this;
-        }
+        std::unique_ptr<WgpuTexture, decltype(&wgpu_texture_destroy)> ptr;
 
+        Texture(Texture&& other) = default;
         Texture& operator=(Texture&& other) = default;
+
+        explicit Texture(WgpuTexture* ptr)
+            : ptr(ptr, &wgpu_texture_destroy)
+        {
+        }
+
+        Texture(Texture const& other) = delete;
+        Texture& operator=(Texture const& other) = delete;
 
         Texture clone() const
         {
-            return Texture(*this);
+            return Texture(wgpu_texture_clone(ptr.get()));
         }
 
         void write(uint32_t level, uint8_t const* data_ptr, uint32_t data_len)
@@ -189,13 +168,40 @@ namespace wgpu
         }
     };
 
+    struct BindGroup
+    {
+        static BindGroup create_static(Device const& device, Buffer const& buffer, uint64_t offset, uint64_t size)
+        {
+            return BindGroup(wgpu_bind_group_create_static(device.ptr.get(), buffer.ptr.get(), offset, size));
+        }
+
+        static BindGroup create_texture(Device const& device, Texture const& texture)
+        {
+            return BindGroup(wgpu_bind_group_create_texture(device.ptr.get(), texture.ptr.get()));
+        }
+
+        std::unique_ptr<WgpuBindGroup, decltype(&wgpu_bind_group_destroy)> ptr;
+
+        explicit BindGroup(WgpuBindGroup* ptr)
+            : ptr(ptr, &wgpu_bind_group_destroy)
+        {
+        }
+    };
+
     struct ShaderModule
     {
+        static ShaderModule create_from_wsgl(Device const& device, std::string_view wgsl_source)
+        {
+            return ShaderModule(
+                wgpu_shader_module_create_from_wgsl(
+                    device.ptr.get(),
+                    WgpuString{wgsl_source.data(), wgsl_source.length()}));
+        }
+
         std::unique_ptr<WgpuShaderModule, decltype(&wgpu_shader_module_destroy)> ptr;
 
-        explicit ShaderModule(WgpuDevice* device, std::string_view wgsl_source)
-            : ptr(wgpu_device_create_wgsl_shader_module(device, WgpuString{wgsl_source.data(), wgsl_source.length()}),
-                  &wgpu_shader_module_destroy)
+        explicit ShaderModule(WgpuShaderModule* ptr)
+            : ptr(ptr, &wgpu_shader_module_destroy)
         {
         }
 
@@ -207,20 +213,30 @@ namespace wgpu
 
     struct Pipeline
     {
+        static Pipeline create(Device const& device, WgpuPipelineDesc const& desc)
+        {
+            return Pipeline(wgpu_pipeline_create(device.ptr.get(), &desc));
+        }
+
         std::unique_ptr<WgpuPipeline, decltype(&wgpu_pipeline_destroy)> ptr;
 
-        explicit Pipeline(WgpuDevice* device, WgpuPipelineDesc const& desc)
-            : ptr(wgpu_device_create_pipeline(device, &desc), &wgpu_pipeline_destroy)
+        explicit Pipeline(WgpuPipeline* ptr)
+            : ptr(ptr, &wgpu_pipeline_destroy)
         {
         }
     };
 
     struct Commands
     {
+        static Commands create(Device const& device)
+        {
+            return Commands(wgpu_commands_create(device.ptr.get()));
+        }
+
         std::unique_ptr<WgpuCommands, decltype(&wgpu_commands_destroy)> ptr;
 
-        explicit Commands(WgpuDevice* device)
-            : ptr(wgpu_device_create_commands(device), &wgpu_commands_destroy)
+        explicit Commands(WgpuCommands* ptr)
+            : ptr(ptr, &wgpu_commands_destroy)
         {
         }
 
@@ -277,7 +293,7 @@ namespace wgpu
         }
     };
 
-    inline bool Instance::adapter_supports_surface(uint32_t index, Surface& surface) const
+    inline bool Instance::adapter_supports_surface(uint32_t index, Surface const& surface) const
     {
         return wgpu_instance_adapter_supports_surface(
             ptr.get(),
@@ -285,64 +301,8 @@ namespace wgpu
             surface.ptr.get());
     }
 
-    inline Device Instance::create_device(uint32_t adapter)
-    {
-        return Device::create(*this, adapter);
-    }
-
-    inline Surface Instance::create_surface(HWND hwnd)
-    {
-        return Surface::create(*this, hwnd);
-    }
-
-    inline BindGroup Device::create_static_bind_group(Buffer& buffer, uint64_t offset, uint64_t size)
-    {
-        return BindGroup::create_static(*this, buffer, offset, size);
-    }
-
-    inline BindGroup Device::create_texture_bind_group(Texture& buffer)
-    {
-        return BindGroup::create_texture(*this, buffer);
-    }
-
-    inline Buffer Device::create_buffer(uint64_t size, uint32_t usage)
-    {
-        return Buffer(ptr.get(), size, usage);
-    }
-
-    inline Texture Device::create_texture(WgpuTextureFormat format, uint32_t width, uint32_t height,
-                                          uint32_t mip_level_count, uint32_t usage)
-    {
-        return Texture(ptr.get(), format, width, height, mip_level_count, usage);
-    }
-
-    inline Commands Device::create_commands()
-    {
-        return Commands(ptr.get());
-    }
-
-    inline ShaderModule Device::create_shader_module(std::string_view wgsl_source)
-    {
-        return ShaderModule(ptr.get(), wgsl_source);
-    }
-
-    inline Pipeline Device::create_pipeline(WgpuPipelineDesc const& desc)
-    {
-        return Pipeline(ptr.get(), desc);
-    }
-
     inline void Device::submit(Commands& commands)
     {
         wgpu_device_submit(ptr.get(), commands.ptr.get());
-    }
-
-    inline BindGroup BindGroup::create_static(Device const& device, Buffer& buffer, uint64_t offset, uint64_t size)
-    {
-        return BindGroup(wgpu_device_create_static_bind_group(device.ptr.get(), buffer.ptr.get(), offset, size));
-    }
-
-    inline BindGroup BindGroup::create_texture(Device const& device, Texture& texture)
-    {
-        return BindGroup(wgpu_device_create_texture_bind_group(device.ptr.get(), texture.ptr.get()));
     }
 }

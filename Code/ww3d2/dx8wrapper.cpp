@@ -541,7 +541,7 @@ void DX8Wrapper::Enumerate_Devices()
 
 	// Just to test compatibility for now. Probably not really needed, but I wrote the APIs
 	// debugging surface setup anyway so may as well keep it around.
-	auto surface = D3DInterface->wgpu.create_surface(_Hwnd);
+	auto surface = wgpu::Surface::create(D3DInterface->wgpu, _Hwnd);
 
 	int adapter_count = D3DInterface->GetAdapterCount();
 	for (int adapter_index=0; adapter_index<adapter_count; adapter_index++) {
