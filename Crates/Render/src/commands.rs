@@ -89,10 +89,12 @@ pub extern "C" fn wgpu_commands_copy_texture_to_texture(
 pub extern "C" fn wgpu_commands_begin_render_pass(
     commands: *mut WgpuCommands,
     surface: *mut WgpuSurface,
+    depth_stencil_texture: *mut WgpuTexture,
     clear_color: *mut [f32; 4],
 ) {
     let commands = unsafe { &mut *commands };
     let surface_view = unsafe { &mut *surface }.get_texture_view();
+    let mut depth_stencil_texture = std::ptr::NonNull::new(depth_stencil_texture);
 
     if let Some(render_pass) = commands.render_pass.take() {
         drop(render_pass);
@@ -110,6 +112,12 @@ pub extern "C" fn wgpu_commands_begin_render_pass(
         wgpu::LoadOp::Load
     };
 
+    let depth_stencil_view = depth_stencil_texture.as_mut().map(|texture| {
+        unsafe { texture.as_mut() }
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default())
+    });
+
     let render_pass = commands
         .encoder
         .begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -121,6 +129,19 @@ pub extern "C" fn wgpu_commands_begin_render_pass(
                     store: wgpu::StoreOp::Store,
                 },
             })],
+            depth_stencil_attachment: depth_stencil_view.as_ref().map(|view| {
+                wgpu::RenderPassDepthStencilAttachment {
+                    view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                }
+            }),
             ..Default::default()
         });
     commands.render_pass = Some(render_pass);

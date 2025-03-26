@@ -47,6 +47,34 @@ impl From<WgpuBlendFactor> for wgpu::BlendFactor {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
+pub enum WgpuCompare {
+    Never,
+    Less,
+    Equal,
+    LessEqual,
+    Greater,
+    NotEqual,
+    GreaterEqual,
+    Always,
+}
+
+impl From<WgpuCompare> for wgpu::CompareFunction {
+    fn from(value: WgpuCompare) -> Self {
+        match value {
+            WgpuCompare::Never => wgpu::CompareFunction::Never,
+            WgpuCompare::Less => wgpu::CompareFunction::Less,
+            WgpuCompare::Equal => wgpu::CompareFunction::Equal,
+            WgpuCompare::LessEqual => wgpu::CompareFunction::LessEqual,
+            WgpuCompare::Greater => wgpu::CompareFunction::Greater,
+            WgpuCompare::NotEqual => wgpu::CompareFunction::NotEqual,
+            WgpuCompare::GreaterEqual => wgpu::CompareFunction::GreaterEqual,
+            WgpuCompare::Always => wgpu::CompareFunction::Always,
+        }
+    }
+}
+
+#[repr(C)]
 pub struct WgpuVertexBufferDesc {
     // should be u64, but C++ refuses to align correctly
     stride: u32,
@@ -79,6 +107,9 @@ pub struct WgpuPipelineDesc {
     pub alpha_blend_enable: bool,
     pub src_blend: WgpuBlendFactor,
     pub dst_blend: WgpuBlendFactor,
+    pub z_write_enable: bool,
+    pub z_bias: u32,
+    pub z_func: WgpuCompare,
 }
 
 #[unsafe(no_mangle)]
@@ -135,7 +166,17 @@ pub extern "C" fn wgpu_pipeline_create(
                 topology: wgpu::PrimitiveTopology::TriangleList,
                 ..Default::default()
             },
-            depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth32Float,
+                depth_write_enabled: desc.z_write_enable,
+                depth_compare: desc.z_func.into(),
+                bias: wgpu::DepthBiasState {
+                    constant: desc.z_bias as i32,
+                    slope_scale: 2.0,
+                    clamp: 0.0,
+                },
+                stencil: wgpu::StencilState::default(),
+            }),
             multisample: Default::default(),
             fragment: Some(wgpu::FragmentState {
                 module: unsafe { &(&*(&*desc.fragment_shader).module).module },

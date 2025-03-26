@@ -174,13 +174,14 @@ struct IDirect3D8 : IDirect3DUnknown8
 
 struct IDirect3DDevice8 : IDirect3DUnknown8
 {
-    static CComPtr<IDirect3DDevice8> Create(wgpu::Device device, wgpu::Surface surface)
+    static CComPtr<IDirect3DDevice8> Create(wgpu::Device device, wgpu::Surface surface, wgpu::Texture depth_buffer)
     {
-        return new IDirect3DDevice8(std::move(device), std::move(surface));
+        return new IDirect3DDevice8(std::move(device), std::move(surface), std::move(depth_buffer));
     }
 
     wgpu::Device device;
     wgpu::Surface surface; // wgpu Surface ~= IDirect3DSwapChain8
+    wgpu::Texture depth_buffer;
     wgpu::ShaderModule shader_module;
     wgpu::Commands commands; // main commands, including rendering
     wgpu::Commands commands_copy; // texture copy commands
@@ -189,10 +190,13 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
     // Not implemented yet, using uniform state to emulate disabling blending for now.
     struct PipelineState
     {
-        uint32_t fvf; // SetVertexShader()
-        bool alpha_blend_enable; // SetRenderState(D3DRS_ALPHABLENDENABLE)
-        WgpuBlendFactor src_blend; // SetRenderState(D3DRS_SRCBLEND)
-        WgpuBlendFactor dest_blend; // SetRenderState(D3DRS_DESTBLEND)
+        uint32_t fvf = 0; // SetVertexShader()
+        bool alpha_blend_enable = false; // SetRenderState(D3DRS_ALPHABLENDENABLE)
+        WgpuBlendFactor src_blend = WgpuBlendFactor::One; // SetRenderState(D3DRS_SRCBLEND)
+        WgpuBlendFactor dest_blend = WgpuBlendFactor::Zero; // SetRenderState(D3DRS_DESTBLEND)
+        bool z_write_enable = false; // SetRenderState(D3DRS_ZWRITEENABLE)
+        uint32_t z_bias = 0; // SetRenderState(D3DRS_ZBIAS)
+        WgpuCompare z_func = WgpuCompare::Less; // SetRenderState(D3DRS_ZFUNC)
 
         bool operator==(const PipelineState&) const = default;
     };
@@ -282,11 +286,11 @@ struct IDirect3DDevice8 : IDirect3DUnknown8
     std::vector<PipelineCacheEntry> pipeline_cache;
 
 private:
-    IDirect3DDevice8(wgpu::Device device, wgpu::Surface surface);
+    IDirect3DDevice8(wgpu::Device device, wgpu::Surface surface, wgpu::Texture depth_buffer);
 
-    // disable rendering when set, they are only used for shadows
-    IDirect3DSurface8* set_color_target = nullptr;
-    IDirect3DSurface8* set_depth_stencil_target = nullptr;
+    // SetRenderTarget() params
+    CComPtr<IDirect3DSurface8> set_color_target;
+    CComPtr<IDirect3DSurface8> set_depth_stencil_target;
 
 public:
     // general management

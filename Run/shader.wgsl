@@ -472,8 +472,8 @@ fn fs_main(in: MainOutput) -> @location(0) vec4f {
         // todo: use texture binding_array?
         switch (i) {
         default: { discard; }
-        case 0u: { arg_in.texture = textureSample(tex1, tex1_sampler, in.uv1).bgra; }
-        case 1u: { arg_in.texture = textureSample(tex2, tex2_sampler, in.uv2).bgra; }
+        case 0u: { arg_in.texture = textureSample(tex1, tex1_sampler, in.uv1); }
+        case 1u: { arg_in.texture = textureSample(tex2, tex2_sampler, in.uv2); }
         }
         arg_in.current = tex_stage(arg_in);
     }

@@ -256,9 +256,9 @@ namespace wgpu
                 copy_size);
         }
 
-        void begin_render_pass(Surface& surface, float (*clear_color)[4])
+        void begin_render_pass(Surface& surface, WgpuTexture* depth_stencil_texture, float (*clear_color)[4])
         {
-            wgpu_commands_begin_render_pass(ptr.get(), surface.ptr.get(), clear_color);
+            wgpu_commands_begin_render_pass(ptr.get(), surface.ptr.get(), depth_stencil_texture, clear_color);
         }
 
         void set_pipeline(Pipeline& pipeline)

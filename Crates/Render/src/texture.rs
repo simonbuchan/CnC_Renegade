@@ -8,6 +8,8 @@ pub struct WgpuTexture {
 #[repr(C)]
 pub enum WgpuTextureFormat {
     Rgba8Unorm,
+    Bgra8Unorm,
+    Depth32Float,
     Bc1RgbaUnorm,
     Bc2RgbaUnorm,
     Bc3RgbaUnorm,
@@ -40,6 +42,8 @@ pub extern "C" fn wgpu_device_create_texture(
         dimension: wgpu::TextureDimension::D2,
         format: match format {
             WgpuTextureFormat::Rgba8Unorm => wgpu::TextureFormat::Rgba8Unorm,
+            WgpuTextureFormat::Bgra8Unorm => wgpu::TextureFormat::Bgra8Unorm,
+            WgpuTextureFormat::Depth32Float => wgpu::TextureFormat::Depth32Float,
             WgpuTextureFormat::Bc1RgbaUnorm => wgpu::TextureFormat::Bc1RgbaUnorm,
             WgpuTextureFormat::Bc2RgbaUnorm => wgpu::TextureFormat::Bc2RgbaUnorm,
             WgpuTextureFormat::Bc3RgbaUnorm => wgpu::TextureFormat::Bc3RgbaUnorm,

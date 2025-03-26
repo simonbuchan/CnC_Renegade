@@ -276,6 +276,9 @@ wgpu::Pipeline create_pipeline_for_state(
                                       .alpha_blend_enable = state.alpha_blend_enable,
                                       .src_blend = state.src_blend,
                                       .dst_blend = state.dest_blend,
+                                      .z_write_enable = state.z_write_enable,
+                                      .z_bias = state.z_bias,
+                                      .z_func = state.z_func,
                                   });
 }
 
@@ -301,9 +304,10 @@ wgpu::BindGroup create_white_texture_bind_group(wgpu::Device& device)
 constexpr uint32_t max_states_before_flush = 1000;
 constexpr uint32_t uniform_state_size_aligned = (sizeof(IDirect3DDevice8::UniformState) + 255) & ~255;
 
-IDirect3DDevice8::IDirect3DDevice8(wgpu::Device device_, wgpu::Surface surface)
+IDirect3DDevice8::IDirect3DDevice8(wgpu::Device device_, wgpu::Surface surface, wgpu::Texture depth_buffer)
     : device(std::move(device_)),
       surface(std::move(surface)),
+      depth_buffer(std::move(depth_buffer)),
       commands(wgpu::Commands::create(device)),
       commands_copy(wgpu::Commands::create(device)),
       shader_module(wgpu::ShaderModule::create_from_wsgl(device, read_shader())),
@@ -404,12 +408,17 @@ D3D_RESULT IDirect3D8::CreateDevice(
 
     D3D_U32 width = present_params->BackBufferWidth;
     D3D_U32 height = present_params->BackBufferHeight;
-    D3DFORMAT format = present_params->BackBufferFormat;
+    // D3DFORMAT format = present_params->BackBufferFormat;
 
     if (!wgpu_surface.configure(wgpu_device.ptr.get(), width, height))
         return D3DERR_WRONGTEXTUREFORMAT;
 
-    *result = IDirect3DDevice8::Create(std::move(wgpu_device), std::move(wgpu_surface)).Detach();
+    auto depth_buffer = wgpu::Texture::create(wgpu_device, WgpuTextureFormat::Depth32Float,
+                                              width, height, 1,
+                                              WGPU_TEXTURE_USAGE_RENDER_ATTACHMENT);
+
+    *result = IDirect3DDevice8::Create(std::move(wgpu_device), std::move(wgpu_surface), std::move(depth_buffer)).
+        Detach();
     return D3D_OK;
 }
 
@@ -551,7 +560,7 @@ D3D_RESULT IDirect3DDevice8::CreateImageSurface(D3D_U32 width, D3D_U32 height, D
     // We have claimed we only support RGBA8 (which is actually accurate for WGPU's API!), so assert that
     // here. Fonts etc. were hard-coded to use RGBA4, for example.
     assert(format == D3DFMT_A8R8G8B8);
-    auto texture = wgpu::Texture::create(device, WgpuTextureFormat::Rgba8Unorm, width, height, 1,
+    auto texture = wgpu::Texture::create(device, WgpuTextureFormat::Bgra8Unorm, width, height, 1,
                                          WGPU_TEXTURE_USAGE_TEXTURE_BINDING |
                                          WGPU_TEXTURE_USAGE_COPY_SRC |
                                          WGPU_TEXTURE_USAGE_COPY_DST);
@@ -574,9 +583,9 @@ D3D_RESULT IDirect3DDevice8::CreateTexture(D3D_U32 width, D3D_U32 height, D3D_U3
     WgpuTextureFormat wgpu_format;
     switch (format)
     {
-    // Normalize color formats to Rgba8Unorm, as WGPU doesn't support <32-bit colors.
+    // Normalize color formats to Bgra8Unorm (matching D3DFMT_A8R8G8B8), as WGPU doesn't support <32-bit colors.
     // They will need to be transformed on upload.
-    default: wgpu_format = WgpuTextureFormat::Rgba8Unorm;
+    default: wgpu_format = WgpuTextureFormat::Bgra8Unorm;
         break;
     // forward block compressed formats to the appropriate WGPU format.
     // Note that DXT2 and DXT4 are just premultiplied alpha versions of DXT3 and DXT5,
@@ -651,7 +660,8 @@ D3D_RESULT IDirect3DDevice8::GetDepthStencilSurface(IDirect3DSurface8** result)
 D3D_RESULT IDirect3DDevice8::BeginScene()
 {
     device.submit(commands_copy);
-    commands.begin_render_pass(surface, nullptr);
+    // todo: use SetRenderTarget() values? (not sure if that must be before BeginScene)
+    commands.begin_render_pass(surface, depth_buffer.ptr.get(), nullptr);
     // commands.set_bind_group(0, static_bind_group, 0); // offset must be provided
     commands.set_bind_group(1, white_texture_bind_group);
     commands.set_bind_group(2, white_texture_bind_group);
@@ -806,12 +816,40 @@ WgpuBlendFactor d3d_to_wgpu_blend_factor(D3D_U32 f)
     }
 }
 
+WgpuCompare d3d_to_wgpu_compare(D3D_U32 f)
+{
+    switch (f)
+    {
+    default:
+        assert(0 && "invalid compare function");
+        return WgpuCompare::Always;
+    case D3DCMP_NEVER:
+        return WgpuCompare::Never;
+    case D3DCMP_LESS:
+        return WgpuCompare::Less;
+    case D3DCMP_EQUAL:
+        return WgpuCompare::Equal;
+    case D3DCMP_LESSEQUAL:
+        return WgpuCompare::LessEqual;
+    case D3DCMP_GREATER:
+        return WgpuCompare::Greater;
+    case D3DCMP_NOTEQUAL:
+        return WgpuCompare::NotEqual;
+    case D3DCMP_GREATEREQUAL:
+        return WgpuCompare::GreaterEqual;
+    case D3DCMP_ALWAYS:
+        return WgpuCompare::Always;
+    }
+}
+
 D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE type, D3D_U32 value)
 {
     if (type >= D3DRS_COUNT)
         return D3DERR_INVALIDCALL;
-    // Try to set as much as possible in uniform state to avoid having to track
-    // pipeline state input. We can clean it up later.
+
+    // Set blend and depth buffer state in pipeline state (which will add a new pipeline object to the pipeline cache
+    // on the next draw) as it can't be emulated in the shader (at least well)
+    // Everything else goes to the uniform state, which will be uploaded on the next draw.
     switch (type)
     {
     case D3DRS_ALPHABLENDENABLE:
@@ -826,6 +864,19 @@ D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE type, D3D_U32 val
         pipeline_state.dest_blend = d3d_to_wgpu_blend_factor(value);
         pipeline_state_dirty = true;
         return D3D_OK;
+    case D3DRS_ZWRITEENABLE:
+        pipeline_state.z_write_enable = value;
+        pipeline_state_dirty = true;
+        return D3D_OK;
+    case D3DRS_ZBIAS:
+        pipeline_state.z_bias = value;
+        pipeline_state_dirty = true;
+        return D3D_OK;
+    case D3DRS_ZFUNC:
+        pipeline_state.z_func = d3d_to_wgpu_compare(value);
+        pipeline_state_dirty = true;
+        return D3D_OK;
+
     case D3DRS_ALPHATESTENABLE:
         uniform_state.rs.alpha_test_enable = value;
         break;
@@ -835,6 +886,7 @@ D3D_RESULT IDirect3DDevice8::SetRenderState(D3DRENDERSTATETYPE type, D3D_U32 val
     case D3DRS_ALPHAFUNC:
         uniform_state.rs.alpha_test_func = value;
         break;
+
     case D3DRS_LIGHTING:
         uniform_state.rs.lighting_enable = value;
         break;
@@ -964,7 +1016,8 @@ D3D_RESULT IDirect3DDevice8::DrawIndexedPrimitive(
             state_writes = 0;
             // now need to restore all the state in the render pass, see BeginScene,
             // various Set*() methods
-            commands.begin_render_pass(surface, nullptr);
+            // fixme: this will clear the depth buffer currently ...
+            commands.begin_render_pass(surface, depth_buffer.ptr.get(), nullptr);
             commands.set_bind_group(1, textures[0] ? textures[0]->bind_group : white_texture_bind_group);
             commands.set_bind_group(2, textures[1] ? textures[1]->bind_group : white_texture_bind_group);
             pipeline_state_dirty = true;
