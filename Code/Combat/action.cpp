@@ -73,7 +73,6 @@
 #include "gameobjmanager.h"
 
 #include "colmathaabox.h"
-#include "dinput.h"
 
 int _ActionActCalls = 0;
 int _ActionCodeChanges = 0;
@@ -254,7 +253,7 @@ public:
 		if ( obj->As_SoldierGameObj() && obj->As_SoldierGameObj()->Get_Vehicle() ) {
 			VehicleGameObj * vehicle = obj->As_SoldierGameObj()->Get_Vehicle();
 			// Convert turn to straffe
-			if ( vehicle->Is_Aircraft() && (Input::Is_Button_Down (DIK_LCONTROL) || Input::Is_Button_Down (DIK_LMENU) ) ) {
+			if ( vehicle->Is_Aircraft() && (Input::Is_Button_Down (InputKey::Left_Control_Key) || Input::Is_Button_Down (InputKey::Left_Alt_Key) ) ) {
 				left_amount = amount;
 				obj->Set_Analog_Control( ControlClass::ANALOG_TURN_LEFT, 0 );
 			}

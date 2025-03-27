@@ -95,7 +95,6 @@
 #include "stylemgr.h"
 #include "gametype.h"
 #include "wwmemlog.h"
-#include "directinput.h"
 #include "cncmodesettings.h"
 #include "announceevent.h"
 #include "fastallocator.h"

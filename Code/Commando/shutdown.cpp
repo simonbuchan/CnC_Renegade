@@ -411,7 +411,6 @@ void Game_Shutdown(void)
 	//	Shutdown the input control system
 	//
 	InputConfigMgrClass::Shutdown();
-	Input::Save_Registry( APPLICATION_SUB_KEY_NAME_CONTROLS );
 	Input::Shutdown();
 
 	DiagLogClass::Shutdown();

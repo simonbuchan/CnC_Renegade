@@ -276,7 +276,7 @@ MainMenuDialogClass::Get_Transition_Out (DialogBaseClass *next_dlg)
 	{
 		transition = new MainMenuTransitionClass;
 		transition->Set_Model (TitleTransModel);
-		transition->Set_Camera (Get_BackDrop ()->Peek_Camera ());
+		if (BackDrop) transition->Set_Camera (BackDrop->Peek_Camera ());
 		transition->Set_Type (DialogTransitionClass::SCREEN_OUT);
 		transition->Set_Dialogs (this, next_dlg);
 

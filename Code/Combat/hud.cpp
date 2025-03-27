@@ -1028,7 +1028,7 @@ static	void	Build_Weapon_Chart_Icons( void )
 	for ( int column = 1; column <= 10; column++ ) {
 
 		// Add column header
-		int key = Input::Get_Primary_Key_For_Function(INPUT_FUNCTION_SELECT_WEAPON_0 + (column%10) );
+		auto key = Input::Get_Primary_Key_For_Function(INPUT_FUNCTION_SELECT_WEAPON_0 + (column%10) );
 		WideStringClass name(0,true);
 		Input::Get_Translated_Key_Name( key, name );
 		WeaponChartKeynameRenderer->Build_Sentence( name );

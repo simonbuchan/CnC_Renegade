@@ -46,6 +46,8 @@
 #include "dialogbase.h"
 #include "stylemgr.h"
 
+// hack. Real enum defined in Code/Commando/input.h
+enum class InputKey { Unset = -1 };
 
 ////////////////////////////////////////////////////////////////
 //
@@ -53,7 +55,7 @@
 //
 ////////////////////////////////////////////////////////////////
 InputCtrlClass::InputCtrlClass (void)	:
-	KeyAssignment (0),
+	KeyAssignment (InputKey::Unset),
 	MouseIgnoreTime (0),
 	UserData (0),
 	PendingKeyID (-1)
@@ -331,7 +333,7 @@ InputCtrlClass::On_New_Key (int vkey_id)
 {
 	if (Parent != NULL) {
 		WideStringClass key_name;
-		int game_key_id = 0;
+		InputKey game_key_id;
 
 		//
 		//	Get information about this key from the parent
@@ -355,7 +357,7 @@ InputCtrlClass::On_New_Key (int vkey_id)
 //
 ////////////////////////////////////////////////////////////////
 void
-InputCtrlClass::Set_Key_Assignment (int game_key_id, const WideStringClass &key_name)
+InputCtrlClass::Set_Key_Assignment (InputKey game_key_id, const WideStringClass &key_name)
 {
 	KeyAssignment	= game_key_id;
 	Title				= key_name;

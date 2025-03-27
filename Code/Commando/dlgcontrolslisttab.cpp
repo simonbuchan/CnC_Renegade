@@ -42,12 +42,6 @@
 #include "string_ids.h"
 #include "translatedb.h"
 
-
-#define DIRECTINPUT_VERSION 0x0800
-#include <dinput.h>
-#include "directinput.h"
-
-
 ////////////////////////////////////////////////////////////////
 //	Local constants
 ////////////////////////////////////////////////////////////////
@@ -109,7 +103,7 @@ const int INPUT_NAME_COUNT	= sizeof (FUNCTION_NAMES) / sizeof (FUNCTION_NAMES[0]
 ControlsListTabClass::ControlsListTabClass (int res_id)	:
 	PendingCtrlID (0),
 	PendingFunctionID (0),
-	PendingDIK_ID (0),
+	PendingDIK_ID (InputKey::Unset),
 	PendingOldFunctionID (0),
 	ChildDialogClass (res_id)
 {
@@ -138,7 +132,7 @@ ControlsListTabClass::On_Init_Dialog (void)
 //
 ////////////////////////////////////////////////////////////////
 int
-ControlsListTabClass::Find_Function_By_Key (int curr_function_id, int dik_id)
+ControlsListTabClass::Find_Function_By_Key (int curr_function_id, InputKey dik_id)
 {
 	int retval = -1;
 
@@ -189,7 +183,7 @@ ControlsListTabClass::On_InputCtrl_Get_Key_Info
 	int					ctrl_id,
 	int					vkey_id,
 	WideStringClass &	key_name,
-	int *					game_key_id
+	InputKey *					game_key_id
 )
 {
 	bool retval = false;
@@ -197,39 +191,39 @@ ControlsListTabClass::On_InputCtrl_Get_Key_Info
 	//
 	//	First, determine what DIK key this corresponds to
 	//
-	int dik_id = 0;
+	InputKey key = InputKey::Unset;
 	switch (vkey_id)
 	{
 		case 0:
-			dik_id = 0;
+			key = InputKey::Unset;
 			break;
 
 		case VK_LBUTTON:
-			dik_id = DirectInput::BUTTON_MOUSE_LEFT;
+			key = InputKey::Left_Mouse_Button;
 			break;
-		
+
 		case VK_RBUTTON:
-			dik_id = DirectInput::BUTTON_MOUSE_RIGHT;
+			key = InputKey::Right_Mouse_Button;
 			break;
 
 		case VK_MBUTTON:
-			dik_id = DirectInput::BUTTON_MOUSE_CENTER;
+			key = InputKey::Center_Mouse_Button;
 			break;
 
 		case VK_MOUSEWHEEL_UP:
-			dik_id = Input::SLIDER_MOUSE_WHEEL_FORWARD;
+			key = InputKey::Mouse_Wheel_Forward;
 			break;
 
 		case VK_MOUSEWHEEL_DOWN:
-			dik_id = Input::SLIDER_MOUSE_WHEEL_BACKWARD;
+			key = InputKey::Mouse_Wheel_Backward;
 			break;
 
 		default:
-		{			
+		{
 			//
 			//	Get the last key pressed from direct input
 			//
-			dik_id = DirectInput::Get_Last_Key_Pressed ();
+			key = Input::Get_Last_Key_Pressed ();
 			break;
 		}
 	}
@@ -237,59 +231,60 @@ ControlsListTabClass::On_InputCtrl_Get_Key_Info
 	//
 	//	Return the DIK key ID to the caller
 	//
-	(*game_key_id) = dik_id;
-	if (dik_id != 0) {
-		Input::Get_Translated_Key_Name (dik_id, key_name);
+	(*game_key_id) = key;
+	if (key != InputKey::Unset) {
+		Input::Get_Translated_Key_Name (key, key_name);
 	}
 
 	//
 	//	Get the function ID associated with this control
 	//
 	int function_id = int(viewer_ctrl->Get_User_Data ()) - 1;
-	if (function_id >= 0) {		
+	if (function_id >= 0) {
 
 		//
 		//	Do nothing for these keys....
 		//
-		if (	dik_id != DIK_APPS && dik_id != DIK_WIN &&
-				dik_id != DIK_LWIN && dik_id != DIK_RWIN && 
-				dik_id != DIK_LCONTROL && dik_id != DIK_RCONTROL && 
-				dik_id != DIK_LALT && dik_id != DIK_RALT && dik_id != DIK_ALT && 
-				dik_id != DIK_DELETE && dik_id != 0)
+		using enum InputKey;
+		if (	key != App_Menu_Key && key != Windows_Key &&
+				key != Left_Windows_Key && key != Right_Windows_Key &&
+				key != Left_Control_Key && key != Right_Control_Key &&
+				key != Left_Alt_Key && key != Right_Alt_Key && key != Alt_Key &&
+				key != Delete_Key && key != Unset)
 		{
 			retval = true;
 
 			//
 			//	Is this key already mapped to a function?
 			//
-			int old_function_id = Find_Function_By_Key (function_id, dik_id);
+			int old_function_id = Find_Function_By_Key (function_id, key);
 			if (old_function_id == -1 || old_function_id == function_id) {
 
 				//
 				//	The key is unmapped, so allow the remap
 				//
-				Remap_Key (ctrl_id, function_id, dik_id);
+				Remap_Key (ctrl_id, function_id, key);
 			} else {
-				
+
 				//
 				//	Check to see if its OK to remap this key...
 				//
 				PendingCtrlID				= ctrl_id;
 				PendingFunctionID			= function_id;
-				PendingDIK_ID				= dik_id;
+				PendingDIK_ID				= key;
 				PendingOldFunctionID		= old_function_id;
 				Prompt_User ();
 			}
 
-		} else if (dik_id == DIK_DELETE) {
+		} else if (key == InputKey::Delete_Key) {
 			retval = true;
 			
 			//
 			//	Clear the mapping.
 			//
-			Remap_Key (ctrl_id, function_id, 0);
+			Remap_Key (ctrl_id, function_id, InputKey::Unset);
 			key_name = L"";
-			(*game_key_id) = 0;
+			(*game_key_id) = InputKey::Unset;
 		}
 	}
 
@@ -334,7 +329,7 @@ ControlsListTabClass::Prompt_User (void)
 //
 ////////////////////////////////////////////////////////////////
 void
-ControlsListTabClass::Remap_Key (int ctrl_id, int function_id, int dik_id)
+ControlsListTabClass::Remap_Key (int ctrl_id, int function_id, InputKey dik_id)
 {
 	//
 	//	Determine if this is a primary or secondary key mapping
@@ -377,8 +372,8 @@ ControlsListTabClass::Load_Key_Mappings (void)
 			//
 			//	Get the primary input for this function
 			//
-			int dik_id = Input::Get_Primary_Key_For_Function (FunctionIDList[index]);
-			if (dik_id >= 0) {
+			auto dik_id = Input::Get_Primary_Key_For_Function (FunctionIDList[index]);
+			if (dik_id != InputKey::Unset) {
 				Input::Get_Translated_Key_Name (dik_id, key_name);
 			}
 
@@ -399,8 +394,8 @@ ControlsListTabClass::Load_Key_Mappings (void)
 			//
 			//	Get the secondary input for this function
 			//
-			int dik_id = Input::Get_Secondary_Key_For_Function (FunctionIDList[index]);
-			if (dik_id >= 0) {
+			auto dik_id = Input::Get_Secondary_Key_For_Function (FunctionIDList[index]);
+			if (dik_id != InputKey::Unset) {
 				Input::Get_Translated_Key_Name (dik_id, key_name);
 			}
 
@@ -489,7 +484,7 @@ ControlsListTabClass::HandleNotification (DlgMsgBoxEvent &event)
 
 		PendingCtrlID			= 0;
 		PendingFunctionID		= 0;
-		PendingDIK_ID			= 0;
+		PendingDIK_ID			= InputKey::Unset;
 		PendingOldFunctionID	= 0;
 	}
 
@@ -503,7 +498,7 @@ ControlsListTabClass::HandleNotification (DlgMsgBoxEvent &event)
 //
 ////////////////////////////////////////////////////////////////
 void
-ControlsListTabClass::Clear_Key (int dik_id, bool clear_zoom)
+ControlsListTabClass::Clear_Key (InputKey dik_id, bool clear_zoom)
 {
 	//
 	//	First, clear all functions that use this key as a primary key
@@ -514,7 +509,7 @@ ControlsListTabClass::Clear_Key (int dik_id, bool clear_zoom)
 				(function_id != INPUT_FUNCTION_ZOOM_IN &&
 				function_id != INPUT_FUNCTION_ZOOM_OUT))
 		{
-			Input::Set_Primary_Key_For_Function (function_id, 0);
+			Input::Set_Primary_Key_For_Function (function_id, InputKey::Unset);
 		}
 
 		function_id = Input::Find_Next_Function_By_Primary_Key (function_id, dik_id);
@@ -529,7 +524,7 @@ ControlsListTabClass::Clear_Key (int dik_id, bool clear_zoom)
 				(function_id != INPUT_FUNCTION_ZOOM_IN &&
 				function_id != INPUT_FUNCTION_ZOOM_OUT))
 		{
-			Input::Set_Secondary_Key_For_Function (function_id, 0);
+			Input::Set_Secondary_Key_For_Function (function_id, InputKey::Unset);
 		}
 
 		function_id = Input::Find_Next_Function_By_Secondary_Key (function_id, dik_id);

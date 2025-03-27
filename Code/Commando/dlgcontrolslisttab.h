@@ -37,6 +37,7 @@
 #if defined(_MSC_VER)
 #pragma once
 #endif
+#include <input.h>
 
 #ifndef __DLGCONTROLSLISTTAB_H
 #define __DLGCONTROLSLISTTAB_H
@@ -77,7 +78,7 @@ public:
 	//
 	void		On_Init_Dialog (void);
 	void		On_Reload (void);
-	bool		On_InputCtrl_Get_Key_Info (InputCtrlClass *viewer_ctrl, int ctrl_id, int vkey_id, WideStringClass &key_name, int *game_key_id);
+	bool		On_InputCtrl_Get_Key_Info (InputCtrlClass* viewer_ctrl, int ctrl_id, int vkey_id, WideStringClass& key_name, InputKey* game_key_id);
 
 	//
 	//	Configuration
@@ -95,9 +96,9 @@ protected:
 	//	Protected methods
 	////////////////////////////////////////////////////////////////
 	void				Load_Key_Mappings (void);
-	int				Find_Function_By_Key (int curr_function_id, int key_id);
-	void				Remap_Key (int ctrl_id, int function_id, int input_id);
-	void				Clear_Key (int key_id, bool clear_zoom);
+	int				Find_Function_By_Key (int curr_function_id, InputKey dik_id);
+	void				Remap_Key (int ctrl_id, int function_id, InputKey input_id);
+	void				Clear_Key (InputKey key_id, bool clear_zoom);
 	void				Prompt_User (void);
 	const WCHAR *	Get_Function_Name (int function_id);
 
@@ -111,7 +112,7 @@ protected:
 	int PendingOldFunctionID;
 	int PendingCtrlID;
 	int PendingFunctionID;
-	int PendingDIK_ID;
+	InputKey PendingDIK_ID;
 };
 
 

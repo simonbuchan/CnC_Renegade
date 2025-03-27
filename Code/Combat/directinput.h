@@ -41,6 +41,8 @@
 	#include "always.h"
 #endif
 
+#include <input.h>
+
 #include "vector3.h"
 #include "vector2.h"
 
@@ -134,12 +136,12 @@ public:
 	//
 	//	Button support
 	//
-	static char		Get_Button_Value (int button_id);
+	static char		Get_Button_Value (InputKey button_id);
 
 	//
 	//	Return the DIK ID of the last keyboard key pressed
 	//
-	static int		Get_Last_Key_Pressed (void)	{ return LastKeyPressed; }
+	static InputKey		Get_Last_Key_Pressed (void)	{ return LastKeyPressed; }
 
 private:
 

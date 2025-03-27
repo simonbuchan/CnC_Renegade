@@ -48,7 +48,6 @@
 #include "string_ids.h"
 #include "rendobj.h"
 #include "input.h"
-#include "dinput.h"
 #include "timemgr.h"
 #include "gametype.h"
 
@@ -297,11 +296,11 @@ RadioCommandDisplayClass::Check_Keys (void)
 	//
 	bool is_key_down[DISPLAY_MAX] = { 0 };
 	if ( ignore_lctrl ) {
-		is_key_down[DISPLAY_CMDS_01] = Input::Is_Button_Down (DIK_RCONTROL);
-		is_key_down[DISPLAY_CMDS_02] = Input::Is_Button_Down (DIK_RMENU);
+		is_key_down[DISPLAY_CMDS_01] = Input::Is_Button_Down (InputKey::Right_Control_Key);
+		is_key_down[DISPLAY_CMDS_02] = Input::Is_Button_Down (InputKey::Right_Alt_Key);
 	} else {
-		is_key_down[DISPLAY_CMDS_01] = Input::Is_Button_Down (DIK_LCONTROL) || Input::Is_Button_Down (DIK_RCONTROL);
-		is_key_down[DISPLAY_CMDS_02] = Input::Is_Button_Down (DIK_LMENU) || Input::Is_Button_Down (DIK_RMENU);
+		is_key_down[DISPLAY_CMDS_01] = Input::Is_Button_Down (InputKey::Control_Key);
+		is_key_down[DISPLAY_CMDS_02] = Input::Is_Button_Down (InputKey::Alt_Key);
 	}
 	is_key_down[DISPLAY_CMDS_03] = is_key_down[DISPLAY_CMDS_01] && is_key_down[DISPLAY_CMDS_02];
 

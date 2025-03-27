@@ -38,7 +38,6 @@
 #include "WebBrowser.h"
 #include <WWUI\PopupDialog.h>
 #include <WWUI\DialogControl.h>
-#include <Combat\DirectInput.h>
 #include <WW3D2\WW3D.h>
 #include "DlgMessageBox.h"
 #include "Resource.h"
@@ -202,7 +201,7 @@ bool DlgWebPage::FinalizeCreate(void)
 
 void DlgWebPage::Start_Dialog(void)
 	{
-	DirectInput::Unacquire();
+	// DirectInput::Unacquire();
 	WW3D::Flip_To_Primary();
 	DialogBaseClass::Start_Dialog();
 	}
@@ -225,7 +224,7 @@ void DlgWebPage::Start_Dialog(void)
 
 void DlgWebPage::End_Dialog(void)
 	{
-	DirectInput::Acquire();
+	// DirectInput::Acquire();
 	DialogBaseClass::End_Dialog();
 	SetFocus(MainWindow);
 	}

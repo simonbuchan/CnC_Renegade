@@ -49,6 +49,7 @@
 	#include "wwdebug.h"
 #endif
 
+#include "vector2.h"
 #include "widestring.h"
 
 
@@ -61,6 +62,146 @@ class	INIClass;
 **	Constants
 */
 extern const char *DEFAULT_INPUT_FILENAME;
+
+// All inputs. Named to match whats saved in Data/config/input01.cfg
+// (except for "0_Key".."9_Key" which need a _ prefix)
+enum class InputKey
+{
+	Unset = -1, // not bound / saved
+
+	F1_Key,
+	F2_Key,
+	F3_Key,
+	F4_Key,
+    F5_Key,
+    F6_Key,
+    F7_Key,
+    F8_Key,
+    F9_Key,
+    F10_Key,
+    F11_Key,
+    F12_Key,
+    _0_Key,
+    _1_Key,
+    _2_Key,
+    _3_Key,
+    _4_Key,
+    _5_Key,
+    _6_Key,
+    _7_Key,
+    _8_Key,
+    _9_Key,
+    A_Key,
+    B_Key,
+    C_Key,
+    D_Key,
+    E_Key,
+    F_Key,
+    G_Key,
+    H_Key,
+    I_Key,
+    J_Key,
+    K_Key,
+    L_Key,
+    M_Key,
+    N_Key,
+    O_Key,
+    P_Key,
+    Q_Key,
+    R_Key,
+    S_Key,
+    T_Key,
+    U_Key,
+    V_Key,
+    W_Key,
+    X_Key,
+    Y_Key,
+    Z_Key,
+    Minus_Key,
+    Equals_Key,
+    Backspace_Key,
+    Tab_Key,
+    Left_Bracket_Key,
+    Right_Bracket_Key,
+    Enter_Key,
+    Semicolon_Key,
+    Apostrophe_Key,
+    Grave_Key,
+    Backslash_Key,
+    Comma_Key,
+    Period_Key,
+    Slash_Key,
+    Space_Bar_Key,
+    Caps_Lock_Key,
+    Num_Lock_Key,
+    Scroll_Lock_Key,
+    Escape_Key,
+    Keypad_0_Key,
+    Keypad_1_Key,
+    Keypad_2_Key,
+    Keypad_3_Key,
+    Keypad_4_Key,
+    Keypad_5_Key,
+    Keypad_6_Key,
+    Keypad_7_Key,
+    Keypad_8_Key,
+    Keypad_9_Key,
+    Keypad_Minus_Key,
+    Keypad_Star_Key,
+    Keypad_Plus_Key,
+    Keypad_Period_Key,
+    Keypad_Enter_Key,
+    Keypad_Slash_Key,
+    Home_Key,
+    Page_Up_Key,
+    End_Key,
+    Page_Down_Key,
+    Insert_Key,
+    Delete_Key,
+    Up_Key,
+    Down_Key,
+    Left_Key,
+    Right_Key,
+    Sys_Req_Key,
+    Control_Key,
+    Left_Control_Key,
+    Right_Control_Key,
+    Shift_Key,
+    Left_Shift_Key,
+    Right_Shift_Key,
+    Alt_Key,
+    Left_Alt_Key,
+    Right_Alt_Key,
+    Windows_Key,
+    Left_Windows_Key,
+    Right_Windows_Key,
+    App_Menu_Key,
+
+	Left_Mouse_Button,
+	Right_Mouse_Button,
+	Center_Mouse_Button,
+
+	Joystick_Button_A,
+	Joystick_Button_B,
+
+	// "Sliders", splits input axes so it doesn't use negatives
+	Mouse_Left, // Previously = 0x7000?
+	Mouse_Right,
+	Mouse_Up,
+	Mouse_Down,
+	Mouse_Wheel_Forward,
+	Mouse_Wheel_Backward,
+	Joystick_Left,
+	Joystick_Right,
+	Joystick_Up,
+	Joystick_Down,
+
+	Total_Count,
+	Button_Count = Mouse_Left,
+	Slider_First = Mouse_Left,
+	Slider_Count = Total_Count - Mouse_Left,
+};
+
 
 /*
 ** Input Functions
@@ -257,14 +398,10 @@ class	InputFunctionModeState;
 class	Input {
 
 public:
-	static	void	Init( bool use_dinput = true );
+	static	void	Init();
 	static	void	Shutdown( void );
 	static	void	Update( void );
 	static	void	Flush( void );
-
-	// Registry
-	static	void	Load_Registry( const char * key );
-	static	void	Save_Registry( const char * key );
 
 	// Mouse
 	static	float	Get_Mouse_Sensitivity( void );
@@ -291,10 +428,16 @@ public:
 	static	bool	Peek_State( InputFunction function )	{ return (FunctionValue[ function ] > 0.5f); }
 
 	// Direct access
-	static	bool	Is_Button_Down (int button_id);
+	static	bool	Is_Button_Down (InputKey button_id);
+
+	// Moved from DirectInput
+	static void		Reset_Cursor_Pos (const Vector2 &pos)	{ CursorPos = pos; }
+	static Vector2	Get_Cursor_Pos ()				{ return CursorPos; }
+	static	void	Eat_Mouse_Held_States () {}
+	static InputKey Get_Last_Key_Pressed () { return InputKey::Unset; }
 
 	// Key name access
-	static	void	Get_Translated_Key_Name (int dik_id, WideStringClass &name);
+	static	void	Get_Translated_Key_Name (InputKey key, WideStringClass &name);
 
 	enum {
 		QUEUE_MAX		= 20,
@@ -321,16 +464,16 @@ public:
 	//
 	// Configuration editing support
 	//
-	static	int	Get_Primary_Key_For_Function (int function_id);
-	static	int	Get_Secondary_Key_For_Function (int function_id);
-	static	void	Set_Primary_Key_For_Function (int function_id, int key_id);
-	static	void	Set_Secondary_Key_For_Function (int function_id, int key_id);
+	static InputKey Get_Primary_Key_For_Function(int function_id);
+	static InputKey Get_Secondary_Key_For_Function(int function_id);
+	static	void	Set_Primary_Key_For_Function (int function_id, InputKey key_id);
+	static	void	Set_Secondary_Key_For_Function (int function_id, InputKey key_id);
 
-	static	int	Find_First_Function_By_Primary_Key (int key_id);
-	static	int	Find_Next_Function_By_Primary_Key (int function_id, int key_id);
+	static	int	Find_First_Function_By_Primary_Key (InputKey key_id);
+	static	int	Find_Next_Function_By_Primary_Key (int function_id, InputKey key_id);
 
-	static	int	Find_First_Function_By_Secondary_Key (int key_id);
-	static	int	Find_Next_Function_By_Secondary_Key (int function_id, int key_id);
+	static	int	Find_First_Function_By_Secondary_Key (InputKey key_id);
+	static	int	Find_Next_Function_By_Secondary_Key (int function_id, InputKey key_id);
 
 	static	void	Load_Configuration (const char *filename);
 	static	void	Save_Configuration (const char *filename);
@@ -361,13 +504,13 @@ private:
 	static	int	QueueSize;
 	static	bool	DamageIndicatorsEnabled;
 
+	static Vector2  CursorPos;
+
 	static	float	FunctionValue[ INPUT_FUNCTION_COUNT ];
 	static	float	FunctionClamp[ INPUT_FUNCTION_COUNT ];
 
-	static	int	FunctionPrimaryKeys[ INPUT_FUNCTION_COUNT ];
-	static	int	FunctionSecondaryKeys[ INPUT_FUNCTION_COUNT ];
-
-	static	bool	UsingDirectInput;
+	static	InputKey	FunctionPrimaryKeys[ INPUT_FUNCTION_COUNT ];
+	static	InputKey	FunctionSecondaryKeys[ INPUT_FUNCTION_COUNT ];
 
 	static	void	Save_Accelerated_Keys (INIClass *input_ini);
 	static	void	Load_Accelerated_Keys (INIClass *input_ini);
@@ -377,10 +520,10 @@ private:
 	static	void	Save_Misc_Settings (INIClass	*input_ini);
 
 	static	void	Free_Mappings( void );
-	static	float	Get_Value( int function_index, int input, float clamp );
+	static	float	Get_Value(int function_index, InputKey input, float clamp);
 	static	short	Get_Function( const char *name );
-	static	short	Get_Key( const char *name );
-	static	const char * Get_Key_Name (short key_id);
+	static InputKey Get_Key(const char* name);
+	static	const char * Get_Key_Name (InputKey key_id);
 };
 
 

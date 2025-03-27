@@ -111,7 +111,7 @@ HelpScreenDialogClass::On_Init_Dialog (void)
 #define	KEY_TABLE_SIZE	(sizeof(key_table)/sizeof(key_table[0]))
 
 	for ( int i = 0; i < KEY_TABLE_SIZE; i++ ) {
-		int key = Input::Get_Primary_Key_For_Function( key_table[i][1] );
+		auto key = Input::Get_Primary_Key_For_Function( key_table[i][1] );
 		WideStringClass wstr(0,true);
 		Input::Get_Translated_Key_Name( key, wstr );
 		Set_Dlg_Item_Text( key_table[i][0], wstr );

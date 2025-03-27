@@ -904,10 +904,7 @@ bool Game_Init(void)
 	//
 	//	Initialize the input control system
 	//
-	bool dinput_avail = false; // (ConsoleBox.Is_Exclusive()) ? false : true;
-
-	Input::Init(dinput_avail);
-	Input::Load_Registry( APPLICATION_SUB_KEY_NAME_CONTROLS );
+	Input::Init();
 	InputConfigMgrClass::Initialize();
 
 	//

@@ -57,7 +57,6 @@
 #include <WWOnline\WOLUser.h>
 #include "string_ids.h"
 #include "mousemgr.h"
-#include "directinput.h"
 
 
 ////////////////////////////////////////////////////////////////
@@ -418,8 +417,7 @@ CNCTeamInfoDialogClass::On_Frame_Update (void)
 	//
 	//	End the dialog when the user releases the player list key
 	//
-	int dik_id = Input::Get_Primary_Key_For_Function (INPUT_FUNCTION_TEAM_INFO_TOGGLE);
-	if ((DirectInput::Get_Keyboard_Button (dik_id) & DirectInput::DI_BUTTON_HELD) == 0) {
+	if (!Input::Get_State(INPUT_FUNCTION_TEAM_INFO_TOGGLE)) {
 		End_Dialog ();
 	}
 

@@ -53,6 +53,7 @@
 #define VK_MOUSEWHEEL_UP      0x100
 #define VK_MOUSEWHEEL_DOWN    0x101
 
+enum class InputKey;
 
 ////////////////////////////////////////////////////////////////
 //
@@ -81,8 +82,8 @@ public:
 	//
 	//	Key assignment access
 	//
-	int				Get_Key_Assignment (void) const		{ return KeyAssignment; }
-	void				Set_Key_Assignment (int game_key_id, const WideStringClass &key_name);
+	InputKey				Get_Key_Assignment (void) const		{ return KeyAssignment; }
+	void				Set_Key_Assignment (InputKey game_key_id, const WideStringClass &key_name);
 
 	//
 	//	User data support
@@ -118,7 +119,7 @@ protected:
 	Render2DSentenceClass	TextRenderer;
 	Render2DClass				ControlRenderer;
 	Render2DClass				HilightRenderer;
-	int							KeyAssignment;
+	InputKey							KeyAssignment;
 	int							MouseIgnoreTime;
 	uint32						UserData;	
 	int							PendingKeyID;

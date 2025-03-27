@@ -64,7 +64,6 @@
 #include "weaponbag.h"
 #include "powerup.h"
 #include "input.h"
-#include "dinput.h"
 #include "hud.h"
 #include "gamedata.h"
 #include "specialbuilds.h"
@@ -314,7 +313,7 @@ CNCPurchaseMainMenuClass::On_Command (int ctrl_id, int message_id, DWORD param)
 #ifdef MULTIPLAYERDEMO
 				Do_Purchase_Screen (PurchaseSettingsDefClass::TYPE_CLASSES);
 #else
-			if ((SecretsEnabled) && (Input::Is_Button_Down(DIK_LMENU))) {
+			if ((SecretsEnabled) && (Input::Is_Button_Down(InputKey::Left_Alt_Key))) {
 				Do_Purchase_Screen (PurchaseSettingsDefClass::TYPE_SECRET_CLASSES);
 			} else {
 				Do_Purchase_Screen (PurchaseSettingsDefClass::TYPE_CLASSES);
@@ -326,7 +325,7 @@ CNCPurchaseMainMenuClass::On_Command (int ctrl_id, int message_id, DWORD param)
 #ifdef MULTIPLAYERDEMO
 				Do_Purchase_Screen (PurchaseSettingsDefClass::TYPE_VEHICLES);
 #else
-			if ((SecretsEnabled) && (Input::Is_Button_Down(DIK_LMENU))) {
+			if ((SecretsEnabled) && (Input::Is_Button_Down(InputKey::Left_Alt_Key))) {
 				Do_Purchase_Screen (PurchaseSettingsDefClass::TYPE_SECRET_VEHICLES);
 			} else {
 				Do_Purchase_Screen (PurchaseSettingsDefClass::TYPE_VEHICLES);

@@ -64,7 +64,6 @@
 #include <WWOnline\WOLUser.h>
 #include "string_ids.h"
 #include "mousemgr.h"
-#include "directinput.h"
 #include "GameSpy_QnR.h"
 #include "verchk.h"
 #include "buildnum.h"

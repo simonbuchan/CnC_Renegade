@@ -56,7 +56,6 @@
 #include "dlginternetoptions.h"
 #include "gamemode.h"
 #include "dlgmplangamelist.h"
-#include "directinput.h"
 #include "input.h"
 #include "dlgmainmenu.h"
 #include "dlgwebpage.h"
@@ -138,7 +137,9 @@ class RenegadeUIInputClass : public WWUIInputClass
 	const Vector3 &
 	Get_Mouse_Pos (void) const
 	{
-		DirectInput::Get_Cursor_Pos (&MousePos);
+		auto pos = Input::Get_Cursor_Pos ();
+		MousePos.X = pos.X;
+		MousePos.Y = pos.Y;
 		return MousePos;
 	}
 
@@ -146,7 +147,7 @@ class RenegadeUIInputClass : public WWUIInputClass
 	Set_Mouse_Pos (const Vector3 &pos)
 	{
 		MousePos = pos;
-		DirectInput::Reset_Cursor_Pos (Vector2 (pos.X, pos.Y));
+		Input::Reset_Cursor_Pos (Vector2 (pos.X, pos.Y));
 		return ;
 	}
 
@@ -157,15 +158,15 @@ class RenegadeUIInputClass : public WWUIInputClass
 		switch (vk_mouse_button_id)
 		{
 			case VK_LBUTTON:
-				retval = Input::Is_Button_Down (DirectInput::BUTTON_MOUSE_LEFT);
+				retval = Input::Is_Button_Down (InputKey::Left_Mouse_Button);
 				break;
 
 			case VK_MBUTTON:
-				retval = Input::Is_Button_Down (DirectInput::BUTTON_MOUSE_CENTER);
+				retval = Input::Is_Button_Down (InputKey::Center_Mouse_Button);
 				break;
 
 			case VK_RBUTTON:
-				retval = Input::Is_Button_Down (DirectInput::BUTTON_MOUSE_RIGHT);
+				retval = Input::Is_Button_Down (InputKey::Right_Mouse_Button);
 				break;
 		}
 
@@ -183,7 +184,7 @@ class RenegadeUIInputClass : public WWUIInputClass
 	Exit_Menu_Mode (void)
 	{
 		Input::Menu_Enable (false);
-		DirectInput::Eat_Mouse_Held_States ();
+		Input::Eat_Mouse_Held_States ();
 		return ;
 	}
 

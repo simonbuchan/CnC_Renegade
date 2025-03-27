@@ -45,6 +45,7 @@
 ////////////////////////////////////////////////////////////////
 //	Forward declarations
 ////////////////////////////////////////////////////////////////
+enum class InputKey;
 class DialogControlClass;
 class ScrollBarCtrlClass;
 class ListCtrlClass;
@@ -127,7 +128,7 @@ public:
 	//
 	//	Input control callbacks
 	//
-	virtual bool	On_InputCtrl_Get_Key_Info (InputCtrlClass *viewer_ctrl, int ctrl_id, int vkey_id, WideStringClass &key_name, int *game_key_id)	{ return false; }
+	virtual bool	On_InputCtrl_Get_Key_Info (::InputCtrlClass* viewer_ctrl, int ctrl_id, int vkey_id, ::WideStringClass& key_name, InputKey* game_key_id)	{ return false; }
 
 	//
 	//	Slider control callbacks	

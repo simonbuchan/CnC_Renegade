@@ -62,7 +62,6 @@
 #include "renegadedialogmgr.h"
 #include "except.h"
 
-#include "DirectInput.h"
 #include "WebBrowser.h"
 #include "wwmemlog.h"
 
@@ -91,8 +90,10 @@
 #endif
 
 #include <iostream>
+
 #include "singletoninstancekeeper.h"
 #include "packetmgr.h"
+#include "MainLoop.h"
 
 
 #if (_MSC_VER >= 1200)
@@ -617,6 +618,11 @@ long FAR PASCAL Main_Window_Proc( HWND hwnd, UINT message, WPARAM wParam, LPARAM
 					** Windows sent us a close message. Probably in response to Alt-F4. Ignore it by
 					** pretending to handle the message and returning true;
 					*/
+
+					// nope! Alt-F4 is being a good citizen even for games.
+					// but we do need to quit the game by ending the main loop or it will
+					// crash trying to render to a missing window.
+					Stop_Main_Loop(0);
 					return (0);
 
 				case SC_KEYMENU:
@@ -757,7 +763,7 @@ static BOOL Create_Main_Window(HANDLE hInstance, int nCmdShow)
  *=============================================================================================*/
 void On_Focus_Loss(void)
 {
-	DirectInput::Unacquire();
+	// DirectInput::Unacquire();
 }
 
 
@@ -776,7 +782,7 @@ void On_Focus_Loss(void)
 void On_Focus_Restore(void)
 {
 	if (WebBrowser::IsWebPageDisplayed() == false) {
-		DirectInput::Acquire();
+		// DirectInput::Acquire();
 	}
 
 	GameModeManager::Hide_Render_Frames(1);	// Hide the first rendered frame

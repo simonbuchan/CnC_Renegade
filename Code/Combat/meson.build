@@ -45,7 +45,6 @@ combat = static_library(
     'debug.cpp',
     'diaglog.cpp',
     'dialogue.cpp',
-    'directinput.cpp',
     'doors.cpp',
     'dynamicspeechanim.cpp',
     'effectrecycler.cpp',
