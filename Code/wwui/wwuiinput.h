@@ -81,7 +81,6 @@ public:
 	// use this to snap the mouse to the default control.
 	//
 	virtual const Vector3 &	Get_Mouse_Pos (void) const				= 0;
-	virtual void				Set_Mouse_Pos (const Vector3 &pos)	= 0;
 
 	//
 	//	Mouse button input

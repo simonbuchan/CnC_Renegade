@@ -70,7 +70,6 @@ public:
 	//
 	void					Render (void);
 	bool					Wants_Tooltip (void) const	{ return false; }
-	void					Center_Mouse (void);
 
 protected:
 

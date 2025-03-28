@@ -111,14 +111,6 @@ ScreenCursorClass::Render (void)
 	Vector3 cursor_pos = DialogMgrClass::Get_Mouse_Pos ();
 
 	//
-	//	Clamp the cursor to the screen bounds
-	//
-	const RectClass &screen_rect = Render2DClass::Get_Screen_Resolution ();
-	cursor_pos.X = WWMath::Clamp (cursor_pos.X, screen_rect.Left, screen_rect.Right - 5);
-	cursor_pos.Y = WWMath::Clamp (cursor_pos.Y, screen_rect.Top, screen_rect.Bottom - 5);
-	DialogMgrClass::Set_Mouse_Pos (cursor_pos);
-
-	//
 	//	Take the hotspot into account
 	//
 	cursor_pos.X -= Hotspot.X;

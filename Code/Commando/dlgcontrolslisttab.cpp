@@ -219,13 +219,8 @@ ControlsListTabClass::On_InputCtrl_Get_Key_Info
 			break;
 
 		default:
-		{
-			//
-			//	Get the last key pressed from direct input
-			//
 			key = Input::Get_Last_Key_Pressed ();
 			break;
-		}
 	}
 
 	//

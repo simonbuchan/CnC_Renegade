@@ -529,12 +529,12 @@ ShortcutBarCtrlClass::On_Key_Down (uint32 key_id, uint32 key_data)
 
 		case VK_UP:
 		case VK_LEFT:
-			Set_Curr_Sel (CurrSel - 1, true);
+			Set_Curr_Sel (CurrSel - 1);
 			break;
 
 		case VK_DOWN:
 		case VK_RIGHT:
-			Set_Curr_Sel (CurrSel + 1, true);
+			Set_Curr_Sel (CurrSel + 1);
 			break;
 
 		default:
@@ -700,7 +700,7 @@ ShortcutBarCtrlClass::Entry_From_Pos (const Vector2 &mouse_pos)
 //
 ////////////////////////////////////////////////////////////////
 void
-ShortcutBarCtrlClass::Set_Curr_Sel (int index, bool snap_mouse)
+ShortcutBarCtrlClass::Set_Curr_Sel (int index)
 {
 	//
 	//	Ensure the new index is in range
@@ -717,17 +717,6 @@ ShortcutBarCtrlClass::Set_Curr_Sel (int index, bool snap_mouse)
 	if (index != CurrSel) {
 		CurrSel = index;
 		Set_Dirty ();
-
-		if (snap_mouse) {
-
-			//
-			//	Snap the mouse to the entry
-			//
-			RectClass text_rect;
-			Get_Entry_Rect (CurrSel, text_rect);
-			Vector3 center (text_rect.Center ().X, text_rect.Center ().Y, 0);
-			DialogMgrClass::Set_Mouse_Pos (center);			
-		}
 	}
 
 	return ;
@@ -745,9 +734,9 @@ ShortcutBarCtrlClass::On_Mouse_Wheel (int direction)
 	if (IsHiddenState == false) {
 		
 		if (direction > 0) {
-			Set_Curr_Sel (CurrSel + 1, true);
+			Set_Curr_Sel (CurrSel + 1);
 		} else {
-			Set_Curr_Sel (CurrSel - 1, true);
+			Set_Curr_Sel (CurrSel - 1);
 		}
 	}
 

@@ -531,7 +531,10 @@ int Main_Game_Loop_Try()
  *=============================================================================================*/
 long FAR PASCAL Main_Window_Proc( HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
-	static bool _reset = false;
+	if (const auto result = Input::Process_Message(message, wParam, lParam))
+	{
+		return result.value();
+	}
 
 	/*
 	**	Pass this message through to the input handler. If the message
@@ -606,7 +609,6 @@ long FAR PASCAL Main_Window_Proc( HWND hwnd, UINT message, WPARAM wParam, LPARAM
 		** Main window destruction
 		*/
 		case WM_DESTROY:
-			ReleaseCapture ();
 			PostQuitMessage (0);
 			break;
 

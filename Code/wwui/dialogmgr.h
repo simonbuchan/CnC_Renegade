@@ -116,8 +116,7 @@ public:
 	// position.
 	//
 	static const Vector3 &	Get_Mouse_Pos (void)							{ return Input->Get_Mouse_Pos (); }
-	static void					Set_Mouse_Pos (const Vector3 &pos)		{ Input->Set_Mouse_Pos (pos); }
-	
+
 	static const Vector3 &	Get_Last_Mouse_Pos (void)					{ return LastMousePos; }
 	static void					Set_Last_Mouse_Pos (const Vector3 &pos){ LastMousePos = pos; }
 

@@ -222,7 +222,6 @@ MenuEntryCtrlClass::On_Mouse_Wheel (int direction)
 		DialogControlClass *control = Parent->Find_Next_Group_Control (this, direction);
 		if (control != NULL) {
 			control->Set_Focus ();
-			control->Center_Mouse ();
 		}
 	}
 
@@ -748,42 +747,3 @@ MenuEntryCtrlClass::On_Pushed (void)
 	Parent->On_Command (ID, BN_CLICKED, 0);
 	return ;
 }
-
-
-////////////////////////////////////////////////////////////////
-//
-//	Center_Mouse
-//
-////////////////////////////////////////////////////////////////
-void
-MenuEntryCtrlClass::Center_Mouse (void)
-{
-	//
-	//	Get the extents of the text we will be drawing
-	//
-	Vector2 text_extent = TextRenderer.Get_Text_Extents (Title);
-	
-	int x_pos = 0;
-
-	//
-	//	Should we left justify?
-	//
-	if ((Style & 0xF00) == BS_LEFT) {
-		x_pos = int(Rect.Left + (text_extent.X / 2));
-	} else {
-		x_pos = int(Rect.Left + (Rect.Width () / 2) - (text_extent.X / 2));
-	}
-		
-	int y_pos = int(Rect.Top + (Rect.Height () / 2));
-
-	//
-	//	Put the mouse cursor in the middle of this control
-	//
-	Vector3 mouse_pos = DialogMgrClass::Get_Mouse_Pos ();
-	mouse_pos.X = x_pos;
-	mouse_pos.Y = y_pos;
-	DialogMgrClass::Set_Mouse_Pos (mouse_pos);
-	return ;
-}
-
-

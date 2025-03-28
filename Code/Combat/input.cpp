@@ -648,7 +648,6 @@ int _StatsObjectives;
 int _StatsMap;
 int _StatsMenu;
 
-
 static void enable_raw_input(bool enabled)
 {
     DWORD flags = enabled ? 0 : RIDEV_REMOVE;
@@ -658,6 +657,7 @@ static void enable_raw_input(bool enabled)
             .usUsage = 2, // HID_USAGE_GENERIC_MOUSE
             .dwFlags = flags,
         },
+        // 4 is joystick, but what lunatic actually uses a joystick for an FPS...
         RAWINPUTDEVICE{
             .usUsagePage = 1, // HID_USAGE_PAGE_GENERIC
             .usUsage = 6, // HID_USAGE_GENERIC_KEYBOARD
@@ -665,6 +665,261 @@ static void enable_raw_input(bool enabled)
         },
     };
     RegisterRawInputDevices(items.data(), items.size(), sizeof(*items.data()));
+}
+
+struct KeyState
+{
+    bool held : 1;
+    bool hit : 1;
+    bool released : 1;
+    bool double_hit : 1;
+
+    void down()
+    {
+        held = true;
+        hit = true;
+    }
+
+    void up()
+    {
+        held = false;
+        released = true;
+    }
+
+    KeyState operator|(KeyState other) const
+    {
+        return {
+            .held = held || other.held,
+            .hit = hit || other.hit,
+            .released = released || other.released,
+            .double_hit = double_hit || other.double_hit,
+        };
+    }
+};
+
+static std::array<float, (int)InputKey::Button_Count> key_last_hit;
+static std::array<KeyState, (int)InputKey::Button_Count> key_states;
+static InputKey last_key = InputKey::Unset;
+
+static void raw_keyboard_input(RAWKEYBOARD msg)
+{
+    auto down = (msg.Flags & RI_KEY_BREAK) == 0;
+    auto key = InputKey::Unset;
+    // https://learn.microsoft.com/en-us/windows/win32/inputdev/about-keyboard-input#scan-codes
+    switch (msg.MakeCode)
+    {
+    case 0x1E: key = InputKey::A_Key; break;
+    case 0x30: key = InputKey::B_Key; break;
+    case 0x2E: key = InputKey::C_Key; break;
+    case 0x20: key = InputKey::D_Key; break;
+    case 0x12: key = InputKey::E_Key; break;
+    case 0x21: key = InputKey::F_Key; break;
+    case 0x22: key = InputKey::G_Key; break;
+    case 0x23: key = InputKey::H_Key; break;
+    case 0x17: key = InputKey::I_Key; break;
+    case 0x24: key = InputKey::J_Key; break;
+    case 0x25: key = InputKey::K_Key; break;
+    case 0x26: key = InputKey::L_Key; break;
+    case 0x32: key = InputKey::M_Key; break;
+    case 0x31: key = InputKey::N_Key; break;
+    case 0x18: key = InputKey::O_Key; break;
+    case 0x19: key = InputKey::P_Key; break;
+    case 0x10: key = InputKey::Q_Key; break;
+    case 0x13: key = InputKey::R_Key; break;
+    case 0x1F: key = InputKey::S_Key; break;
+    case 0x14: key = InputKey::T_Key; break;
+    case 0x16: key = InputKey::U_Key; break;
+    case 0x2F: key = InputKey::V_Key; break;
+    case 0x11: key = InputKey::W_Key; break;
+    case 0x2D: key = InputKey::X_Key; break;
+    case 0x15: key = InputKey::Y_Key; break;
+    case 0x2C: key = InputKey::Z_Key; break;
+    case 0x02: key = InputKey::_1_Key; break;
+    case 0x03: key = InputKey::_2_Key; break;
+    case 0x04: key = InputKey::_3_Key; break;
+    case 0x05: key = InputKey::_4_Key; break;
+    case 0x06: key = InputKey::_5_Key; break;
+    case 0x07: key = InputKey::_6_Key; break;
+    case 0x08: key = InputKey::_7_Key; break;
+    case 0x09: key = InputKey::_8_Key; break;
+    case 0x0A: key = InputKey::_9_Key; break;
+    case 0x0B: key = InputKey::_0_Key; break;
+    case 0x1C: key = InputKey::Enter_Key; break;
+    case 0x01: key = InputKey::Escape_Key; break;
+    case 0x0E: key = InputKey::Backspace_Key; break;
+    case 0x0F: key = InputKey::Tab_Key; break;
+    case 0x39: key = InputKey::Space_Bar_Key; break;
+    case 0x0C: key = InputKey::Minus_Key; break;
+    case 0x0D: key = InputKey::Equals_Key; break;
+    case 0x1A: key = InputKey::Left_Bracket_Key; break;
+    case 0x1B: key = InputKey::Right_Bracket_Key; break;
+    case 0x2B: key = InputKey::Backslash_Key; break;
+    case 0x27: key = InputKey::Semicolon_Key; break;
+    case 0x28: key = InputKey::Apostrophe_Key; break;
+    case 0x29: key = InputKey::Grave_Key; break;
+    case 0x33: key = InputKey::Comma_Key; break;
+    case 0x34: key = InputKey::Period_Key; break;
+    case 0x35: key = InputKey::Slash_Key; break;
+    case 0x3A: key = InputKey::Caps_Lock_Key; break;
+    case 0x3B: key = InputKey::F1_Key; break;
+    case 0x3C: key = InputKey::F2_Key; break;
+    case 0x3D: key = InputKey::F3_Key; break;
+    case 0x3E: key = InputKey::F4_Key; break;
+    case 0x3F: key = InputKey::F5_Key; break;
+    case 0x40: key = InputKey::F6_Key; break;
+    case 0x41: key = InputKey::F7_Key; break;
+    case 0x42: key = InputKey::F8_Key; break;
+    case 0x43: key = InputKey::F9_Key; break;
+    case 0x44: key = InputKey::F10_Key; break;
+    case 0x57: key = InputKey::F11_Key; break;
+    case 0x58: key = InputKey::F12_Key; break;
+    case 0x46: key = InputKey::Scroll_Lock_Key; break;
+    case 0xE052: key = InputKey::Insert_Key; break;
+    case 0xE047: key = InputKey::Home_Key; break;
+    case 0xE049: key = InputKey::Page_Up_Key; break;
+    case 0xE053: key = InputKey::Delete_Key; break;
+    case 0xE04F: key = InputKey::End_Key; break;
+    case 0xE051: key = InputKey::Page_Down_Key; break;
+    case 0xE04D: key = InputKey::Right_Key; break;
+    case 0xE04B: key = InputKey::Left_Key; break;
+    case 0xE050: key = InputKey::Down_Key; break;
+    case 0xE048: key = InputKey::Up_Key; break;
+    case 0x45: key = InputKey::Num_Lock_Key; break;
+    case 0xE045: key = InputKey::Num_Lock_Key; break;
+    case 0xE035: key = InputKey::Keypad_Slash_Key; break;
+    case 0x37: key = InputKey::Keypad_Star_Key; break;
+    case 0x4A: key = InputKey::Keypad_Minus_Key; break;
+    case 0x4E: key = InputKey::Keypad_Plus_Key; break;
+    case 0xE01C: key = InputKey::Keypad_Enter_Key; break;
+    case 0x4F: key = InputKey::Keypad_1_Key; break;
+    case 0x50: key = InputKey::Keypad_2_Key; break;
+    case 0x51: key = InputKey::Keypad_3_Key; break;
+    case 0x4B: key = InputKey::Keypad_4_Key; break;
+    case 0x4C: key = InputKey::Keypad_5_Key; break;
+    case 0x4D: key = InputKey::Keypad_6_Key; break;
+    case 0x47: key = InputKey::Keypad_7_Key; break;
+    case 0x48: key = InputKey::Keypad_8_Key; break;
+    case 0x49: key = InputKey::Keypad_9_Key; break;
+    case 0x52: key = InputKey::Keypad_0_Key; break;
+    case 0x53: key = InputKey::Keypad_Period_Key; break;
+    case 0xE05D: key = InputKey::App_Menu_Key; break;
+    case 0x1D: key = InputKey::Left_Control_Key; break;
+    case 0x2A: key = InputKey::Left_Shift_Key; break;
+    case 0x38: key = InputKey::Left_Alt_Key; break;
+    case 0xE05B: key = InputKey::Left_Windows_Key; break;
+    case 0xE01D: key = InputKey::Right_Control_Key; break;
+    case 0x36: key = InputKey::Right_Shift_Key; break;
+    case 0xE038: key = InputKey::Right_Alt_Key; break;
+    case 0xE05C: key = InputKey::Right_Windows_Key; break;
+    }
+    if (key == InputKey::Unset)
+        return;
+    last_key = key;
+    auto index = (int)key;
+    if (down)
+        key_states[index].down();
+    else
+        key_states[index].up();
+}
+
+struct RawMousePixels
+{
+    int x, y;
+
+    RawMousePixels operator-(RawMousePixels other) const
+    {
+        return { .x = x - other.x, .y = y - other.y };
+    }
+
+    RawMousePixels operator+=(RawMousePixels other)
+    {
+        x += other.x;
+        y += other.y;
+        return *this;
+    }
+};
+
+struct RawMouseState
+{
+    std::optional<RawMousePixels> absolute;
+    RawMousePixels relative;
+    int wheel_delta;
+    bool eat_mouse_held;
+};
+
+static RawMouseState raw_mouse_state = {};
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawmouse
+static void raw_mouse_input(RAWMOUSE msg)
+{
+    // This computes the absolute position in pixels. Not sure this makes the most sense for game input?
+    // Doesn't seem to make any promises about when it sends absolute vs relative, but common sense says
+    // one absolute message when we get focus and then relative messages after that, in which case we can
+    // just ignore absolute...
+    if (msg.usFlags & MOUSE_MOVE_ABSOLUTE)
+    {
+        RECT rect;
+        if (msg.usFlags & MOUSE_VIRTUAL_DESKTOP)
+        {
+            rect.left = GetSystemMetrics(SM_XVIRTUALSCREEN);
+            rect.top = GetSystemMetrics(SM_YVIRTUALSCREEN);
+            rect.right = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+            rect.bottom = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        }
+        else
+        {
+            rect.left = 0;
+            rect.top = 0;
+            rect.right = GetSystemMetrics(SM_CXSCREEN);
+            rect.bottom = GetSystemMetrics(SM_CYSCREEN);
+        }
+
+        auto next = RawMousePixels{
+            .x = MulDiv(msg.lLastX, rect.right, USHRT_MAX) + rect.left,
+            .y = MulDiv(msg.lLastY, rect.bottom, USHRT_MAX) + rect.top,
+        };
+
+        if (raw_mouse_state.absolute)
+        {
+            raw_mouse_state.relative = next - *raw_mouse_state.absolute;
+        }
+        else
+        {
+            raw_mouse_state.relative = {};
+        }
+
+        raw_mouse_state.absolute = next;
+    }
+    else
+    {
+        raw_mouse_state.relative = { .x = msg.lLastX, .y = msg.lLastY };
+        if (raw_mouse_state.absolute)
+            *raw_mouse_state.absolute += raw_mouse_state.relative;
+    }
+
+    auto& left_button = key_states[(int)InputKey::Left_Mouse_Button];
+    auto& right_button = key_states[(int)InputKey::Right_Mouse_Button];
+    auto& center_button = key_states[(int)InputKey::Center_Mouse_Button];
+
+    if (msg.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
+        left_button.down();
+    if (msg.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
+    {
+        left_button.up();
+        raw_mouse_state.eat_mouse_held = false;
+    }
+    if (msg.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
+        right_button.down();
+    if (msg.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
+        right_button.up();
+    if (msg.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
+        center_button.down();
+    if (msg.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
+        center_button.up();
+    if (msg.usButtonFlags & RI_MOUSE_WHEEL)
+        raw_mouse_state.wheel_delta = (short)msg.usButtonData;
+    else
+        raw_mouse_state.wheel_delta = 0;
 }
 
 /*
@@ -755,21 +1010,50 @@ void Input::Set_Mouse_2D_Invert(bool invert)
     Mouse2DInvert = invert;
 }
 
-void Input::Flush(void)
+void Input::Flush()
 {
+    std::ranges::fill(key_states, KeyState{});
+    std::ranges::fill(key_last_hit, 0.0f);
+    last_key = InputKey::Unset;
+    raw_mouse_state = {};
 }
 
-#ifdef INPUT_TODO
-void Input::Update_Sliders(void)
+void Input::Update_State()
 {
+    float now = TimeManager::Get_Total_Seconds();
+
+    key_states[(int)InputKey::Control_Key] =
+        key_states[(int)InputKey::Left_Control_Key] |
+        key_states[(int)InputKey::Right_Control_Key];
+    key_states[(int)InputKey::Alt_Key] =
+        key_states[(int)InputKey::Left_Alt_Key] |
+        key_states[(int)InputKey::Right_Alt_Key];
+    key_states[(int)InputKey::Shift_Key] =
+        key_states[(int)InputKey::Left_Shift_Key] |
+        key_states[(int)InputKey::Right_Shift_Key];
+
+    if (raw_mouse_state.eat_mouse_held)
+        key_states[(int)InputKey::Left_Mouse_Button] = {.released = true};
+
+    for (int i = 0; i < (int)InputKey::Button_Count; i++)
+    {
+        auto& state = key_states[i];
+        if (state.hit)
+        {
+            if ((now - key_last_hit[i]) < 0.25f)
+            {
+                state.double_hit = true;
+            }
+            key_last_hit[i] = now;
+        }
+    }
+
     float wheel_scale = -0.05f;
 
-    //
-    //	Update mouse sliders
-    //
-    float mouse_x = MouseScale * (float)(DirectInput::Get_Mouse_Axis(DirectInput::MOUSE_X_AXIS));
-    float mouse_y = MouseScale * (float)(DirectInput::Get_Mouse_Axis(DirectInput::MOUSE_Y_AXIS));
-    float mouse_z = wheel_scale * (float)(DirectInput::Get_Mouse_Axis(DirectInput::MOUSE_Z_AXIS));
+    float mouse_x = MouseScale * (float)raw_mouse_state.relative.x;
+    float mouse_y = MouseScale * (float)raw_mouse_state.relative.y;
+    float mouse_z = wheel_scale * (float)raw_mouse_state.wheel_delta;
+    raw_mouse_state = {};
 
     if (TimeManager::Get_Frame_Real_Seconds() > 0.0f)
     {
@@ -801,6 +1085,7 @@ void Input::Update_Sliders(void)
     Sliders[SLIDER_MOUSE_WHEEL_FORWARD - FIRST_SLIDER] = MAX(-mouse_z, 0.0f);
     Sliders[SLIDER_MOUSE_WHEEL_BACKWARD - FIRST_SLIDER] = MAX(mouse_z, 0.0f);
 
+#ifdef INPUT_JOYSTICK
     //
     // Update joystick sliders
     //
@@ -821,22 +1106,18 @@ void Input::Update_Sliders(void)
     Sliders[SLIDER_JOYSTICK_RIGHT - FIRST_SLIDER] = MAX(joystick_x, 0.0f);
     Sliders[SLIDER_JOYSTICK_UP - FIRST_SLIDER] = MAX(-joystick_y, 0.0f);
     Sliders[SLIDER_JOYSTICK_DOWN - FIRST_SLIDER] = MAX(joystick_y, 0.0f);
-    return;
-}
 #endif
+}
 
 void Input::Update(void)
 {
     if (!GameInFocus)
     {
+        Flush();
         return;
     }
 
-#ifdef INPUT_TODO
-    // Update Direct Input
-    DirectInput::Read();
-    Update_Sliders();
-#endif
+    Update_State();
 
     //
     // zero all values
@@ -954,7 +1235,11 @@ void Input::Update(void)
         FunctionValue[index] = max(value1, value2);
     }
 
-    return;
+    for (auto& state : key_states)
+    {
+        state.hit = false;
+        state.released = false;
+    }
 }
 
 int Input::Console_Get_Key()
@@ -991,10 +1276,9 @@ void Input::Console_Add_Key(int key)
 */
 bool Input::Is_Button_Down(InputKey button_id)
 {
+    if (button_id > InputKey::Unset && button_id < InputKey::Button_Count)
+        return key_states[(int) button_id].held;
     return false;
-#ifdef INPUT_TODO
-    return ((DirectInput::Get_Button_Value(button_id) & BUTTON_BIT_HELD) != 0);
-#endif
 }
 
 
@@ -1026,7 +1310,7 @@ float Input::Get_Value(int function_index, InputKey input, float clamp)
 
         return slider;
     }
-    else
+    else if (input != InputKey::Unset)
     {
 #if(0)
 		//
@@ -1043,18 +1327,16 @@ float Input::Get_Value(int function_index, InputKey input, float clamp)
 
         int modifier = 0;
 
-#ifdef INPUT_TODO
         // Special case ctrl and alt for the 0 - 9 keys
-        // Assumtion:  DIK_keys go 1,2,3..9,0
-        if ((input & 0xFF) >= DIK_1 && (input & 0xFF) <= DIK_0)
+        if (input >= InputKey::_0_Key && input <= InputKey::_9_Key)
         {
             // Shift is a key, used for walk!
             //			modifier |= ((DirectInput::Get_Button_Value(DIK_SHIFT) & BUTTON_BIT_HELD) ? BUTTON_SHIFT : 0);
-            modifier |= ((DirectInput::Get_Button_Value(DIK_CONTROL) & BUTTON_BIT_HELD) ? BUTTON_CTRL : 0);
-            modifier |= ((DirectInput::Get_Button_Value(DIK_ALT) & BUTTON_BIT_HELD) ? BUTTON_ALT : 0);
+            modifier |= key_states[(int)InputKey::Control_Key].held ? BUTTON_CTRL : 0;
+            modifier |= key_states[(int)InputKey::Alt_Key].held ? BUTTON_ALT : 0;
         }
 
-        modifier |= ((DirectInput::Get_Button_Value(DIK_F9) & BUTTON_BIT_HELD) ? BUTTON_DEBUG : 0);
+        modifier |= key_states[(int)InputKey::F9_Key].held ? BUTTON_DEBUG : 0;
 
         int funcModifier = (FunctionKeyStates[function_index] & 0xF000);
 
@@ -1063,24 +1345,24 @@ float Input::Get_Value(int function_index, InputKey input, float clamp)
             return 0.0f;
         }
 
+        auto state = key_states[((int)input)];
         switch (FunctionKeyStates[function_index] & 0x0F)
         {
         case BUTTON_UP:
-            return (DirectInput::Get_Button_Value(input) & BUTTON_BIT_HELD) ? 0.0 : 1.0;
+            return state.held ? 0.0 : 1.0;
 
         case BUTTON_HIT:
-            return (DirectInput::Get_Button_Value(input) & BUTTON_BIT_HIT) ? 1.0 : 0.0;
+            return state.hit ? 1.0 : 0.0;
 
         case BUTTON_RELEASE:
-            return (DirectInput::Get_Button_Value(input) & BUTTON_BIT_RELEASED) ? 1.0 : 0.0;
+            return state.released ? 1.0 : 0.0;
 
         case BUTTON_HELD:
-            return (DirectInput::Get_Button_Value(input) & BUTTON_BIT_HELD) ? 1.0 : 0.0;
+            return state.held ? 1.0 : 0.0;
 
         case BUTTON_DOUBLE:
-            return (DirectInput::Get_Button_Value(input) & BUTTON_BIT_DOUBLE) ? 1.0 : 0.0;
+            return state.double_hit ? 1.0 : 0.0;
         }
-#endif
     }
 
     return 0.0f;
@@ -1581,6 +1863,70 @@ Input::Save_Accelerated_Keys(INIClass* input_ini)
     return;
 }
 
+
+void Input::Eat_Mouse_Held_States()
+{
+    auto left_button = key_states[(int)InputKey::Left_Mouse_Button];
+    if (left_button.held || left_button.hit)
+    {
+        raw_mouse_state.eat_mouse_held = true;
+    }
+}
+
+InputKey Input::Get_Last_Key_Pressed()
+{
+    return last_key;
+}
+
+std::optional<LRESULT> Input::Process_Message(UINT msg, WPARAM wparam, LPARAM lparam)
+{
+    switch (msg)
+    {
+    default:
+        return {};
+
+    case WM_MOUSEMOVE:
+        CursorPos = { (float)LOWORD(lparam), (float)HIWORD(lparam) };
+        return {};
+
+    case WM_INPUT:
+        {
+            auto code = GET_RAWINPUT_CODE_WPARAM(wparam);
+            // ignore background messages
+            if (code != RIM_INPUT)
+                return {};
+
+            RAWINPUT input;
+            RAWINPUT* pinput = &input;
+
+            std::vector<BYTE> data;
+            UINT size = sizeof(RAWINPUT);
+            if (GetRawInputData((HRAWINPUT)lparam, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER)) == -1)
+            {
+                data.resize(size);
+                if (GetRawInputData((HRAWINPUT)lparam, RID_INPUT, data.data(), &size, sizeof(RAWINPUTHEADER)) == -1)
+                {
+                    Debug_Say(("GetRawInputData failed"));
+                    return {};
+                }
+                pinput = reinterpret_cast<RAWINPUT*>(data.data());
+            }
+
+            switch (pinput->header.dwType)
+            {
+            case RIM_TYPEKEYBOARD:
+                raw_keyboard_input(pinput->data.keyboard);
+                break;
+            case RIM_TYPEMOUSE:
+                raw_mouse_input(pinput->data.mouse);
+                break;
+            }
+
+            return {};
+        }
+
+    }
+}
 
 ////////////////////////////////////////////////////////////////
 //

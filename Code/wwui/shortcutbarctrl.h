@@ -111,7 +111,7 @@ protected:
 	void				Set_Hidden_State (bool onoff);
 	void				Get_Entry_Rect (int index, RectClass &rect);
 	int				Entry_From_Pos (const Vector2 &mouse_pos);
-	void				Set_Curr_Sel (int index, bool snap_mouse = false);
+	void				Set_Curr_Sel (int index);
 	void				Render_Strip (const RectClass &screen_rect, bool flip_uvs);
 	void				Send_Command (void);
 	void				Update_Pulse (void);

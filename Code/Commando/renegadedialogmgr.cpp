@@ -143,14 +143,6 @@ class RenegadeUIInputClass : public WWUIInputClass
 		return MousePos;
 	}
 
-	void
-	Set_Mouse_Pos (const Vector3 &pos)
-	{
-		MousePos = pos;
-		Input::Reset_Cursor_Pos (Vector2 (pos.X, pos.Y));
-		return ;
-	}
-
 	bool
 	Is_Button_Down (int vk_mouse_button_id)
 	{

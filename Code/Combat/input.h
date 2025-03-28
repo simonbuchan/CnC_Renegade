@@ -49,6 +49,8 @@
 	#include "wwdebug.h"
 #endif
 
+#include <optional>
+
 #include "vector2.h"
 #include "widestring.h"
 
@@ -431,10 +433,12 @@ public:
 	static	bool	Is_Button_Down (InputKey button_id);
 
 	// Moved from DirectInput
-	static void		Reset_Cursor_Pos (const Vector2 &pos)	{ CursorPos = pos; }
 	static Vector2	Get_Cursor_Pos ()				{ return CursorPos; }
-	static	void	Eat_Mouse_Held_States () {}
-	static InputKey Get_Last_Key_Pressed () { return InputKey::Unset; }
+	static	void	Eat_Mouse_Held_States ();
+	static InputKey Get_Last_Key_Pressed ();
+
+	// Handle window messages
+	static std::optional<LRESULT> Process_Message (UINT msg, WPARAM wparam, LPARAM lparam);
 
 	// Key name access
 	static	void	Get_Translated_Key_Name (InputKey key, WideStringClass &name);
@@ -489,7 +493,7 @@ private:
 	//
 	//	Internal methods
 	//
-	static	void	Update_Sliders( void );
+	static	void	Update_State();
 
 	//
 	//	Private member data
