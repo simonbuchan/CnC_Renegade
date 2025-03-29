@@ -531,7 +531,7 @@ int Main_Game_Loop_Try()
  *=============================================================================================*/
 long FAR PASCAL Main_Window_Proc( HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
-	if (const auto result = Input::Process_Message(message, wParam, lParam))
+	if (const auto result = Input::Process_Message(hwnd, message, wParam, lParam))
 	{
 		return result.value();
 	}

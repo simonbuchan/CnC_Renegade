@@ -438,7 +438,7 @@ public:
 	static InputKey Get_Last_Key_Pressed ();
 
 	// Handle window messages
-	static std::optional<LRESULT> Process_Message (UINT msg, WPARAM wparam, LPARAM lparam);
+	static std::optional<LRESULT> Process_Message (HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 	// Key name access
 	static	void	Get_Translated_Key_Name (InputKey key, WideStringClass &name);

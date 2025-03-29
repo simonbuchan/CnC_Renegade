@@ -1878,7 +1878,7 @@ InputKey Input::Get_Last_Key_Pressed()
     return last_key;
 }
 
-std::optional<LRESULT> Input::Process_Message(UINT msg, WPARAM wparam, LPARAM lparam)
+std::optional<LRESULT> Input::Process_Message(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
     switch (msg)
     {
@@ -1886,7 +1886,18 @@ std::optional<LRESULT> Input::Process_Message(UINT msg, WPARAM wparam, LPARAM lp
         return {};
 
     case WM_MOUSEMOVE:
-        CursorPos = { (float)LOWORD(lparam), (float)HIWORD(lparam) };
+        if (MenuMode)
+        {
+            CursorPos = { (float)LOWORD(lparam), (float)HIWORD(lparam) };
+        }
+        else
+        {
+            RECT rect = {};
+            GetWindowRect(hwnd, &rect);
+            POINT center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
+            ClientToScreen(hwnd, &center);
+            SetCursorPos(center.x, center.y);
+        }
         return {};
 
     case WM_INPUT:
