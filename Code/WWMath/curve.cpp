@@ -160,6 +160,7 @@ void Curve3DClass::Set_Key(int i,const Vector3 & point)
 
 int Curve3DClass::Add_Key(const Vector3 & point,float t)
 {
+	assert(isfinite(t));
 	int idx = 0;
 	while (idx < Keys.Count() && Keys[idx].Time < t) {
 		idx++;
