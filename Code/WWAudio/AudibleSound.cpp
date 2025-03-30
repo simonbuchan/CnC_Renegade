@@ -43,7 +43,6 @@
 #include "utils.h"
 #include "soundscene.h"
 #include "filteredsound.h"
-#include "threads.h"
 #include "soundchunkids.h"
 #include "simpledefinitionfactory.h"
 #include "persistfactory.h"
@@ -228,16 +227,7 @@ AudibleSoundClass::~AudibleSoundClass (void)
 	m_State = STATE_STOPPED;
 	Free_Conversion ();
 	REF_PTR_RELEASE (m_LogicalSound);
-
-	//
-	//	Delay the release of the buffer (fixes a sync bug
-	// with Miles internals).
-	//
-	if (m_Buffer != NULL) {
-		WWAudioThreadsClass::Add_Delayed_Release_Object (m_Buffer);
-		//REF_PTR_RELEASE (m_Buffer);
-		m_Buffer = NULL;
-	}
+	REF_PTR_RELEASE(m_Buffer);
 
 	Free_Miles_Handle ();
 	return ;
@@ -289,15 +279,7 @@ AudibleSoundClass::operator= (const AudibleSoundClass &src)
 void
 AudibleSoundClass::Set_Buffer (SoundBufferClass *buffer)
 {
-	//
-	//	Delay the release of the buffer (fixes a sync bug
-	// with Miles internals).
-	//
-	if (m_Buffer != NULL) {
-		WWAudioThreadsClass::Add_Delayed_Release_Object (m_Buffer);
-		//REF_PTR_RELEASE (m_Buffer);
-		m_Buffer = NULL;
-	}
+	REF_PTR_RELEASE (m_Buffer);
 	REF_PTR_SET (m_Buffer, buffer);
 
 	// Stop playing if necessary

@@ -42,7 +42,6 @@
 #include "chunkio.h"
 #include "persistfactory.h"
 #include "wwprofile.h"
-#include "threads.h"
 #include "wwmemlog.h"
 #include "systimer.h"
 
@@ -634,10 +633,7 @@ SoundSceneClass::Remove_Sound
 		m_DynamicCullingSystem.Remove_Object (cull_obj);
 		m_DynamicSounds.Remove (cull_obj);
 
-		//
-		//	Register the sound for deletion at an appropriate time
-		//
-		WWAudioThreadsClass::Add_Delayed_Release_Object (cull_obj);
+		REF_PTR_RELEASE(cull_obj);
 	}
 
 	return ;
@@ -773,11 +769,7 @@ SoundSceneClass::Remove_Static_Sound
 		//
 		m_StaticCullingSystem.Remove_Object (cull_obj);
 		m_StaticSounds.Remove (cull_obj);
-
-		//
-		//	Register the sound for deletion at an appropriate time
-		//
-		WWAudioThreadsClass::Add_Delayed_Release_Object (cull_obj);
+		REF_PTR_RELEASE(cull_obj);
 	}
 
 	return ;
@@ -889,7 +881,7 @@ SoundSceneClass::Remove_Logical_Sound
 			// Remove this sound obj's wrapper
 			//
 			sound_obj->Set_Cullable_Wrapper (NULL);
-			WWAudioThreadsClass::Add_Delayed_Release_Object (cull_obj);
+			REF_PTR_RELEASE(cull_obj);
 
 			//
 			//	Release our reference on this object
@@ -921,7 +913,7 @@ SoundSceneClass::Remove_Logical_Sound
 			// Remove this sound obj's wrapper
 			//
 			sound_obj->Set_Cullable_Wrapper (NULL);
-			WWAudioThreadsClass::Add_Delayed_Release_Object (cull_obj);
+			REF_PTR_RELEASE(cull_obj);
 
 			//
 			//	Release our reference on this object

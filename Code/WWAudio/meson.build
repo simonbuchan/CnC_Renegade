@@ -17,7 +17,6 @@ wwaudio = static_library(
     'SoundScene.cpp',
     'SoundSceneObj.cpp',
     'soundstreamhandle.cpp',
-    'Threads.cpp',
     'Utils.cpp',
     'WWAudio.cpp',
     dependencies : [

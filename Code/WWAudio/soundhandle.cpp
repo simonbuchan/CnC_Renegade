@@ -35,7 +35,6 @@
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "soundhandle.h"
-#include "threads.h"
 
 
 //////////////////////////////////////////////////////////////////////
@@ -57,16 +56,7 @@ SoundHandleClass::SoundHandleClass (void)	:
 //////////////////////////////////////////////////////////////////////
 SoundHandleClass::~SoundHandleClass (void)
 {
-	//
-	//	Delay the release of the buffer (fixes a sync bug
-	// with Miles internals).
-	//
-	if (Buffer != NULL) {
-		WWAudioThreadsClass::Add_Delayed_Release_Object (Buffer);
-		Buffer = NULL;
-	}
-
-	return ;
+	REF_PTR_RELEASE(Buffer);
 }
 
 

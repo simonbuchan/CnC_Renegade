@@ -50,7 +50,6 @@
 #include "SoundPseudo3D.H"
 #include "FFactory.H"
 #include "Registry.H"
-#include "Threads.H"
 #include "LogicalSound.h"
 #include "LogicalListener.h"
 #include "definitionclassids.h"
@@ -217,12 +216,6 @@ WWAudioClass::~WWAudioClass (void)
 	//	Stop the background music
 	//
 	Set_Background_Music (NULL);
-
-	//
-	//	Make sure the delayed-release thread is terminated
-	// before we exit (otherwise the process will crash).
-	//
-	WWAudioThreadsClass::End_Delayed_Release_Thread ();
 
 	Shutdown ();
 	_theInstance = NULL;
