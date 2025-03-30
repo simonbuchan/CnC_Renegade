@@ -14,9 +14,6 @@ typedef struct MSS_SAMPLE* HSAMPLE;
 typedef struct MSS_3DSAMPLE* H3DSAMPLE;
 typedef struct MSS_3DPOBJECT* H3DPOBJECT;
 
-// And this just gets -1. Doesn't seem used in this project though.
-typedef int HTIMER;
-
 typedef INT32 S32;
 typedef UINT32 U32;
 typedef float F32;
@@ -52,9 +49,6 @@ void AIL_shutdown();
 const char* AIL_last_error();
 
 AIL_ERROR AIL_set_preference(AIL_PREFERENCE, int);
-
-void AIL_stop_timer(HTIMER);
-void AIL_release_timer_handle(HTIMER);
 
 void AIL_lock();
 void AIL_unlock();

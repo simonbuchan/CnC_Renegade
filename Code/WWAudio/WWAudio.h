@@ -603,7 +603,6 @@ private:
 	//	Static member data
 	//////////////////////////////////////////////////////////////////////
 	static WWAudioClass *						_theInstance;
-	static HANDLE									_TimerSyncEvent;
 
 	//////////////////////////////////////////////////////////////////////
 	//	Private data types
@@ -664,7 +663,6 @@ private:
 	int													m_Max3DSamples;
 	int													m_Max2DBufferSize;
 	int													m_Max3DBufferSize;
-	HTIMER												m_UpdateTimer;
 	bool													m_IsMusicEnabled;
 	bool													m_IsDialogEnabled;
 	bool													m_IsCinematicSoundEnabled;

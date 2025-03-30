@@ -67,7 +67,6 @@
 //	Static member initialization
 ////////////////////////////////////////////////////////////////////////////////////////////////
 WWAudioClass *WWAudioClass::_theInstance = NULL;
-HANDLE WWAudioClass::_TimerSyncEvent = NULL;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -140,7 +139,6 @@ WWAudioClass::WWAudioClass (bool lite)
 	  m_PlaybackStereo (true),
 	  m_SpeakerType (0),
 	  m_ReverbFilter (INVALID_MILES_HANDLE),
-	  m_UpdateTimer (-1),
 	  m_Driver3DPseudo (NULL),
 	  m_MusicVolume (DEF_MUSIC_VOL),
 	  m_SoundVolume (DEF_SFX_VOL),
@@ -183,7 +181,6 @@ WWAudioClass::WWAudioClass (bool lite)
 		AIL_startup ();
 	}
 	_theInstance = this;
-	_TimerSyncEvent = ::CreateEvent (NULL, TRUE, FALSE, "WWAUDIO_TIMER_SYNC");
 
 	//
 	// Set some default values
@@ -229,8 +226,6 @@ WWAudioClass::~WWAudioClass (void)
 
 	Shutdown ();
 	_theInstance = NULL;
-	::CloseHandle(_TimerSyncEvent);
-	_TimerSyncEvent = NULL;
 
 	::DeleteCriticalSection (&MMSLockClass::_MSSLockCriticalSection);
 
@@ -2490,22 +2485,6 @@ WWAudioClass::Initialize
 void
 WWAudioClass::Shutdown (void)
 {
-	//
-	// If there is a timer running, then stop the timer...
-	//
-	if (m_UpdateTimer != -1) {
-
-		// Kill the timer
-		::AIL_stop_timer (m_UpdateTimer);
-		::AIL_release_timer_handle (m_UpdateTimer);
-		m_UpdateTimer = -1;
-
-		// Wait for the timer callback function to end
-		::WaitForSingleObject (_TimerSyncEvent, 20000);
-		::CloseHandle (_TimerSyncEvent);
-		_TimerSyncEvent = NULL;
-	}
-
 	//
 	//	Stop the background music
 	//

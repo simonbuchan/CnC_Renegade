@@ -18,14 +18,6 @@ AIL_ERROR AIL_set_preference(AIL_PREFERENCE, int)
     return AIL_NO_ERROR;
 }
 
-void AIL_stop_timer(HTIMER)
-{
-}
-
-void AIL_release_timer_handle(HTIMER)
-{
-}
-
 void AIL_lock()
 {
 }
