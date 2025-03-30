@@ -45,7 +45,11 @@ fn main() {
         .expect("generate bindings");
 
     println!("writing header {header_path}");
-    fs::remove_file(&header_path).expect("remove old header");
+    if let Err(error) = fs::remove_file(&header_path) {
+        if error.kind() != std::io::ErrorKind::NotFound {
+            panic!("remove old header: {error}")
+        }
+    }
     bindings.write_to_file(&header_path);
 
     println!("writing depfile {depfile_path}");

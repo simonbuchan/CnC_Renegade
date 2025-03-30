@@ -1,11 +1,18 @@
 #include "Mss.h"
 
+#include "audio_crate.h"
+
+AudioManager* audio_manager = NULL;
+
 void AIL_startup()
 {
+    audio_manager = audio_manager_create();
 }
 
 void AIL_shutdown()
 {
+    audio_manager_destroy(audio_manager);
+    audio_manager = NULL;
 }
 
 const char* AIL_last_error()
@@ -26,7 +33,7 @@ void AIL_unlock()
 {
 }
 
-AIL_ERROR AIL_waveOutOpen(HDIGDRIVER*, void*, int, LPWAVEFORMAT)
+AIL_ERROR AIL_waveOutOpen(HDIGDRIVER* result, void* , int, LPWAVEFORMAT)
 {
     return AIL_NO_ERROR;
 }
