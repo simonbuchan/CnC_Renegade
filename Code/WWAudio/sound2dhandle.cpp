@@ -100,10 +100,10 @@ Sound2DHandleClass::Initialize (SoundBufferClass *buffer)
 //
 //////////////////////////////////////////////////////////////////////
 void
-Sound2DHandleClass::Start_Sample (void)
+Sound2DHandleClass::Start_Sample()
 {
-	if (SampleHandle != (HSAMPLE)INVALID_MILES_HANDLE) {
-		::AIL_start_sample (SampleHandle);
+	if (Buffer && Buffer->data.has_value()) {
+		WWAudioClass::Get_Instance()->output_->play(Buffer->data.value(), 1.0);
 	}
 
 	return ;

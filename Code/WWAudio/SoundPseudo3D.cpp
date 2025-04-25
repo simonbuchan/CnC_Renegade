@@ -81,8 +81,6 @@ SoundPseudo3DClass::SoundPseudo3DClass (const SoundPseudo3DClass &src)
 ////////////////////////////////////////////////////////////////////////////////////////////////
 SoundPseudo3DClass::~SoundPseudo3DClass (void)
 {
-	Free_Miles_Handle ();
-	return ;
 }
 
 
@@ -102,28 +100,13 @@ SoundPseudo3DClass::operator= (const SoundPseudo3DClass &src)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //
-//	Set_Miles_Handle
-//
-////////////////////////////////////////////////////////////////////////////////////////////////
-void
-SoundPseudo3DClass::Set_Miles_Handle (MILES_HANDLE handle)
-{
-	AudibleSoundClass::Set_Miles_Handle (handle);
-	return ;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-//
 //	Initialize_Miles_Handle
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////
-void
-SoundPseudo3DClass::Initialize_Miles_Handle (void)
+void SoundPseudo3DClass::Initialize_Handle()
 {
-	AudibleSoundClass::Initialize_Miles_Handle ();
+	AudibleSoundClass::Initialize_Handle();
 	Update_Pseudo_Volume ();
-	return ;
 }
 
 
@@ -135,8 +118,6 @@ SoundPseudo3DClass::Initialize_Miles_Handle (void)
 void
 SoundPseudo3DClass::Update_Pseudo_Volume (float distance)
 {
-	MMSLockClass lock;	
-
 	//
 	// Only do this if the sound is really playing
 	//
@@ -176,8 +157,6 @@ SoundPseudo3DClass::Update_Pseudo_Volume (float distance)
 void
 SoundPseudo3DClass::Update_Pseudo_Volume (void)
 {
-	MMSLockClass lock;	
-
 	// Only do this if the sound is really playing
 	if (m_SoundHandle != NULL) {
 		
@@ -205,8 +184,6 @@ SoundPseudo3DClass::Update_Pseudo_Volume (void)
 void
 SoundPseudo3DClass::Update_Pseudo_Pan (void)
 {
-	MMSLockClass lock;	
-
 	//
 	// Only do this if the sound is really playing
 	//
@@ -232,32 +209,6 @@ SoundPseudo3DClass::Update_Pseudo_Pan (void)
 		m_SoundHandle->Set_Sample_Pan (S32(pan * 127.0F));
 	}
 
-	return ;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//	Allocate_Miles_Handle
-//
-////////////////////////////////////////////////////////////////////////////////////////////////
-void
-SoundPseudo3DClass::Allocate_Miles_Handle (void)
-{
-	AudibleSoundClass::Allocate_Miles_Handle ();
-	return ;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//	Free_Miles_Handle
-//
-////////////////////////////////////////////////////////////////////////////////////////////////
-void
-SoundPseudo3DClass::Free_Miles_Handle (void)
-{
-	AudibleSoundClass::Free_Miles_Handle ();
 	return ;
 }
 

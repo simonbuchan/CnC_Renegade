@@ -43,15 +43,23 @@
 
 #include "always.h"
 
+#include <optional>
+
 #pragma warning (push, 3)
 #include "Mss.H"
 #pragma warning (pop)
+
+#include <vector>
 
 #include "Vector.H"
 #include "SoundBuffer.H"
 #include "AudioEvents.H"
 #include "wwstring.h"
 
+#include "audio_crate.hpp"
+
+class Sound3DHandleClass;
+class Sound2DHandleClass;
 /////////////////////////////////////////////////////////////////////////////////
 // Forward declaration
 /////////////////////////////////////////////////////////////////////////////////
@@ -162,11 +170,12 @@ public:
 		PAGE_COUNT
 	} SOUND_PAGE;
 
-	typedef struct _DRIVER_INFO_STRUCT
-	{
-		HPROVIDER	driver;
-		char *		name;
-	} DRIVER_INFO_STRUCT;
+	struct DRIVER_INFO_STRUCT { int driver; const char* name; };
+	// Will actually be WASAPI (Windows Audio Session API) at the moment, picked by kira's default backend, cpal.
+	// Too many layers to care about at the moment, and hardly anyone cares about audio drivers now.
+	// Might be worth restoring when we get to e.g. Linux support, which has more interesting options,
+	// but ASIO is also an option even on Windows.
+	static inline DRIVER_INFO_STRUCT MOCK_DRIVER_INFO = { 1, "Default" };
 
 	//////////////////////////////////////////////////////////////////////
 	//	Friend classes
@@ -209,14 +218,14 @@ public:
 	HDIGDRIVER				Get_2D_Driver (void) const			{ return m_Driver2D; }
 	HPROVIDER				Get_3D_Driver (void) const			{ return m_Driver3D; }
 	const StringClass &	Get_3D_Driver_Name (void) const	{ return m_Driver3DName; }
-	HPROVIDER				Get_Reverb_Filter (void) const	{ return m_ReverbFilter; }
+	HPROVIDER				Get_Reverb_Filter (void) const	{ return -1; }
 
 	//////////////////////////////////////////////////////////////////////
 	//	2D Hardware/driver selection methods
 	//////////////////////////////////////////////////////////////////////
-	DRIVER_TYPE_2D		Open_2D_Device (LPWAVEFORMAT format = NULL);
-	DRIVER_TYPE_2D		Open_2D_Device (bool stereo, int bits, int hertz);
-	bool					Close_2D_Device (void);
+	void                    Open_2D_Device (LPWAVEFORMAT format = NULL);
+	void                    Open_2D_Device (bool stereo, int bits, int hertz);
+	void					Close_2D_Device();
 	int					Get_Playback_Rate (void) const		{ return m_PlaybackRate; }
 	int					Get_Playback_Bits (void) const		{ return m_PlaybackBits; }
 	bool					Get_Playback_Stereo (void) const		{ return m_PlaybackStereo; }
@@ -226,16 +235,13 @@ public:
 	//////////////////////////////////////////////////////////////////////
 
 	// Device information
-	int					Get_3D_Device_Count (void) const								{ return m_Driver3DList.Count (); }
-	bool					Get_3D_Device (int index, DRIVER_INFO_STRUCT **info)	{ (*info) = m_Driver3DList[index]; return true; }
-	bool					Is_3D_Device_Available (DRIVER_TYPE_3D type)				{ return Find_3D_Device (type) >= 0; }
-	int					Find_3D_Device (DRIVER_TYPE_3D type);
+	int					Get_3D_Device_Count (void) const								{ return 1; }
+	bool					Get_3D_Device (int index, DRIVER_INFO_STRUCT **info)	{ (*info) = &MOCK_DRIVER_INFO; return true; }
 
 	// Device selection
 	bool					Select_3D_Device (int index);
 	bool					Select_3D_Device (const char *device_name, HPROVIDER provider);
-	bool					Select_3D_Device (DRIVER_TYPE_3D type);
-	bool					Select_3D_Device (const char *device_name);
+	bool					Select_3D_Device (const char *device_name) { return Select_3D_Device (0); }
 	bool					Close_3D_Device (void);
 
 	//////////////////////////////////////////////////////////////////////
@@ -292,10 +298,6 @@ public:
 	//	Reverb Support:  Only works with Create Labs EAX chipset.
 	//
 	float					Get_Effects_Level (void)	{ return m_EffectsLevel; }
-
-	//	See ENVIRONMENT_ defines in MSS.H for a list of possible values.
-	int					Get_Reverb_Room_Type (void)		{ return m_ReverbRoomType; }
-	void					Set_Reverb_Room_Type (int type);
 
 	//////////////////////////////////////////////////////////////////////
 	//	Volume methods
@@ -532,10 +534,10 @@ public:
 	//
 	//	Debug support for determine what sounds are playing on which "channels"
 	//
-	int						Get_2D_Sample_Count (void) const	{ return m_2DSampleHandles.Count (); }
-	int						Get_3D_Sample_Count (void) const	{ return m_3DSampleHandles.Count (); }
-	AudibleSoundClass *	Peek_2D_Sample (int index);
-	AudibleSoundClass *	Peek_3D_Sample (int index);
+	int						Get_2D_Sample_Count (void) const	{ return 0; }
+	int						Get_3D_Sample_Count (void) const	{ return 0; }
+	AudibleSoundClass *	Peek_2D_Sample (int index) { return nullptr; }
+	AudibleSoundClass *	Peek_3D_Sample (int index) { return nullptr; }
 
 	// Um somtimes you need to get rid of all the completed sounds without
 	// being in the update render function and without totally shutting down
@@ -548,8 +550,6 @@ protected:
 	//////////////////////////////////////////////////////////////////////
 	//	Protected methods
 	//////////////////////////////////////////////////////////////////////
-	void						Build_3D_Driver_List (void);
-	void						Free_3D_Driver_List (void);
 	void						Reprioritize_Playlist (void);
 	bool						Validate_3D_Sound_Buffer (SoundBufferClass *buffer);
 	FileClass *				Get_File (LPCTSTR filename);
@@ -558,18 +558,7 @@ protected:
 	//////////////////////////////////////////////////////////////////////
 	//	Handle management
 	//////////////////////////////////////////////////////////////////////
-	void						Allocate_2D_Handles (void);
-	void						Release_2D_Handles (void);
-	void						Allocate_3D_Handles (void);
-	void						Release_3D_Handles (void);
-	HSAMPLE					Get_2D_Sample (const AudibleSoundClass &sound_obj);
-	H3DSAMPLE				Get_3D_Sample (const Sound3DClass &sound_obj);
-	H3DPOBJECT				Get_Listener_Handle (void);
-	void						ReAssign_2D_Handles (void);
-	void						ReAssign_3D_Handles (void);
-	void						Remove_2D_Sound_Handles (void);
-	void						Remove_3D_Sound_Handles (void);
-	bool						Is_OK_To_Give_Handle (const AudibleSoundClass &sound_obj);
+	bool						Can_Play (const AudibleSoundClass &sound_obj);
 
 	//////////////////////////////////////////////////////////////////////
 	//	Dialog/Fade methods
@@ -598,6 +587,7 @@ protected:
 	static U32 AILCALLBACK	File_Read_Callback (U32 file_handle, void *buffer, U32 bytes);
 
 private:
+	friend class Sound2DHandleClass;
 
 	//////////////////////////////////////////////////////////////////////
 	//	Static member data
@@ -650,6 +640,8 @@ private:
 	//////////////////////////////////////////////////////////////////////
 	//	Private member data
 	//////////////////////////////////////////////////////////////////////
+	std::optional<audio::Output> output_;
+
 	int													m_PlaybackRate;
 	int													m_PlaybackBits;
 	bool													m_PlaybackStereo;
@@ -690,14 +682,8 @@ private:
 	HDIGDRIVER											m_Driver2D;
 	HPROVIDER											m_Driver3D;
 	HPROVIDER											m_Driver3DPseudo;
-	HPROVIDER											m_ReverbFilter;
-	DynamicVectorClass<DRIVER_INFO_STRUCT *>	m_Driver3DList;
 	StringClass											m_Driver3DName;
 	int													m_SpeakerType;
-
-	// Available sample handles
-	DynamicVectorClass<HSAMPLE>					m_2DSampleHandles;
-	DynamicVectorClass<H3DSAMPLE>					m_3DSampleHandles;
 
 	// Playlist managment
 	DynamicVectorClass<AudibleSoundClass *>	m_Playlist[PAGE_COUNT];
@@ -716,7 +702,6 @@ private:
 
 	//	Reverb support
 	float													m_EffectsLevel;
-	int													m_ReverbRoomType;
 
 	// Fade support
 	float													m_NonDialogFadeTime;

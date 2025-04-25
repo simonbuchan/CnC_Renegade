@@ -1,5 +1,5 @@
 [package]
-name = "mix_dump"
+name = "mix"
 version = "1.0.0"
 publish = false
 edition = "2024"

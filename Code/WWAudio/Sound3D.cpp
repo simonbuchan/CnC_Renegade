@@ -116,8 +116,6 @@ Sound3DClass::Sound3DClass (const Sound3DClass &src)
 ////////////////////////////////////////////////////////////////////////////////////////////////
 Sound3DClass::~Sound3DClass (void)
 {
- 	Free_Miles_Handle ();
-	return ;
 }
 
 
@@ -437,8 +435,6 @@ Sound3DClass::Set_Position (const Vector3 &position)
 void
 Sound3DClass::Set_Velocity (const Vector3 &velocity)
 {
-	MMSLockClass lock;
-
 	m_CurrentVelocity = velocity;
 	Set_Dirty ();
 
@@ -499,21 +495,11 @@ Sound3DClass::Set_Max_Vol_Radius (float radius)
 													m_DropOffRadius,
 													(m_MaxVolRadius > 1.0F) ? m_MaxVolRadius : 1.0F);
 	}
-
-	return ;
 }
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//	Initialize_Miles_Handle
-//
-////////////////////////////////////////////////////////////////////////////////////////////////
-void
-Sound3DClass::Initialize_Miles_Handle (void)
+void Sound3DClass::Initialize_Handle (void)
 {
-	MMSLockClass lock;
-
 	// If this sound is already playing, then update its
 	// playing position to make sure we really should
 	// be playing it... (it will free the miles handle if not)
@@ -585,27 +571,6 @@ Sound3DClass::Initialize_Miles_Handle (void)
 
 		// Associate this object instance with the handle
 		m_SoundHandle->Set_Sample_User_Data (INFO_OBJECT_PTR, (S32)this);
-	}
-
-	return ;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//	Allocate_Miles_Handle
-//
-////////////////////////////////////////////////////////////////////////////////////////////////
-void
-Sound3DClass::Allocate_Miles_Handle (void)
-{
-	//MMSLockClass lock;
-
-	//
-	// If we need to, get a play-handle from the audio system
-	//
-	if (m_SoundHandle == NULL) {
-		Set_Miles_Handle ((MILES_HANDLE)WWAudioClass::Get_Instance ()->Get_3D_Sample (*this));
 	}
 
 	return ;
@@ -754,35 +719,11 @@ Sound3DClass::Load (ChunkLoadClass &cload)
 }
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//	Set_Miles_Handle
-//
-////////////////////////////////////////////////////////////////////////////////////////////////
-void
-Sound3DClass::Set_Miles_Handle (MILES_HANDLE handle)
+void Sound3DClass::Allocate_Handle()
 {
-	//
-	// Start fresh
-	//
-	Free_Miles_Handle ();
-
-	//
-	//	Is our data valid?
-	//
-	if (handle != INVALID_MILES_HANDLE && m_Buffer != NULL) {
-
-		//
-		//	Configure the sound handle
-		//
-		m_SoundHandle = new Sound3DHandleClass;
-		m_SoundHandle->Set_Miles_Handle (handle);
-
-		//
-		//	Use this new handle
-		//
-		Initialize_Miles_Handle ();
+	Free_Handle();
+	if (m_Buffer) {
+		m_SoundHandle = std::make_unique<Sound3DHandleClass>();
+		Initialize_Handle ();
 	}
-
-	return ;
 }

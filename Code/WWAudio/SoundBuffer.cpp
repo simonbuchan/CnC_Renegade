@@ -41,6 +41,7 @@
 #include "utils.h"
 #include "ffactory.h"
 #include "win.h"
+#include "WWAudio.H"
 #include "wwprofile.h"
 
 
@@ -99,6 +100,7 @@ SoundBufferClass::~SoundBufferClass (void)
 void
 SoundBufferClass::Free_Buffer (void)
 {
+	data.reset();
 	// Free the buffer's memory
 	if (m_Buffer != NULL) {
 		delete [] m_Buffer;
@@ -111,16 +113,13 @@ SoundBufferClass::Free_Buffer (void)
 }
 
 
-/////////////////////////////////////////////////////////////////////////////////
-//
-//	Determine_Stats
-//
-void
-SoundBufferClass::Determine_Stats (unsigned char *buffer)
+void SoundBufferClass::Init()
 {
 	WWPROFILE ("Determine_Stats");
 
-	MMSLockClass lock;
+	// init the sample from the buffer
+	auto output_rate = WWAudioClass::Get_Instance()->Get_Playback_Rate();
+	data = audio::StaticData::create(std::span(m_Buffer, m_Length), output_rate);
 
 	m_Duration = 0;
 	m_Rate = 0;
@@ -129,18 +128,16 @@ SoundBufferClass::Determine_Stats (unsigned char *buffer)
 	m_Type = WAVE_FORMAT_IMA_ADPCM;
 
 	// Attempt to get statistical information about this sound
-	AILSOUNDINFO info = { 0 };
-	if ((buffer != NULL) && (::AIL_WAV_info (buffer, &info) != 0)) {
+	if (data) {
+        auto info = data->info();
 
 		// Cache this information
-		m_Rate = info.rate;
+		m_Rate = info.sample_rate;
 		m_Channels = info.channels;
-		m_Bits = info.bits;
-		m_Type = info.format;
+		m_Bits = info.bit_depth;
 
 		// Determine how long this sound will play for
-		float bytes_sec = float((m_Channels * m_Rate * m_Bits) >> 3);
-		m_Duration = (unsigned long)((((float)m_Length) / bytes_sec) * 1000.0F);
+		m_Duration = info.duration * 1000;
 	}
 
 	return ;
@@ -203,8 +200,6 @@ SoundBufferClass::Load_From_File (FileClass &file)
 {
 	WWPROFILE ("SoundBufferClass::Load_From_File");
 
-	MMSLockClass lock;
-
 	// Assume failure
 	bool retval = false;
 
@@ -232,7 +227,7 @@ SoundBufferClass::Load_From_File (FileClass &file)
 		if (retval == false) {
 			Free_Buffer ();
 		}
-		Determine_Stats (m_Buffer);
+		Init();
 	}
 
 	// Close the file if necessary
@@ -256,8 +251,6 @@ SoundBufferClass::Load_From_Memory
 	unsigned long size
 )
 {
-	MMSLockClass lock;
-
 	// Assume failure
 	bool retval = false;
 
@@ -281,7 +274,7 @@ SoundBufferClass::Load_From_Memory
 		if (retval == false) {
 			Free_Buffer ();
 		}
-		Determine_Stats (m_Buffer);
+		Init();
 	}
 
 	// Return the true/false result code
@@ -362,8 +355,6 @@ StreamSoundBufferClass::Load_From_File (FileClass &file)
 {
 	WWPROFILE ("StreamSoundBufferClass::Load_From_File");
 
-	MMSLockClass lock;
-
 	// Start from scratch
 	Free_Buffer ();
 	Set_Filename (file.File_Name ());
@@ -380,7 +371,7 @@ StreamSoundBufferClass::Load_From_File (FileClass &file)
 	// of the file into the buffer
 	unsigned char buffer[4096] = { 0 };
 	file.Read (buffer, sizeof (buffer));
-	Determine_Stats (buffer);
+	// Init();
 
 	// Close the file if necessary
 	if (we_opened) {

@@ -320,11 +320,10 @@ class AudibleSoundClass : public SoundSceneObjClass
 		//////////////////////////////////////////////////////////////////////
 		//	Handle information
 		//////////////////////////////////////////////////////////////////////
-		virtual SoundHandleClass *	Get_Miles_Handle (void) const			{ return m_SoundHandle; }
-		virtual void				Set_Miles_Handle (MILES_HANDLE handle = INVALID_MILES_HANDLE);
-		virtual void				Free_Miles_Handle (void);
-		virtual void				Initialize_Miles_Handle (void);
-		virtual void				Allocate_Miles_Handle (void);
+		SoundHandleClass *	Get_Handle() const { return m_SoundHandle.get(); }
+		void                Free_Handle();
+		virtual void        Allocate_Handle();
+		virtual void        Initialize_Handle();
 
 		//////////////////////////////////////////////////////////////////////
 		//	Buffer information
@@ -357,7 +356,7 @@ class AudibleSoundClass : public SoundSceneObjClass
 		//////////////////////////////////////////////////////////////////////
 		//	Protected member data
 		//////////////////////////////////////////////////////////////////////
-		SoundHandleClass *	m_SoundHandle;
+		std::unique_ptr<SoundHandleClass> m_SoundHandle;
 		unsigned long			m_Timestamp;
 		SOUND_STATE				m_State;
 		SOUND_TYPE				m_Type;

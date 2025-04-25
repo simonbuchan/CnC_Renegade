@@ -36,7 +36,6 @@ fn main() {
     println!("copying {} to {}", expected_build_output.display(), output_path);
     fs::copy(expected_build_output, output_path).expect("copy output");
 
-    // todo: look into using cxx...
     println!("generating bindings...");
     let bindings = cbindgen::Builder::new()
         .with_crate_and_name(manifest_dir, &crate_name)

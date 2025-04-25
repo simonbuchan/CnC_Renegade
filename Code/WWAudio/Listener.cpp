@@ -72,8 +72,6 @@ Listener3DClass::~Listener3DClass (void)
 void
 Listener3DClass::Initialize_Miles_Handle (void)
 {
-	MMSLockClass lock;
-
 	// Do we have a valid sample handle from miles?
 	if (m_SoundHandle != NULL) {
 		

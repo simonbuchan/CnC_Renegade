@@ -38,6 +38,8 @@
 #if defined(_MSC_VER)
 #pragma once
 #endif
+#include <audio_crate.hpp>
+#include <optional>
 
 #ifndef __SOUNDBUFFER_H
 #define __SOUNDBUFFER_H
@@ -108,23 +110,27 @@ class SoundBufferClass : public RefCountClass
 		//////////////////////////////////////////////////////////////////////
 		virtual bool				Is_Streaming (void) const		{ return false; }
 
+		// static sound data parsed from buffer
+		// initialized by Init() within any of the Load_*() methods from the file data
+		std::optional<audio::StaticData> data;
+
 	protected:
 
 		//////////////////////////////////////////////////////////////////////
 		//	Protected methods
 		//////////////////////////////////////////////////////////////////////
 		virtual void			Free_Buffer (void);
-		virtual void			Determine_Stats (unsigned char *buffer);
+		virtual void			Init();
 
 		//////////////////////////////////////////////////////////////////////
 		//	Protected member data
-		//////////////////////////////////////////////////////////////////////		
+		//////////////////////////////////////////////////////////////////////
 		unsigned char *		m_Buffer;
 		unsigned long			m_Length;
 		char *					m_Filename;
 		unsigned long			m_Duration;
 		unsigned long			m_Rate;
-		unsigned long			m_Bits;
+		unsigned long			m_Bits; // fixme: only used for get/set position
 		unsigned long			m_Channels;
 		unsigned long			m_Type;
 };

@@ -123,6 +123,7 @@ protected:
 	//	Protected member data
 	///////////////////////////////////////////////////////////////////
 	SoundBufferClass *	Buffer;
+	AudibleSoundClass* sound_;
 };
 
 

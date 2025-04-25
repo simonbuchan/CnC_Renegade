@@ -178,9 +178,8 @@ class Sound3DClass : public AudibleSoundClass
 		//////////////////////////////////////////////////////////////////////
 		//	Handle information
 		//////////////////////////////////////////////////////////////////////				
-		virtual void			Set_Miles_Handle (MILES_HANDLE handle);
-		virtual void			Initialize_Miles_Handle (void);
-		virtual void			Allocate_Miles_Handle (void);		
+		void                    Allocate_Handle() override;
+		void                    Initialize_Handle() override;
 
 		//////////////////////////////////////////////////////////////////////
 		//	Event handling

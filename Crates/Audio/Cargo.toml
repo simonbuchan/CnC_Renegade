@@ -5,8 +5,12 @@ edition = "2024"
 publish = false
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["rlib", "staticlib"]
 
 [dependencies]
-kira = "0.10.4"
-symphonia = "0.5.4" # re-enable default codecs, specifically adpcm
+anyhow = "1.0.97"
+arrayvec = "0.7.6"
+cpal = "0.15.3"
+rubato = "0.16.2"
+symphonia = "0.5.4"
+polonius-the-crab = "0.4.2"

@@ -145,7 +145,6 @@ namespace AUDIBLE_SOUND_DEF_SAVELOAD
 AudibleSoundClass::AudibleSoundClass (void)
 	:	m_Priority (0.5F),
 		m_RuntimePriority (0),
-		m_SoundHandle (NULL),
 		m_Length (0),
 		m_CurrentPosition (0),
 		m_Timestamp (0),
@@ -185,7 +184,6 @@ AudibleSoundClass::AudibleSoundClass (void)
 AudibleSoundClass::AudibleSoundClass (const AudibleSoundClass &src)
 	:	m_Priority (0.5F),
 		m_RuntimePriority (0),
-		m_SoundHandle (NULL),
 		m_Length (0),
 		m_CurrentPosition (0),
 		m_Timestamp (0),
@@ -198,7 +196,7 @@ AudibleSoundClass::AudibleSoundClass (const AudibleSoundClass &src)
 		m_LoopsLeft (0),
 		m_Type (TYPE_SOUND_EFFECT),
 		m_FadeType (FADE_NONE),
-		m_FadeTimer (0),		
+		m_FadeTimer (0),
 		m_FadeTime (0),
 		m_VirtualChannel (0),
 		m_bDirty (true),
@@ -229,7 +227,7 @@ AudibleSoundClass::~AudibleSoundClass (void)
 	REF_PTR_RELEASE (m_LogicalSound);
 	REF_PTR_RELEASE(m_Buffer);
 
-	Free_Miles_Handle ();
+	Free_Handle ();
 	return ;
 }
 
@@ -294,7 +292,7 @@ AudibleSoundClass::Set_Buffer (SoundBufferClass *buffer)
 	}
 
 	// Reinitialize the handle with this new data
-	Initialize_Miles_Handle ();
+	Initialize_Handle ();
 
 	// Resume playing if necessary
 	if (resume) {
@@ -429,13 +427,19 @@ AudibleSoundClass::Fade_In (int time_in_ms)
 bool
 AudibleSoundClass::Verify_Playability (void)
 {
-	bool retval = true;
+	auto sys = WWAudioClass::Get_Instance ();
 
-	if (m_VirtualChannel != 0) {
-		retval = WWAudioClass::Get_Instance ()->Acquire_Virtual_Channel (this, m_VirtualChannel);
+	if (!sys->Can_Play(*this))
+	{
+		return false;
 	}
 
-	return retval;
+	if (m_VirtualChannel != 0 && !sys->Acquire_Virtual_Channel (this, m_VirtualChannel))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -447,8 +451,6 @@ AudibleSoundClass::Verify_Playability (void)
 bool
 AudibleSoundClass::Play (bool alloc_handle)
 {
-	MMSLockClass lock;
-
 	//
 	//	Check to ensure this sound should really be playing...
 	//
@@ -460,7 +462,7 @@ AudibleSoundClass::Play (bool alloc_handle)
 	// If we don't have a valid handle already, try to get one from miles
 	//
 	if (alloc_handle && (m_pConvertedFormat == NULL)) {
-		Allocate_Miles_Handle ();
+		Allocate_Handle ();
 	}
 
 	//
@@ -527,7 +529,6 @@ AudibleSoundClass::Play (bool alloc_handle)
 bool
 AudibleSoundClass::Pause (void)
 {
-	MMSLockClass lock;
 	bool retval = false;
 
 	if (m_State == STATE_PLAYING) {
@@ -541,7 +542,7 @@ AudibleSoundClass::Pause (void)
 		//
 		//	Get rid of our play-handle (this will stop the sound)
 		//
-		Free_Miles_Handle ();
+		Free_Handle ();
 
 		//
 		// Remember our new state
@@ -563,7 +564,6 @@ AudibleSoundClass::Pause (void)
 bool
 AudibleSoundClass::Resume (void)
 {
-	MMSLockClass lock;
 	bool retval = false;
 
 	if (m_State == STATE_PAUSED) {
@@ -576,7 +576,7 @@ AudibleSoundClass::Resume (void)
 		//
 		// Ensure we have a play handle...
 		//
-		Allocate_Miles_Handle ();
+		Initialize_Handle ();
 
 		//
 		// If we have a valid handle, then start playing the sample
@@ -612,8 +612,6 @@ AudibleSoundClass::Resume (void)
 bool
 AudibleSoundClass::Stop (bool remove_from_playlist)
 {
-	MMSLockClass lock;
-
 	// Assume failure
 	bool retval = false;
 
@@ -630,7 +628,7 @@ AudibleSoundClass::Stop (bool remove_from_playlist)
 		//
 		// Free up the handle we have been using
 		//
-		Free_Miles_Handle ();
+		Free_Handle ();
 		m_State = STATE_STOPPED;
 		retval = true;
 
@@ -675,8 +673,6 @@ AudibleSoundClass::Stop (bool remove_from_playlist)
 void
 AudibleSoundClass::Seek (unsigned long milliseconds)
 {
-	MMSLockClass lock;
-
 	if ((milliseconds >= 0) && (milliseconds < m_Length)) {
 
 		// Record our new position and recalculate the 'starting' timestamp
@@ -696,58 +692,37 @@ AudibleSoundClass::Seek (unsigned long milliseconds)
 }
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//	Set_Miles_Handle
-//
-////////////////////////////////////////////////////////////////////////////////////////////////
-void
-AudibleSoundClass::Set_Miles_Handle (MILES_HANDLE handle)
+void AudibleSoundClass::Allocate_Handle()
 {
 	//
 	// Start fresh
 	//
-	Free_Miles_Handle ();
+	Free_Handle ();
 
 	//
 	//	Is our data valid?
 	//
-	if (handle != INVALID_MILES_HANDLE && m_Buffer != NULL) {
+	if (m_Buffer != NULL) {
 
 		//
 		//	Determine which type of sound handle to create, streaming or standard 2D
 		//
 		if (m_Buffer->Is_Streaming ()) {
-			m_SoundHandle = new SoundStreamHandleClass;
+			m_SoundHandle = std::make_unique<SoundStreamHandleClass>();
 		} else {
-			m_SoundHandle = new Sound2DHandleClass;
+			m_SoundHandle = std::make_unique<Sound2DHandleClass>();
 		}
-
-		//
-		//	Configure the sound handle
-		//
-		m_SoundHandle->Set_Miles_Handle (handle);
 
 		//
 		//	Use this new handle
 		//
-		Initialize_Miles_Handle ();
+		Initialize_Handle();
 	}
-
-	return ;
 }
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//	Initialize_Miles_Handle
-//
-////////////////////////////////////////////////////////////////////////////////////////////////
-void
-AudibleSoundClass::Initialize_Miles_Handle (void)
+void AudibleSoundClass::Initialize_Handle()
 {
-	MMSLockClass lock;
-
 	// If this sound is already playing, then update its
 	// playing position to make sure we really should
 	// be playing it... (it will free the miles handle if not)
@@ -813,38 +788,9 @@ AudibleSoundClass::Initialize_Miles_Handle (void)
 }
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//	Free_Miles_Handle
-//
-////////////////////////////////////////////////////////////////////////////////////////////////
-void
-AudibleSoundClass::Free_Miles_Handle (void)
+void AudibleSoundClass::Free_Handle()
 {
-	MMSLockClass lock;
-
-	// Do we have a valid sample handle from miles?
-	if (m_SoundHandle != NULL) {
-
-		//
-		// Release our hold on this handle
-		//
-		m_SoundHandle->Set_Sample_User_Data (INFO_OBJECT_PTR, NULL);
-		m_SoundHandle->End_Sample ();
-
-		//
-		// Remove the association between file handle and AudibleSoundClass object
-		//
-		//m_SoundHandle->Set_Sample_User_Data (INFO_OBJECT_PTR, NULL);
-
-		//
-		//	Free the sound handle object
-		//
-		delete m_SoundHandle;
-		m_SoundHandle = NULL;
-	}
-
-	return ;
+	m_SoundHandle.reset();
 }
 
 
@@ -856,8 +802,6 @@ AudibleSoundClass::Free_Miles_Handle (void)
 float
 AudibleSoundClass::Get_Pan (void)
 {
-	MMSLockClass lock;
-
 	//
 	// Do we have a valid sample handle from miles?
 	//
@@ -877,8 +821,6 @@ AudibleSoundClass::Get_Pan (void)
 void
 AudibleSoundClass::Set_Pan (float pan)
 {
-	MMSLockClass lock;
-
 	//
 	// Cache the normalized pan value
 	//
@@ -904,8 +846,6 @@ AudibleSoundClass::Set_Pan (float pan)
 void
 AudibleSoundClass::Set_Pitch_Factor (float factor)
 {
-	MMSLockClass lock;
-
 	m_PitchFactor = factor;
 
 	//
@@ -937,7 +877,6 @@ AudibleSoundClass::Set_Pitch_Factor (float factor)
 int
 AudibleSoundClass::Get_Playback_Rate (void)
 {
-	MMSLockClass lock;
 	int retval = 0;
 
 	// Do we have a valid sample handle from miles?
@@ -957,8 +896,6 @@ AudibleSoundClass::Get_Playback_Rate (void)
 void
 AudibleSoundClass::Set_Playback_Rate (int rate_in_hz)
 {
-	MMSLockClass lock;
-
 	// Do we have a valid sample handle from miles?
 	if (m_SoundHandle != NULL) {
 		m_SoundHandle->Set_Sample_Playback_Rate (rate_in_hz);
@@ -976,8 +913,6 @@ AudibleSoundClass::Set_Playback_Rate (int rate_in_hz)
 float
 AudibleSoundClass::Get_Volume (void)
 {
-	MMSLockClass lock;
-
 	// Do we have a valid sample handle from miles?
 	if (m_SoundHandle != NULL) {
 		m_Volume = ((float)m_SoundHandle->Get_Sample_Volume ()) / 127.0F;
@@ -996,8 +931,6 @@ AudibleSoundClass::Get_Volume (void)
 void
 AudibleSoundClass::Internal_Set_Volume (float volume)
 {
-	MMSLockClass lock;
-
 	//
 	// Cache the normalized volume value
 	//
@@ -1029,8 +962,6 @@ AudibleSoundClass::Internal_Set_Volume (float volume)
 void
 AudibleSoundClass::Set_Volume (float volume)
 {
-	MMSLockClass lock;
-
 	//
 	// Cache the normalized volume value
 	//
@@ -1065,8 +996,6 @@ AudibleSoundClass::Get_Loops_Left (void) const
 void
 AudibleSoundClass::Set_Loop_Count (int count)
 {
-	MMSLockClass lock;
-
 	// Cache the loop count
 	m_LoopCount = count;
 
@@ -1087,8 +1016,6 @@ AudibleSoundClass::Set_Loop_Count (int count)
 void
 AudibleSoundClass::Set_Priority (float priority)
 {
-	MMSLockClass lock;
-
 	// Cache the normalized priority
 	m_Priority = min (priority, 1.0F);
 	m_Priority = max (m_Priority, 0.0F);
@@ -1162,25 +1089,6 @@ AudibleSoundClass::Update_Play_Position (void)
 
 		// Trigger the 'end loop' event
 		On_Loop_End ();
-	}
-
-	return ;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//	Allocate_Miles_Handle
-//
-////////////////////////////////////////////////////////////////////////////////////////////////
-void
-AudibleSoundClass::Allocate_Miles_Handle (void)
-{
-	//
-	// If we need to, get a play-handle from the audio system
-	//
-	if (m_SoundHandle == NULL) {
-		Set_Miles_Handle ((MILES_HANDLE)WWAudioClass::Get_Instance ()->Get_2D_Sample (*this));
 	}
 
 	return ;
@@ -1263,8 +1171,7 @@ AudibleSoundClass::Get_Filename (void) const
 //	Cull_Sound
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////
-void
-AudibleSoundClass::Cull_Sound (bool culled)
+void AudibleSoundClass::Cull_Sound(bool culled)
 {
 	// Is our state changing?
 	if (m_IsCulled != culled) {
@@ -1278,13 +1185,11 @@ AudibleSoundClass::Cull_Sound (bool culled)
 		// of the sound is currently playing.
 		//
 		if (m_IsCulled || (m_pConvertedFormat != NULL)) {
-			Free_Miles_Handle ();
+			Free_Handle();
 		} else {
-			Allocate_Miles_Handle ();
+			Allocate_Handle();
 		}
 	}
-
-	return ;
 }
 
 
@@ -1408,7 +1313,7 @@ AudibleSoundClass::Re_Sync (AudibleSoundClass &src)
 	Set_Listener_Transform (src.m_ListenerTransform);
 
 	if (m_State != STATE_PLAYING) {
-		Free_Miles_Handle ();
+		Free_Handle ();
 	}
 
 	return ;
@@ -1432,10 +1337,8 @@ AudibleSoundClass::Free_Conversion (void)
 	//	Reacquire a play-handle if necessary
 	//
 	if ((m_IsCulled == false) && (m_State == STATE_PLAYING)) {
-		Allocate_Miles_Handle ();
+		Allocate_Handle ();
 	}
-
-	return ;
 }
 
 
@@ -1472,10 +1375,8 @@ AudibleSoundClass::Convert_To_Filtered (void)
 				break;
 		}
 
-		Free_Miles_Handle ();
+		Free_Handle ();
 	}
-
-	return ;
 }
 
 

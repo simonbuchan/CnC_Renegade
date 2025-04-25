@@ -87,11 +87,7 @@ class FilteredSoundClass : public SoundPseudo3DClass
 		const PersistFactoryClass &	Get_Factory (void) const;
 
 	protected:
-
-		//////////////////////////////////////////////////////////////////////
-		//	Handle information
-		//////////////////////////////////////////////////////////////////////				
-		virtual void				Initialize_Miles_Handle (void);
+		void Initialize_Handle() override;
 
 	private:
 

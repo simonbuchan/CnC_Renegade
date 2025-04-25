@@ -5,62 +5,38 @@
 #include <windows.h>
 #include <mmreg.h>
 
-// I'd like stronger types but WWAudio defines INVALID_MILES_HANDLE as (MILES_HANDLE)-1
-// and MILES_HANDLE as unsigned long.
-typedef DWORD HPROVIDER;
-typedef struct MSS_DIGDRIVER* HDIGDRIVER;
-typedef struct MSS_STREAM* HSTREAM;
-typedef struct MSS_SAMPLE* HSAMPLE;
-typedef struct MSS_3DSAMPLE* H3DSAMPLE;
-typedef struct MSS_3DPOBJECT* H3DPOBJECT;
-
 typedef INT32 S32;
 typedef UINT32 U32;
 typedef float F32;
 
-#define AILCALLBACK __stdcall
-
-enum { ENVIRONMENT_GENERIC };
-
-enum HPROENUM { HPROENUM_FIRST };
-
-enum AIL_PREFERENCE
-{
-    AIL_LOCK_PROTECTION,
-    DIG_USE_WAVEOUT,
-};
-
-enum AIL_BOOL { NO, YES };
-
 typedef U32 AIL_ERROR;
+// AIL_ERROR values checked for
 enum { AIL_NO_ERROR, M3D_NOERR };
-
-struct AILSOUNDINFO
-{
-    U32 rate;
-    U32 channels;
-    U32 bits;
-    U32 format;
-};
-
-void AIL_startup();
-void AIL_shutdown();
-
+// Description of the last error
 const char* AIL_last_error();
 
-AIL_ERROR AIL_set_preference(AIL_PREFERENCE, int);
-
-void AIL_lock();
-void AIL_unlock();
-
-AIL_ERROR AIL_waveOutOpen(HDIGDRIVER*, void*, int, LPWAVEFORMAT);
-void AIL_waveOutClose(HDIGDRIVER);
-
-AIL_ERROR AIL_WAV_info(void*, AILSOUNDINFO*);
-
+// HPROVIDER is a backend API, e.g. DirectSound, EAX. Mostly obsolete with WASAPI.
+// I'd like stronger types but WWAudio defines INVALID_MILES_HANDLE as (MILES_HANDLE)-1
+// and MILES_HANDLE as unsigned long.
+typedef DWORD HPROVIDER;
+enum HPROENUM { HPROENUM_FIRST };
 int AIL_enumerate_3D_providers(HPROENUM*, HPROVIDER*, char**);
 AIL_ERROR AIL_open_3D_provider(HPROVIDER);
 void AIL_close_3D_provider(HPROVIDER);
+
+// HDIGDRIVER, aka the "2D Driver", is effectively the active mixer settings, sample rate etc.
+typedef struct MSS_DIGDRIVER* HDIGDRIVER;
+AIL_ERROR AIL_waveOutOpen(HDIGDRIVER*, void*, int, LPWAVEFORMAT);
+void AIL_waveOutClose(HDIGDRIVER);
+
+typedef struct MSS_STREAM* HSTREAM;
+
+typedef struct MSS_SAMPLE* HSAMPLE;
+typedef struct MSS_3DSAMPLE* H3DSAMPLE;
+typedef struct MSS_3DPOBJECT* H3DPOBJECT;
+
+
+#define AILCALLBACK __stdcall
 
 enum
 {
@@ -72,8 +48,6 @@ enum
 
 void AIL_set_3D_speaker_type(HPROVIDER, int);
 
-HSAMPLE AIL_allocate_sample_handle(HDIGDRIVER);
-void AIL_release_sample_handle(HSAMPLE);
 U32 AIL_sample_user_data(HSAMPLE, S32);
 void AIL_set_sample_user_data(HSAMPLE, S32, U32);
 void AIL_init_sample(HSAMPLE);

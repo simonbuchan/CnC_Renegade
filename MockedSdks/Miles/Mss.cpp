@@ -1,36 +1,8 @@
 #include "Mss.h"
 
-#include "audio_crate.h"
-
-AudioManager* audio_manager = NULL;
-
-void AIL_startup()
-{
-    audio_manager = audio_manager_create();
-}
-
-void AIL_shutdown()
-{
-    audio_manager_destroy(audio_manager);
-    audio_manager = NULL;
-}
-
 const char* AIL_last_error()
 {
     return "Unimplemented";
-}
-
-AIL_ERROR AIL_set_preference(AIL_PREFERENCE, int)
-{
-    return AIL_NO_ERROR;
-}
-
-void AIL_lock()
-{
-}
-
-void AIL_unlock()
-{
 }
 
 AIL_ERROR AIL_waveOutOpen(HDIGDRIVER* result, void* , int, LPWAVEFORMAT)
@@ -40,11 +12,6 @@ AIL_ERROR AIL_waveOutOpen(HDIGDRIVER* result, void* , int, LPWAVEFORMAT)
 
 void AIL_waveOutClose(HDIGDRIVER)
 {
-}
-
-AIL_ERROR AIL_WAV_info(void*, AILSOUNDINFO*)
-{
-    return AIL_NO_ERROR;
 }
 
 int AIL_enumerate_3D_providers(HPROENUM*, HPROVIDER*, char**)
@@ -62,15 +29,6 @@ void AIL_close_3D_provider(HPROVIDER)
 }
 
 void AIL_set_3D_speaker_type(HPROVIDER, int)
-{
-}
-
-HSAMPLE AIL_allocate_sample_handle(HDIGDRIVER)
-{
-    return NULL;
-}
-
-void AIL_release_sample_handle(HSAMPLE)
 {
 }
 

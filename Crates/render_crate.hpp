@@ -8,24 +8,32 @@
 
 namespace image
 {
-    struct RgbaData
+    class RgbaData
     {
+        struct Destroy
+        {
+            void operator()(ImageRgbaData* data) const
+            {
+                image_rgba_data_destroy(data);
+            }
+        };
+
+        explicit RgbaData(ImageRgbaData* ptr)
+            : ptr(ptr)
+        {
+        }
+
+    public:
         static RgbaData load(const char* path)
         {
             return RgbaData(image_rgba_data_load(path));
         }
 
-        std::unique_ptr<ImageRgbaData, decltype(&image_rgba_data_destroy)> ptr;
+        std::unique_ptr<ImageRgbaData, Destroy> ptr;
 
         ImageRgbaData* operator->() const
         {
             return ptr.get();
-        }
-
-    private:
-        explicit RgbaData(ImageRgbaData* ptr)
-            : ptr(ptr, &image_rgba_data_destroy)
-        {
         }
     };
 }

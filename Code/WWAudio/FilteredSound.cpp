@@ -107,10 +107,9 @@ FilteredSoundClass::operator= (const FilteredSoundClass &src)
 //	Initialize_Miles_Handle
 //
 /////////////////////////////////////////////////////////////////////////////////
-void
-FilteredSoundClass::Initialize_Miles_Handle (void)
+void FilteredSoundClass::Initialize_Handle()
 {
-	SoundPseudo3DClass::Initialize_Miles_Handle ();
+	SoundPseudo3DClass::Initialize_Handle();
 	m_hFilter = WWAudioClass::Get_Instance ()->Get_Reverb_Filter ();
 	if ((m_SoundHandle != NULL) &&
 		 (m_hFilter != INVALID_MILES_HANDLE)) {
