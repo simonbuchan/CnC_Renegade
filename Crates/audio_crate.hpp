@@ -9,6 +9,7 @@
 namespace audio
 {
     class StaticData;
+    class TrackHandle;
 
     class Output
     {
@@ -36,7 +37,7 @@ namespace audio
             return audio_output_sample_rate(ptr.get());
         }
 
-        void play(StaticData& data, float gain);
+        std::optional<TrackHandle> play(StaticData& data);
     };
 
     class StaticData
@@ -68,8 +69,25 @@ namespace audio
         }
     };
 
-    inline void Output::play(StaticData& data, float gain)
+    class TrackHandle
     {
-        audio_output_play(ptr.get(), data.ptr.get(), gain);
+        struct Destroy {
+            void operator()(AudioTrackHandle* ptr) const { if (ptr) audio_track_handle_destroy(ptr); }
+        };
+
+        std::unique_ptr<AudioTrackHandle, Destroy> ptr;
+
+        explicit TrackHandle(AudioTrackHandle* ptr)
+            : ptr(ptr)
+        {
+        }
+
+        friend std::optional<TrackHandle> Output::play(StaticData& data);
+    };
+
+    inline std::optional<TrackHandle> Output::play(StaticData& data)
+    {
+        auto handle = audio_output_play_static(ptr.get(), data.ptr.get());
+        return handle ? std::optional(TrackHandle(handle)) : std::nullopt;
     }
 }

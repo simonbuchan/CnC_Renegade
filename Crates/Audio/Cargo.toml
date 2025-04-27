@@ -11,6 +11,7 @@ crate-type = ["rlib", "staticlib"]
 anyhow = "1.0.97"
 arrayvec = "0.7.6"
 cpal = "0.15.3"
+triple_buffer = "8.1.0"
 rubato = "0.16.2"
-symphonia = "0.5.4"
+symphonia = { version = "0.5.4", features = ["mp3"] }
 polonius-the-crab = "0.4.2"

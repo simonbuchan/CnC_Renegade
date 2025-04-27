@@ -2,7 +2,7 @@ use std::sync::Arc;
 use crate::imp;
 use crate::imp::source::DecodeStreamOptions;
 
-pub struct AudioStaticData(pub(crate) Arc<imp::source::SourceStaticData>);
+pub struct AudioStaticData(pub(crate) Arc<imp::source::StaticData>);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn audio_static_data_create(
@@ -12,7 +12,7 @@ pub unsafe extern "C" fn audio_static_data_create(
 ) -> *mut AudioStaticData {
     let slice = unsafe { std::slice::from_raw_parts(ptr as *const u8, len) };
     let cursor = Box::new(std::io::Cursor::new(slice));
-    let result = imp::source::SourceStaticData::from_source(cursor, DecodeStreamOptions {
+    let result = imp::source::StaticData::from_io(cursor, DecodeStreamOptions {
         output_sample_rate: sample_rate,
     });
 
@@ -30,7 +30,7 @@ pub unsafe extern "C" fn audio_static_data_create(
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn audio_static_data_destroy(data: *mut AudioStaticData) {
-    unsafe { Box::from_raw(data) };
+    drop(unsafe { Box::from_raw(data) });
 }
 
 #[repr(C)]

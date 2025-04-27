@@ -103,7 +103,7 @@ void
 Sound2DHandleClass::Start_Sample()
 {
 	if (Buffer && Buffer->data.has_value()) {
-		WWAudioClass::Get_Instance()->output_->play(Buffer->data.value(), 1.0);
+		WWAudioClass::Get_Instance()->output_->play(Buffer->data.value());
 	}
 
 	return ;

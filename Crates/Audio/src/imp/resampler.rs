@@ -13,8 +13,6 @@ pub struct Resampler {
 }
 
 impl Resampler {
-    const MAX_PLANES: usize = 2;
-
     pub fn new(options: &ResamplerOptions) -> Self {
         let fft = FftFixedOut::new(
             options.source_sample_rate.try_into().expect("usize"),
@@ -40,16 +38,22 @@ impl Resampler {
     }
 
     pub fn process(&mut self, input: &mut PlanarBuffer, output: &mut PlanarBuffer) {
-        while self.fft.input_frames_next() <= input.len() {
-            let input_planes = input.read_planes(self.fft.input_frames_next());
-            let mut output_planes = output.write_planes(self.fft.output_frames_next());
-            let (input_read, _output_written) = self
-                .fft
-                .process_into_buffer(&input_planes, &mut output_planes, None)
-                .expect("invalid buffers");
-            drop(input_planes);
-            input.trim_start(input_read);
+        while self.process_once(input, output) {}
+    }
+
+    pub fn process_once(&mut self, input: &mut PlanarBuffer, output: &mut PlanarBuffer) -> bool {
+        if self.fft.input_frames_next() > input.len() {
+            return false;
         }
+        let input_planes = input.read_planes(self.fft.input_frames_next());
+        let mut output_planes = output.write_planes(self.fft.output_frames_next());
+        let (input_read, _output_written) = self
+            .fft
+            .process_into_buffer(&input_planes, &mut output_planes, None)
+            .expect("invalid buffers");
+        drop(input_planes);
+        input.trim_start(input_read);
+        true
     }
 
     pub fn flush(&mut self, input: &mut PlanarBuffer, output: &mut PlanarBuffer) {

@@ -1,62 +1,105 @@
-use crate::imp::source::{SourceChannels, SourceStaticData};
-use std::sync::{mpsc, Arc};
+use crate::imp::buffer::FramesMut;
+use crate::imp::source::{RenderResult, Source};
+use std::sync::mpsc;
 
-struct MixerTrack {
-    data: Arc<SourceStaticData>,
-    pos: usize,
-    gain: f32,
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum WaitResult {
+    Complete,
+    Dropped,
+    AlreadyWaited,
 }
 
-pub(crate) enum MixerCommand {
-    Play {
-        data: Arc<SourceStaticData>,
-        gain: f32,
-    },
+pub struct MixerTrackHandle {
+    complete: Option<mpsc::Receiver<()>>,
+}
+
+impl MixerTrackHandle {
+    pub fn wait(&mut self) -> WaitResult {
+        let Some(rx) = self.complete.take() else {
+            return WaitResult::AlreadyWaited
+        };
+        match rx.recv() {
+            Err(mpsc::RecvError) => WaitResult::Dropped,
+            Ok(()) => WaitResult::Complete,
+        }
+    }
+}
+
+struct MixerTrack {
+    source: Box<dyn Source>,
+    complete: mpsc::Sender<()>,
+}
+
+enum MixerCommand {
+    Play(MixerTrack),
 }
 
 pub(crate) struct Mixer {
-    input: mpsc::Receiver<MixerCommand>,
+    commands: mpsc::Receiver<MixerCommand>,
     channel_count: usize,
     tracks: Vec<MixerTrack>,
 }
 
+pub struct MixerHandle {
+    commands: mpsc::Sender<MixerCommand>,
+}
+
 impl Mixer {
-    pub(crate) fn new(channel_count: usize) -> (mpsc::Sender<MixerCommand>, Self) {
-        let (input, output) = mpsc::channel::<MixerCommand>();
-        let result = Self {
+    pub(crate) fn new(channel_count: usize) -> (Self, MixerHandle) {
+        let (tx, rx) = mpsc::channel::<MixerCommand>();
+        let mixer = Self {
             channel_count,
             tracks: vec![],
-            input: output,
+            commands: rx,
         };
-        (input, result)
+        let handle = MixerHandle {
+            commands: tx,
+        };
+        (mixer, handle)
     }
 
     pub(crate) fn write(&mut self, output: &mut [f32]) {
-        for command in self.input.try_iter() {
+        for command in self.commands.try_iter() {
             match command {
-                MixerCommand::Play { data, gain } => {
-                    self.tracks.push(MixerTrack { data, gain, pos: 0 });
+                MixerCommand::Play(track) => {
+                    self.tracks.push(track);
                 }
             }
         }
 
         output.fill(0.0);
-        let frames = output.chunks_exact_mut(self.channel_count);
+        self.tracks.retain_mut(|track| {
+            match track.source.render(FramesMut {
+                samples: output,
+                channels: self.channel_count,
+            }) {
+                RenderResult::Continue => true,
+                RenderResult::Complete => {
+                    let _ = track.complete.send(());
+                    false
+                },
+            }
+        });
+    }
+}
 
-        for frame in frames {
-            self.tracks.retain_mut(|track| {
-                match track.data.info.channels {
-                    SourceChannels::Mono => {
-                        frame[2] += track.data.samples[track.pos] * track.gain;
-                    }
-                    SourceChannels::Stereo => {
-                        frame[0] += track.data.samples[track.pos * 2] * 0.5 * track.gain;
-                        frame[1] += track.data.samples[track.pos * 2 + 1] * 0.5 * track.gain;
-                    }
-                }
-                track.pos += 1;
-                track.pos < track.data.samples.len() / track.data.info.channels.count()
-            });
+impl MixerHandle {
+    pub fn play(
+        &self,
+        source: Box<dyn Source>,
+    ) -> MixerTrackHandle {
+        let (complete_tx, complete_rx) = mpsc::channel();
+        
+        let track = MixerTrack {
+            source,
+            complete: complete_tx,
+        };
+        self.commands
+            .send(MixerCommand::Play(track))
+            .expect("audio commands channel dropped");
+        
+        MixerTrackHandle {
+            complete: Some(complete_rx),
         }
     }
 }

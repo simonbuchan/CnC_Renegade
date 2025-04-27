@@ -13,7 +13,7 @@ fn main() {
 
     let target = "i686-pc-windows-msvc";
     let expected_build_output =
-        manifest_dir.join(format!("target/{target}/debug/{crate_name}.lib"));
+        manifest_dir.join(format!("target/{target}/release/{crate_name}.lib"));
 
     let build_status = Command::new("cargo")
         .arg("build")
@@ -26,6 +26,7 @@ fn main() {
         .arg("--lib")
         .arg("--color")
         .arg("always")
+        .arg("--release")
         .status()
         .unwrap();
     if !build_status.success() {

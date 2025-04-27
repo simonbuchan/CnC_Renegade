@@ -2,7 +2,7 @@ use super::file::AudioFile;
 use super::{AudioFileApi, AudioFileHandle};
 use crate::imp;
 
-pub struct AudioStream(imp::source::SourceStream);
+pub struct AudioStream(pub(crate) imp::source::DecodeStream);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn audio_stream_create(
@@ -10,7 +10,7 @@ pub unsafe extern "C" fn audio_stream_create(
     handle: AudioFileHandle,
 ) -> *mut AudioStream {
     let file = Box::new(AudioFile { api, handle });
-    let result = imp::source::SourceStream::from_source(file);
+    let result = imp::source::DecodeStream::from_io(file);
     match result {
         Ok(stream) => {
             let stream = Box::new(AudioStream(stream));
@@ -25,6 +25,13 @@ pub unsafe extern "C" fn audio_stream_create(
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn audio_stream_destroy(
+    ptr: *mut AudioStream,
+) {
+    drop(unsafe { Box::from_raw(ptr) });
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn audio_stream_play(
     ptr: *mut AudioStream,
 ) {
     drop(unsafe { Box::from_raw(ptr) });

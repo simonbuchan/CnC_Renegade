@@ -1,14 +1,12 @@
-use crate::imp::mixer::{Mixer, MixerCommand};
-use crate::imp::source::SourceStaticData;
+use crate::imp::mixer::{Mixer, MixerHandle};
 use anyhow::{Context, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use std::sync::{mpsc, Arc};
 
 pub struct Output {
     device: cpal::Device,
     output_config: cpal::StreamConfig,
     output_stream: cpal::Stream,
-    commands: mpsc::Sender<MixerCommand>,
+    mixer_handle: MixerHandle,
 }
 
 impl Output {
@@ -20,7 +18,7 @@ impl Output {
         let output_config = device.default_output_config()?;
         let output_config = output_config.config();
         // output_config.buffer_size = cpal::BufferSize::Fixed(16 * 1024);
-        let (commands, mut mixer) = Mixer::new(output_config.channels.into());
+        let (mut mixer, mixer_handle) = Mixer::new(output_config.channels.into());
 
         let output_stream = device
             .build_output_stream(
@@ -43,7 +41,7 @@ impl Output {
             device,
             output_config,
             output_stream,
-            commands,
+            mixer_handle,
         })
     }
 
@@ -55,10 +53,7 @@ impl Output {
         self.output_config.channels as usize
     }
 
-    pub fn play(&mut self, data: Arc<SourceStaticData>, gain: f32) {
-        assert_eq!(data.info.sample_rate, self.output_sample_rate());
-        self.commands
-            .send(MixerCommand::Play { data, gain })
-            .expect("send play failed");
+    pub fn mixer_handle(&self) -> &MixerHandle {
+        &self.mixer_handle
     }
 }
